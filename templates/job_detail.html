@@ -46,18 +46,45 @@
       <label for="llm_model">Model (optional)</label>
       <select id="llm_model" name="llm_model">
         {% set selected_model = job.llm_model or default_model %}
-        <option value="gpt-4o-mini" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
-        <option value="gpt-5-mini" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
-        <option value="gpt-4o" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
-        <option value="gpt-4.1" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
-        <option value="gpt-4.1-mini" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
-        <option value="o4-mini" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
-        <option value="o3-mini" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
-        <option value="gpt-5" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
-        <option value="gpt-5-nano" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+        <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
+        <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
+        <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
+        <option value="gpt-4.1" data-supports-images="true" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
+        <option value="gpt-4.1-mini" data-supports-images="true" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
+        <option value="o4-mini" data-supports-images="true" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
+        <option value="o3-mini" data-supports-images="false" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
+        <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
+        <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
       </select>
       <button type="submit">Rerun Job</button>
     </form>
+    {% if submission_requires_images %}
+      <script>
+        (function () {
+          var modelSelect = document.getElementById("llm_model");
+          if (!modelSelect) {
+            return;
+          }
+          var options = modelSelect.options;
+          var firstEnabled = null;
+          for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            var disabled = option.dataset.supportsImages === "false";
+            option.disabled = disabled;
+            if (!disabled && firstEnabled === null) {
+              firstEnabled = option.value;
+            }
+          }
+          if (
+            modelSelect.selectedOptions.length &&
+            modelSelect.selectedOptions[0].disabled &&
+            firstEnabled !== null
+          ) {
+            modelSelect.value = firstEnabled;
+          }
+        })();
+      </script>
+    {% endif %}
     {% if grade_result and grade_result.error_message and grade_result.raw_response %}
       <h3>Raw LLM Response (Error)</h3>
       <pre>{{ grade_result.raw_response }}</pre>

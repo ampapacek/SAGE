@@ -43,6 +43,16 @@ from processing.job_queue import enqueue_rubric_job, enqueue_submission_job, ini
 logger = logging.getLogger(__name__)
 
 _PRICE_ESTIMATE_RE = re.compile(r"price_estimate=\$([0-9]+(?:\.[0-9]+)?)")
+_IMAGE_CAPABLE_MODELS = {
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "o4-mini",
+}
 
 
 def _ensure_data_dirs():
@@ -60,6 +70,25 @@ def _extract_price_estimate(message):
         return float(match.group(1))
     except ValueError:
         return None
+
+
+def _model_supports_images(model_name):
+    if not model_name:
+        return False
+    name = model_name.strip().lower()
+    for model in _IMAGE_CAPABLE_MODELS:
+        if name == model or name.startswith(f"{model}-"):
+            return True
+    return False
+
+
+def _submission_requires_images(submission):
+    if not submission:
+        return False
+    for file_record in submission.files:
+        if file_record.file_type in {"pdf", "image"}:
+            return True
+    return False
 
 
 def _ensure_schema_updates():
@@ -355,6 +384,11 @@ def create_app():
         selected_model = request.form.get("llm_model", "").strip()
         if not selected_model:
             selected_model = app.config.get("LLM_MODEL")
+        if _submission_requires_images(job.submission) and not _model_supports_images(
+            selected_model
+        ):
+            flash("Selected model does not support images. Choose an image-capable model.")
+            return redirect(url_for("job_detail", job_id=job.id))
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
@@ -477,6 +511,13 @@ def create_app():
             flash("No submissions found in upload.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
+        requires_images = any(
+            _submission_requires_images(submission) for submission in submissions
+        )
+        if requires_images and not _model_supports_images(selected_model):
+            flash("Selected model does not support images. Choose an image-capable model.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+
         for submission in submissions:
             job = GradingJob(
                 assignment_id=assignment_id,
@@ -595,6 +636,7 @@ def create_app():
     def job_detail(job_id):
         job = GradingJob.query.get_or_404(job_id)
         auto_refresh = job.status in {JobStatus.QUEUED, JobStatus.RUNNING}
+        submission_requires_images = _submission_requires_images(job.submission)
         grade_result = (
             GradeResult.query.filter_by(
                 submission_id=job.submission_id, rubric_version_id=job.rubric_version_id
@@ -614,6 +656,7 @@ def create_app():
             grade_result=grade_result,
             auto_refresh=auto_refresh,
             default_model=app.config.get("LLM_MODEL"),
+            submission_requires_images=submission_requires_images,
         )
 
     @app.route("/jobs/<int:job_id>/terminate", methods=["POST"])
