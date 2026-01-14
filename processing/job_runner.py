@@ -141,6 +141,7 @@ def process_submission_job(job_id):
 
     raw_response = ""
     try:
+        # "rubric" here refers to the grading guide for the assignment.
         rubric = RubricVersion.query.get(job.rubric_version_id)
         if not rubric or rubric.status != RubricStatus.APPROVED:
             raise ValueError("Approved grading guide not found for this job.")

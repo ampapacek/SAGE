@@ -190,6 +190,7 @@ def _init_logging():
 
 
 def _get_approved_rubric(assignment_id):
+    # "rubric" here refers to the grading guide shown in the UI.
     return (
         RubricVersion.query.filter_by(
             assignment_id=assignment_id, status=RubricStatus.APPROVED

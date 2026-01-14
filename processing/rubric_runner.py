@@ -15,6 +15,7 @@ def _utcnow():
 
 
 def process_rubric_generation(rubric_id):
+    # "rubric" here means grading guide generation.
     rubric = RubricVersion.query.get(rubric_id)
     if not rubric:
         logger.error("Grading guide %s not found", rubric_id)

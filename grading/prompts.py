@@ -10,6 +10,7 @@ def build_grading_prompt(
     reference_solution_text,
     student_text,
 ):
+    # "rubric_text" holds the grading guide content.
     return f"""
 Grade the submission using the grading guide and reference solution.
 
