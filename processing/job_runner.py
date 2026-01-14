@@ -127,6 +127,7 @@ def process_submission_job(job_id):
     job.message = ""
     db.session.commit()
 
+    raw_response = ""
     try:
         rubric = RubricVersion.query.get(job.rubric_version_id)
         if not rubric or rubric.status != RubricStatus.APPROVED:
@@ -319,7 +320,7 @@ def process_submission_job(job_id):
         grade_result = _get_or_create_grade_result(job.submission_id, job.rubric_version_id)
         grade_result.json_result = "{}"
         grade_result.rendered_text = ""
-        grade_result.raw_response = ""
+        grade_result.raw_response = raw_response or ""
         grade_result.error_message = str(exc)
         job.status = JobStatus.ERROR
         job.finished_at = datetime.utcnow()
