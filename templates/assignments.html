@@ -3,13 +3,18 @@
 {% block content %}
   <div class="card">
     <h2>Create Assignment</h2>
-    <form method="post">
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" required />
-      <label for="assignment_text">Assignment Text</label>
-      <textarea id="assignment_text" name="assignment_text" required></textarea>
-      <button type="submit">Create</button>
-    </form>
+    <button type="button" class="secondary" onclick="document.getElementById('assignment-form').classList.toggle('hidden')">
+      Toggle Create Assignment
+    </button>
+    <div id="assignment-form" class="hidden">
+      <form method="post">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required />
+        <label for="assignment_text">Assignment Text</label>
+        <textarea id="assignment_text" name="assignment_text" required></textarea>
+        <button type="submit">Create</button>
+      </form>
+    </div>
   </div>
 
   <div class="card">
