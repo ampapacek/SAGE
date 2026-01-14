@@ -6,42 +6,158 @@
     <title>SAGE</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='sage.png') }}" />
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; color: #222; }
-      header { background: #222; color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      header a { color: #fff; text-decoration: none; }
+      :root {
+        --bg: #f5f5f5;
+        --card: #ffffff;
+        --text: #222222;
+        --muted: #666666;
+        --border: #dddddd;
+        --header-bg: #222222;
+        --header-text: #ffffff;
+        --link: #1b6ef3;
+        --accent: #1b6ef3;
+        --secondary: #555555;
+        --danger: #b00020;
+        --flash-bg: #fff6cc;
+        --flash-border: #e5d58c;
+        --input-bg: #ffffff;
+        --pre-bg: #f7f7f7;
+        --table-border: #eeeeee;
+        --status-draft: #555555;
+        --status-approved: #1b6ef3;
+        --status-archived: #999999;
+        --status-generating: #b36b00;
+        --status-error: #c00000;
+        --status-cancelled: #777777;
+        --status-success: #00aa77;
+        --file-bg: #fafafa;
+        --file-border: #bbbbbb;
+        --file-hover-bg: #f0f6ff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1115;
+          --card: #171a21;
+          --text: #e6e8ee;
+          --muted: #a7adba;
+          --border: #2a2f3a;
+          --header-bg: #0c2b45;
+          --header-text: #e6e8ee;
+          --link: #7db1ff;
+          --accent: #3b82f6;
+          --secondary: #4b5563;
+          --danger: #f87171;
+          --flash-bg: #2a2412;
+          --flash-border: #5b4a16;
+          --input-bg: #0f131a;
+          --pre-bg: #11161d;
+          --table-border: #232833;
+          --status-draft: #9ca3af;
+          --status-approved: #7db1ff;
+          --status-archived: #6b7280;
+          --status-generating: #f59e0b;
+          --status-error: #f87171;
+          --status-cancelled: #9ca3af;
+          --status-success: #34d399;
+          --file-bg: #0f131a;
+          --file-border: #3b4150;
+          --file-hover-bg: #0f1a2a;
+        }
+      }
+      html[data-theme="dark"] {
+        --bg: #0f1115;
+        --card: #171a21;
+        --text: #e6e8ee;
+        --muted: #a7adba;
+        --border: #2a2f3a;
+        --header-bg: #0c2b45;
+        --header-text: #e6e8ee;
+        --link: #7db1ff;
+        --accent: #3b82f6;
+        --secondary: #4b5563;
+        --danger: #f87171;
+        --flash-bg: #2a2412;
+        --flash-border: #5b4a16;
+        --input-bg: #0f131a;
+        --pre-bg: #11161d;
+        --table-border: #232833;
+        --status-draft: #9ca3af;
+        --status-approved: #7db1ff;
+        --status-archived: #6b7280;
+        --status-generating: #f59e0b;
+        --status-error: #f87171;
+        --status-cancelled: #9ca3af;
+        --status-success: #34d399;
+        --file-bg: #0f131a;
+        --file-border: #3b4150;
+        --file-hover-bg: #0f1a2a;
+      }
+      html[data-theme="light"] {
+        --bg: #f5f5f5;
+        --card: #ffffff;
+        --text: #222222;
+        --muted: #666666;
+        --border: #dddddd;
+        --header-bg: #222222;
+        --header-text: #ffffff;
+        --link: #1b6ef3;
+        --accent: #1b6ef3;
+        --secondary: #555555;
+        --danger: #b00020;
+        --flash-bg: #fff6cc;
+        --flash-border: #e5d58c;
+        --input-bg: #ffffff;
+        --pre-bg: #f7f7f7;
+        --table-border: #eeeeee;
+        --status-draft: #555555;
+        --status-approved: #1b6ef3;
+        --status-archived: #999999;
+        --status-generating: #b36b00;
+        --status-error: #c00000;
+        --status-cancelled: #777777;
+        --status-success: #00aa77;
+        --file-bg: #fafafa;
+        --file-border: #bbbbbb;
+        --file-hover-bg: #f0f6ff;
+      }
+      body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+      header { background: var(--header-bg); color: var(--header-text); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      header a { color: var(--header-text); text-decoration: none; }
       .logo { display: inline-flex; align-items: center; gap: 10px; }
       .logo img { height: 36px; width: 36px; max-height: 36px; max-width: 36px; object-fit: contain; display: block; }
       .hero-logo { width: 128px; height: 128px; max-width: 128px; max-height: 128px; object-fit: contain; display: block; }
-      .home-button { background: #1b6ef3; padding: 6px 12px; border-radius: 4px; display: inline-block; color: #fff; }
+      .home-button { background: var(--accent); padding: 6px 12px; border-radius: 4px; display: inline-block; color: #fff; }
       .back-button { background: #444; padding: 6px 12px; border-radius: 4px; border: none; color: #fff; cursor: pointer; }
+      .theme-toggle { background: transparent; border: 1px solid var(--header-text); color: var(--header-text); padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+      .theme-toggle:hover { background: rgba(255, 255, 255, 0.12); }
       .nav-buttons { display: flex; gap: 8px; align-items: center; }
       main { max-width: 1100px; margin: 20px auto; padding: 0 20px 40px; }
       h1, h2, h3 { margin: 0 0 12px; }
-      .card { background: #fff; padding: 16px; border-radius: 6px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+      .card { background: var(--card); padding: 16px; border-radius: 6px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
       form label { display: block; font-weight: bold; margin: 10px 0 6px; }
-      input[type="text"], textarea { display: block; width: 100%; max-width: 1040px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+      input[type="text"], textarea, select { display: block; width: 100%; max-width: 1040px; padding: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); border-radius: 4px; box-sizing: border-box; }
       textarea { min-height: 140px; resize: vertical; }
-      button { margin-top: 10px; padding: 8px 14px; border: none; background: #1b6ef3; color: #fff; border-radius: 4px; cursor: pointer; }
-      button.secondary { background: #555; }
-      button.danger { background: #b00020; }
-      .file-input { width: 100%; max-width: 1040px; padding: 18px; border: 2px dashed #bbb; border-radius: 6px; background: #fafafa; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; }
-      .file-input:hover { border-color: #1b6ef3; background: #f0f6ff; }
+      button { margin-top: 10px; padding: 8px 14px; border: none; background: var(--accent); color: #fff; border-radius: 4px; cursor: pointer; }
+      button.secondary { background: var(--secondary); }
+      button.danger { background: var(--danger); }
+      .file-input { width: 100%; max-width: 1040px; padding: 18px; border: 2px dashed var(--file-border); border-radius: 6px; background: var(--file-bg); color: var(--text); cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; }
+      .file-input:hover { border-color: var(--accent); background: var(--file-hover-bg); }
       table { width: 100%; border-collapse: collapse; }
-      th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
-      .flash { background: #fff6cc; padding: 10px; border: 1px solid #e5d58c; border-radius: 4px; margin-bottom: 16px; }
+      th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--table-border); }
+      .flash { background: var(--flash-bg); padding: 10px; border: 1px solid var(--flash-border); border-radius: 4px; margin-bottom: 16px; color: var(--text); }
       .status { font-weight: bold; }
-      .status.DRAFT { color: #555; }
-      .status.APPROVED { color: #1b6ef3; }
-      .status.ARCHIVED { color: #999; }
-      .status.GENERATING { color: #b36b00; }
-      .status.ERROR { color: #c00; }
-      .status.CANCELLED { color: #777; }
-      .status.SUCCESS { color: #0a7; }
+      .status.DRAFT { color: var(--status-draft); }
+      .status.APPROVED { color: var(--status-approved); }
+      .status.ARCHIVED { color: var(--status-archived); }
+      .status.GENERATING { color: var(--status-generating); }
+      .status.ERROR { color: var(--status-error); }
+      .status.CANCELLED { color: var(--status-cancelled); }
+      .status.SUCCESS { color: var(--status-success); }
       .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-      .thumb img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; }
+      .thumb img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; }
       .hidden { display: none; }
-      pre { white-space: pre-wrap; background: #f7f7f7; padding: 10px; border-radius: 4px; }
-      a { color: #1b6ef3; }
+      pre { white-space: pre-wrap; background: var(--pre-bg); padding: 10px; border-radius: 4px; color: var(--text); }
+      a { color: var(--link); }
     </style>
   </head>
   <body>
@@ -51,6 +167,7 @@
         <span>SAGE</span>
       </a>
       <div class="nav-buttons">
+        <button id="theme-toggle" class="theme-toggle" type="button">Theme</button>
         <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">Back</button>
         <a class="home-button" href="{{ url_for('list_assignments') }}">Home</a>
       </div>
@@ -65,5 +182,31 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var button = document.getElementById("theme-toggle");
+        if (!button) {
+          return;
+        }
+        function applyTheme(theme) {
+          if (theme) {
+            root.setAttribute("data-theme", theme);
+          } else {
+            root.removeAttribute("data-theme");
+          }
+        }
+        var stored = localStorage.getItem("sage-theme");
+        if (stored === "light" || stored === "dark") {
+          applyTheme(stored);
+        }
+        button.addEventListener("click", function () {
+          var current = root.getAttribute("data-theme");
+          var next = current === "dark" ? "light" : "dark";
+          applyTheme(next);
+          localStorage.setItem("sage-theme", next);
+        });
+      })();
+    </script>
   </body>
 </html>
