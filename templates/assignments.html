@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>Create Assignment</h2>
+    <form method="post">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required />
+      <label for="assignment_text">Assignment Text</label>
+      <textarea id="assignment_text" name="assignment_text" required></textarea>
+      <button type="submit">Create</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Assignments</h2>
+    {% if assignments %}
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for assignment in assignments %}
+            <tr>
+              <td>{{ assignment.title }}</td>
+              <td>{{ assignment.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>
+                <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">Open</a>
+                <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+                  <button type="submit" class="danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No assignments yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if has_active_jobs or has_pending_rubrics %}
+    <script>
+      (function () {
+        var statusUrl = "{{ url_for('assignment_status', assignment_id=assignment.id) }}";
+        var intervalId = setInterval(function () {
+          fetch(statusUrl)
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+              if (!data.has_active_jobs && !data.has_pending_rubrics) {
+                clearInterval(intervalId);
+                window.location.reload();
+              }
+            })
+            .catch(function () {});
+        }, 4000);
+      })();
+    </script>
+  {% endif %}
+  <div class="card">
+    <h2>{{ assignment.title }}</h2>
+    <pre>{{ assignment.assignment_text }}</pre>
+    <p>
+      Total Price Estimate (guides + jobs):
+      {% if total_price_estimate is not none %}
+        ${{ "%.4f"|format(total_price_estimate) }}
+      {% else %}
+        --
+      {% endif %}
+    </p>
+    <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+      <button type="submit" class="danger">Delete Assignment</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Grading Guides</h3>
+    {% if rubrics %}
+      <table>
+        <thead>
+          <tr>
+            <th>Guide #</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Model</th>
+            <th>Duration (s)</th>
+            <th>Price</th>
+            <th>Preview</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rubric in rubrics %}
+            <tr>
+              <td>{{ rubric.id }}</td>
+              <td class="status {{ rubric.status }}">{{ rubric.status }}</td>
+              <td>{{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ rubric.llm_model or 'manual' }}</td>
+              <td>
+                {% if rubric.duration_seconds is not none %}
+                  {{ "%.2f"|format(rubric.duration_seconds) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td>
+                {% if rubric.price_estimate is not none %}
+                  ${{ "%.4f"|format(rubric.price_estimate) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td>
+                {% set words = rubric.rubric_text.split() %}
+                {% if words %}
+                  {{ words[:5]|join(' ') }}{% if words|length > 5 %}...{% endif %}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">View</a>
+                {% if rubric.status == 'DRAFT' %}
+                  <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
+                    <button type="submit" class="secondary">Approve Guide</button>
+                  </form>
+                {% elif rubric.status == 'GENERATING' %}
+                  <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
+                    <button type="submit" class="secondary">Cancel</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('delete_rubric', rubric_id=rubric.id) }}" onsubmit="return confirm('Delete this grading guide and related results?');">
+                  <button type="submit" class="danger">Delete Guide</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No grading guides yet.</p>
+    {% endif %}
+
+    <h4>Grading Guide Creation</h4>
+    <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
+      Toggle Guide Form
+    </button>
+    <div id="rubric-forms" {% if approved_rubric %}class="hidden"{% endif %}>
+      <h4>Create Grading Guide (Manual)</h4>
+      <form method="post" action="{{ url_for('create_rubric', assignment_id=assignment.id) }}">
+        <label for="rubric_text">Grading Guide Text</label>
+        <textarea id="rubric_text" name="rubric_text" required></textarea>
+        <label for="reference_solution_text">Reference Solution</label>
+        <textarea id="reference_solution_text" name="reference_solution_text" required></textarea>
+        <button type="submit">Save Draft</button>
+      </form>
+
+      <h4>Generate Draft Guide</h4>
+      <form method="post" action="{{ url_for('generate_rubric', assignment_id=assignment.id) }}">
+        <label for="rubric_model">Model (optional)</label>
+        <select id="rubric_model" name="llm_model">
+          {% set selected_model = default_model %}
+          <option value="gpt-4o-mini" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
+          <option value="gpt-5-mini" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
+          <option value="gpt-4o" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
+          <option value="gpt-4.1" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
+          <option value="gpt-4.1-mini" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
+          <option value="o4-mini" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
+          <option value="o3-mini" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
+          <option value="gpt-5" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
+          <option value="gpt-5-nano" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+        </select>
+        <button type="submit">Generate Draft via LLM</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Upload Submissions</h3>
+    {% if not approved_rubric %}
+      <p><strong>No approved grading guide yet. Uploads will not be graded.</strong></p>
+    {% endif %}
+    <form method="post" action="{{ url_for('upload_submission', assignment_id=assignment.id) }}" enctype="multipart/form-data">
+      <label for="student_identifier">Student Identifier (single upload)</label>
+      <input type="text" id="student_identifier" name="student_identifier" />
+      <label for="llm_model">Model (optional)</label>
+      <select id="llm_model" name="llm_model">
+        {% set selected_model = default_model %}
+        <option value="gpt-4o-mini" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
+        <option value="gpt-5-mini" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
+        <option value="gpt-4o" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
+        <option value="gpt-4.1" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
+        <option value="gpt-4.1-mini" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
+        <option value="o4-mini" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
+        <option value="o3-mini" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
+        <option value="gpt-5" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
+        <option value="gpt-5-nano" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+      </select>
+      <label for="submitted_text">Submitted Text (optional)</label>
+      <textarea id="submitted_text" name="submitted_text"></textarea>
+      <label for="files">Files (PDF, images, text)</label>
+      <input type="file" id="files" name="files" multiple />
+      <label for="zip_file">Or ZIP with folders per student</label>
+      <input type="file" id="zip_file" name="zip_file" accept=".zip" />
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Submissions</h3>
+    {% if submissions %}
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Created</th>
+            <th>Grade</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for submission in submissions %}
+            <tr>
+              <td>{{ submission.student_identifier }}</td>
+              <td>{{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>
+                {% if submission.grade_results %}
+                  {{ submission.grade_results[-1].total_points }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td><a href="{{ url_for('submission_detail', submission_id=submission.id) }}">Open</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p><a href="{{ url_for('export_csv', assignment_id=assignment.id) }}">Export CSV</a></p>
+    {% else %}
+      <p>No submissions yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Jobs</h3>
+    {% if jobs %}
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Submission #</th>
+            <th>Student</th>
+            <th>Model</th>
+            <th>Duration (s)</th>
+            <th>Price</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+            <tr>
+              <td class="status {{ job.status }}">{{ job.status }}</td>
+              <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ job.submission_id }}</td>
+              <td>{{ job.submission.student_identifier if job.submission else 'unknown' }}</td>
+              <td>{{ job.llm_model or 'unknown' }}</td>
+              <td>
+                {% if job.duration_seconds is not none %}
+                  {{ "%.2f"|format(job.duration_seconds) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td>
+                {% if job.price_estimate_display is not none %}
+                  ${{ "%.4f"|format(job.price_estimate_display) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('job_detail', job_id=job.id) }}">View</a>
+                {% if job.status in ['QUEUED', 'RUNNING'] %}
+                  <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
+                    <button type="submit" class="secondary">Terminate</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{{ url_for('delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete this job?');">
+                    <button type="submit" class="danger">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No jobs yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

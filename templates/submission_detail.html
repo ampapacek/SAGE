@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>Submission {{ submission.id }} - {{ submission.student_identifier }}</h2>
+    <p>Assignment: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
+    <p>Submitted: {{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+  </div>
+
+  <div class="card">
+    <h3>Submitted Text</h3>
+    {% if student_text %}
+      <pre>{{ student_text }}</pre>
+    {% else %}
+      <p>No submitted text.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Files</h3>
+    {% if submission.files %}
+      <ul>
+        {% for file in submission.files %}
+          <li><a href="{{ url_for('data_file', filepath=file.file_path) }}">{{ file.original_filename }}</a> ({{ file.file_type }})</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No files.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Images</h3>
+    {% if images %}
+      <div class="grid">
+        {% for path in images %}
+          <div class="thumb">
+            <img src="{{ url_for('data_file', filepath=path) }}" alt="page" />
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No images rendered.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Grade Result</h3>
+    {% if grade_result %}
+      {% if grade_result.error_message %}
+        <p class="status ERROR">Error: {{ grade_result.error_message }}</p>
+        {% if grade_result.raw_response %}
+          <h4>Raw LLM Response</h4>
+          <pre>{{ grade_result.raw_response }}</pre>
+        {% endif %}
+      {% endif %}
+      <pre>{{ grade_result.rendered_text }}</pre>
+      <h4>Raw JSON</h4>
+      <pre>{{ grade_result.json_result }}</pre>
+    {% else %}
+      <p>No grade result yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

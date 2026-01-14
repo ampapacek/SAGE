@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% if auto_refresh %}
+    <script>
+      setTimeout(function () {
+        window.location.reload();
+      }, 5000);
+    </script>
+  {% endif %}
+  <div class="card">
+    <h2>Job {{ job.id }}</h2>
+    <p>Status: <span class="status {{ job.status }}">{{ job.status }}</span></p>
+    <p>Model: {{ job.llm_model or 'unknown' }}</p>
+    <p>Submission # <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
+    <p>Student: {{ job.submission.student_identifier if job.submission else 'unknown' }}</p>
+    <p>Guide Version: {{ job.rubric_version_id }}</p>
+    <p>Created: {{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% if job.started_at %}
+      <p>Started: {{ job.started_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% endif %}
+    {% if job.finished_at %}
+      <p>Finished: {{ job.finished_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% endif %}
+    {% if duration_seconds is not none %}
+      <p>Duration: {{ "%.2f"|format(duration_seconds) }} seconds</p>
+    {% endif %}
+    {% if job.price_estimate is not none %}
+      <p>Price Estimate: ${{ "%.4f"|format(job.price_estimate) }}</p>
+    {% endif %}
+    {% if job.message %}
+      <h3>Processing Summary</h3>
+      <pre>{{ job.message }}</pre>
+    {% endif %}
+    {% if job.status in ['QUEUED', 'RUNNING'] %}
+      <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
+        <button type="submit" class="secondary">Terminate Job</button>
+      </form>
+    {% endif %}
+    {% if job.status not in ['QUEUED', 'RUNNING'] %}
+      <form method="post" action="{{ url_for('delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete this job?');">
+        <button type="submit" class="danger">Delete Job</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
+      <label for="llm_model">Model (optional)</label>
+      <select id="llm_model" name="llm_model">
+        {% set selected_model = job.llm_model or default_model %}
+        <option value="gpt-4o-mini" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
+        <option value="gpt-5-mini" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
+        <option value="gpt-4o" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
+        <option value="gpt-4.1" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
+        <option value="gpt-4.1-mini" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
+        <option value="o4-mini" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
+        <option value="o3-mini" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
+        <option value="gpt-5" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
+        <option value="gpt-5-nano" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+      </select>
+      <button type="submit">Rerun Job</button>
+    </form>
+    {% if grade_result and grade_result.error_message and grade_result.raw_response %}
+      <h3>Raw LLM Response (Error)</h3>
+      <pre>{{ grade_result.raw_response }}</pre>
+    {% endif %}
+  </div>
+{% endblock %}

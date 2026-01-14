@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>Grading Guide {{ rubric.id }}</h2>
+    <p>Assignment: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
+    <p>Status: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
+    <p>Model: {{ rubric.llm_model or 'manual' }}</p>
+    <p>Created: {{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    {% if duration_seconds is not none %}
+      <p>Duration: {{ "%.2f"|format(duration_seconds) }} seconds</p>
+    {% endif %}
+    {% if rubric.price_estimate is not none %}
+      <p>Price Estimate: ${{ "%.4f"|format(rubric.price_estimate) }}</p>
+    {% endif %}
+    {% if rubric.error_message %}
+      <p class="status ERROR">Error: {{ rubric.error_message }}</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Grading Guide Text</h3>
+    <pre>{{ rubric.rubric_text or 'Not available yet.' }}</pre>
+  </div>
+
+  <div class="card">
+    <h3>Reference Solution</h3>
+    <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
+  </div>
+
+  {% if rubric.raw_response %}
+    <div class="card">
+      <h3>Raw LLM Response</h3>
+      <pre>{{ rubric.raw_response }}</pre>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    {% if rubric.status == 'DRAFT' %}
+      <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
+        <button type="submit">Approve Guide</button>
+      </form>
+    {% elif rubric.status == 'GENERATING' %}
+      <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
+        <button type="submit" class="secondary">Cancel Generation</button>
+      </form>
+    {% elif rubric.status == 'APPROVED' %}
+      <p>Approved guide in use.</p>
+    {% else %}
+      <p>Guide is not ready to approve.</p>
+    {% endif %}
+  </div>
+{% endblock %}

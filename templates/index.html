@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h1>SAGE</h1>
+    <p><strong>System for Automated Grading & Evaluation</strong></p>
+    <p>Grading workspace for assignments, submissions, and AI-assisted feedback.</p>
+    <div style="margin: 16px 0;">
+      <img src="{{ url_for('static', filename='sage.png') }}" alt="" aria-hidden="true" class="hero-logo" />
+    </div>
+    <div style="margin-top: 16px;">
+      <a href="{{ url_for('list_assignments') }}" class="home-button">Go to Assignments</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Quick Start</h2>
+    <ol>
+      <li>Create an assignment with the prompt or problem statement.</li>
+      <li>Create or generate a draft grading guide and approve it.</li>
+      <li>Upload submissions (PDFs/images/text).</li>
+      <li>Review automated results and export grades.</li>
+    </ol>
+  </div>
+{% endblock %}
