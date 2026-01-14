@@ -2,6 +2,7 @@ import csv
 import io
 import logging
 import html
+import os
 import re
 import shutil
 from datetime import datetime, timezone
@@ -56,6 +57,111 @@ _IMAGE_CAPABLE_MODELS = {
     "gpt-5-nano",
     "o4-mini",
 }
+_MODEL_OPTIONS = [
+    "gpt-4o-mini",
+    "gpt-5-mini",
+    "gpt-4o",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "o4-mini",
+    "o3-mini",
+    "gpt-5",
+    "gpt-5-nano",
+]
+_SETTINGS_FIELDS = [
+    {
+        "key": "SECRET_KEY",
+        "label": "Flask Secret Key",
+        "type": "text",
+        "help": "Used to sign sessions; change requires restart.",
+        "restart": True,
+    },
+    {
+        "key": "LLM_API_KEY",
+        "label": "LLM API Key",
+        "type": "password",
+        "help": "Stored in .env and used for LLM requests.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_API_BASE_URL",
+        "label": "LLM API Base URL",
+        "type": "text",
+        "help": "Example: https://api.openai.com/v1",
+        "restart": False,
+    },
+    {
+        "key": "LLM_MODEL",
+        "label": "Default LLM Model",
+        "type": "select",
+        "options": _MODEL_OPTIONS,
+        "help": "Used when no model is chosen elsewhere.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_USE_JSON_MODE",
+        "label": "LLM JSON Mode",
+        "type": "checkbox",
+        "help": "Force JSON responses when supported.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_MAX_OUTPUT_TOKENS",
+        "label": "LLM Max Output Tokens",
+        "type": "number",
+        "help": "Upper limit for model output.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_REQUEST_TIMEOUT",
+        "label": "LLM Request Timeout (seconds)",
+        "type": "number",
+        "help": "HTTP timeout for LLM calls.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_PRICE_INPUT_PER_1K",
+        "label": "LLM Price Input per 1K Tokens",
+        "type": "number",
+        "help": "Fallback input pricing when model rate unknown.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_PRICE_OUTPUT_PER_1K",
+        "label": "LLM Price Output per 1K Tokens",
+        "type": "number",
+        "help": "Fallback output pricing when model rate unknown.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_IMAGE_TOKENS_PER_IMAGE",
+        "label": "LLM Image Tokens per Image",
+        "type": "number",
+        "help": "Estimated token cost per image for pricing.",
+        "restart": False,
+    },
+    {
+        "key": "REDIS_URL",
+        "label": "Redis URL",
+        "type": "text",
+        "help": "If blank, fallback worker is used. Restart required.",
+        "restart": True,
+    },
+    {
+        "key": "MAX_CONTENT_LENGTH",
+        "label": "Upload Size Limit (bytes)",
+        "type": "number",
+        "help": "Max upload size for Flask.",
+        "restart": True,
+    },
+    {
+        "key": "PDF_DPI",
+        "label": "PDF Render DPI",
+        "type": "number",
+        "help": "DPI used for PDF rendering.",
+        "restart": False,
+    },
+]
 
 _ALLOWED_TAGS = [
     "p",
@@ -115,6 +221,63 @@ def _extract_price_estimate(message):
         return float(match.group(1))
     except ValueError:
         return None
+
+
+def _env_file_path():
+    return Path(__file__).resolve().parent / ".env"
+
+
+def _load_env_lines():
+    env_path = _env_file_path()
+    if not env_path.exists():
+        return []
+    return env_path.read_text().splitlines()
+
+
+def _format_env_value(value):
+    if value is None:
+        return ""
+    value = str(value)
+    if any(ch in value for ch in [" ", "#", "=", '"', "'"]):
+        escaped = value.replace('"', '\\"')
+        return f"\"{escaped}\""
+    return value
+
+
+def _update_env_file(values):
+    lines = _load_env_lines()
+    if not lines:
+        lines = []
+    keys = set(values.keys())
+    seen = set()
+    updated_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            updated_lines.append(line)
+            continue
+        key, _rest = line.split("=", 1)
+        key = key.strip()
+        if key in keys:
+            updated_lines.append(f"{key}={_format_env_value(values[key])}")
+            seen.add(key)
+        else:
+            updated_lines.append(line)
+    for key in keys:
+        if key not in seen:
+            updated_lines.append(f"{key}={_format_env_value(values[key])}")
+    _env_file_path().write_text("\n".join(updated_lines).rstrip() + "\n")
+
+
+def _current_setting_value(app, key):
+    if key in os.environ:
+        return os.environ.get(key, "")
+    value = app.config.get(key)
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return str(value)
 
 
 def _extract_math_blocks(text):
@@ -815,6 +978,52 @@ def create_app():
         db.session.commit()
         flash("Job deleted.")
         return redirect(url_for("assignment_detail", assignment_id=job.assignment_id))
+
+    @app.route("/settings", methods=["GET", "POST"])
+    def settings():
+        if request.method == "POST":
+            updates = {}
+            for field in _SETTINGS_FIELDS:
+                key = field["key"]
+                field_type = field.get("type")
+                if field_type == "checkbox":
+                    updates[key] = "1" if request.form.get(key) else "0"
+                else:
+                    updates[key] = request.form.get(key, "").strip()
+            _update_env_file(updates)
+            for key, value in updates.items():
+                os.environ[key] = value
+                app.config[key] = value
+                if key in {"LLM_USE_JSON_MODE"}:
+                    app.config[key] = value.lower() in {"1", "true", "yes", "on"}
+                if key in {
+                    "LLM_MAX_OUTPUT_TOKENS",
+                    "LLM_REQUEST_TIMEOUT",
+                    "LLM_IMAGE_TOKENS_PER_IMAGE",
+                    "MAX_CONTENT_LENGTH",
+                    "PDF_DPI",
+                }:
+                    try:
+                        app.config[key] = int(value) if value else app.config.get(key)
+                    except ValueError:
+                        pass
+                if key in {"LLM_PRICE_INPUT_PER_1K", "LLM_PRICE_OUTPUT_PER_1K"}:
+                    try:
+                        app.config[key] = float(value) if value else app.config.get(key)
+                    except ValueError:
+                        pass
+            flash("Settings saved to .env. Restart may be required for some changes.")
+            return redirect(url_for("settings"))
+
+        field_values = {
+            field["key"]: _current_setting_value(app, field["key"])
+            for field in _SETTINGS_FIELDS
+        }
+        return render_template(
+            "settings.html",
+            fields=_SETTINGS_FIELDS,
+            values=field_values,
+        )
 
     @app.route("/jobs/<int:job_id>/rerun", methods=["POST"])
     def rerun_job(job_id):

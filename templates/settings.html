@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>Settings</h2>
+    <p class="helper-text">Edit values stored in <code>.env</code>. Some changes require a restart.</p>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% for field in fields %}
+        <div style="margin-bottom: 16px;">
+          <label for="{{ field.key }}">{{ field.label }}</label>
+          {% if field.type == "select" %}
+            <select id="{{ field.key }}" name="{{ field.key }}">
+              {% for option in field.options %}
+                <option value="{{ option }}" {% if values[field.key] == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% elif field.type == "checkbox" %}
+            <input type="checkbox" id="{{ field.key }}" name="{{ field.key }}" value="1" {% if values[field.key] in ["1", "true", "yes", "on"] %}checked{% endif %} />
+          {% else %}
+            <input
+              type="{{ field.type }}"
+              id="{{ field.key }}"
+              name="{{ field.key }}"
+              value="{{ values[field.key] }}"
+            />
+          {% endif %}
+          {% if field.help %}
+            <div class="dropzone-hint">{{ field.help }}</div>
+          {% endif %}
+          {% if field.restart %}
+            <div class="dropzone-hint">Restart required.</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit">Save Settings</button>
+    </form>
+  </div>
+{% endblock %}
