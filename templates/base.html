@@ -144,6 +144,9 @@
       button.danger { background: var(--danger); }
       .file-input { width: 100%; max-width: 1040px; padding: 18px; border: 2px dashed var(--file-border); border-radius: 6px; background: var(--file-bg); color: var(--text); cursor: pointer; box-sizing: border-box; transition: border-color 0.15s ease, background-color 0.15s ease; }
       .file-input:hover { border-color: var(--accent); background: var(--file-hover-bg); }
+      .dropzone { margin-bottom: 12px; }
+      .dropzone.active .file-input { border-color: var(--accent); background: var(--file-hover-bg); }
+      .dropzone-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
       table { width: 100%; border-collapse: collapse; }
       th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--table-border); }
       .flash { background: var(--flash-bg); padding: 10px; border: 1px solid var(--flash-border); border-radius: 4px; margin-bottom: 16px; color: var(--text); }

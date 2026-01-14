@@ -165,10 +165,16 @@
       </select>
       <label for="submitted_text">Submitted Text (optional)</label>
       <textarea id="submitted_text" name="submitted_text"></textarea>
-      <label for="files">Files (PDF, images, text)</label>
-      <input type="file" id="files" name="files" multiple class="file-input" />
-      <label for="zip_file">Or ZIP with folders per student</label>
-      <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
+      <div class="dropzone" id="files-drop">
+        <label for="files">Files (PDF, images, text)</label>
+        <input type="file" id="files" name="files" multiple class="file-input" />
+        <div class="dropzone-hint">Drag and drop files here or click to browse.</div>
+      </div>
+      <div class="dropzone" id="zip-drop">
+        <label for="zip_file">Or ZIP with folders per student</label>
+        <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
+        <div class="dropzone-hint">Drag and drop a ZIP here or click to browse.</div>
+      </div>
       <button type="submit">Upload</button>
       </fieldset>
     </form>
@@ -177,9 +183,55 @@
         var fileInput = document.getElementById("files");
         var zipInput = document.getElementById("zip_file");
         var modelSelect = document.getElementById("llm_model");
+        var filesDrop = document.getElementById("files-drop");
+        var zipDrop = document.getElementById("zip-drop");
         if (!fileInput || !zipInput || !modelSelect) {
           return;
         }
+        function setupDropZone(zone, input, filterFn) {
+          if (!zone || !input) {
+            return;
+          }
+          function setActive(active) {
+            if (active) {
+              zone.classList.add("active");
+            } else {
+              zone.classList.remove("active");
+            }
+          }
+          zone.addEventListener("dragenter", function (event) {
+            event.preventDefault();
+            setActive(true);
+          });
+          zone.addEventListener("dragover", function (event) {
+            event.preventDefault();
+            setActive(true);
+          });
+          zone.addEventListener("dragleave", function () {
+            setActive(false);
+          });
+          zone.addEventListener("drop", function (event) {
+            event.preventDefault();
+            setActive(false);
+            var files = Array.prototype.slice.call(event.dataTransfer.files || []);
+            if (filterFn) {
+              files = files.filter(filterFn);
+            }
+            if (!files.length) {
+              return;
+            }
+            var dataTransfer = new DataTransfer();
+            files.forEach(function (file) {
+              dataTransfer.items.add(file);
+            });
+            input.files = dataTransfer.files;
+            input.dispatchEvent(new Event("change"));
+          });
+        }
+        setupDropZone(filesDrop, fileInput, null);
+        setupDropZone(zipDrop, zipInput, function (file) {
+          return (file.name || "").toLowerCase().endsWith(".zip");
+        });
         function optionSupportsImages(option) {
           return option.dataset.supportsImages !== "false";
         }
