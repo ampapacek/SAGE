@@ -140,9 +140,10 @@
   <div class="card">
     <h3>Upload Submissions</h3>
     {% if not approved_rubric %}
-      <p><strong>No approved grading guide yet. Uploads will not be graded.</strong></p>
+      <p><strong>Approve a grading guide to enable submissions.</strong></p>
     {% endif %}
     <form method="post" action="{{ url_for('upload_submission', assignment_id=assignment.id) }}" enctype="multipart/form-data">
+      <fieldset {% if not approved_rubric %}disabled{% endif %}>
       <label for="student_identifier">Student Identifier (single upload)</label>
       <input type="text" id="student_identifier" name="student_identifier" />
       <label for="llm_model">Model (optional)</label>
@@ -165,6 +166,7 @@
       <label for="zip_file">Or ZIP with folders per student</label>
       <input type="file" id="zip_file" name="zip_file" accept=".zip" />
       <button type="submit">Upload</button>
+      </fieldset>
     </form>
   </div>
 

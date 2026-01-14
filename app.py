@@ -440,6 +440,10 @@ def create_app():
     @app.route("/assignments/<int:assignment_id>/submissions/upload", methods=["POST"])
     def upload_submission(assignment_id):
         assignment = Assignment.query.get_or_404(assignment_id)
+        approved_rubric = _get_approved_rubric(assignment_id)
+        if not approved_rubric:
+            flash("Approve a grading guide before uploading submissions.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
         zip_file = request.files.get("zip_file")
         selected_model = request.form.get("llm_model", "").strip()
         if not selected_model:
@@ -471,11 +475,6 @@ def create_app():
 
         if not submissions:
             flash("No submissions found in upload.")
-            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
-
-        approved_rubric = _get_approved_rubric(assignment_id)
-        if not approved_rubric:
-            flash("No approved grading guide. Submissions uploaded but not graded.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
         for submission in submissions:
