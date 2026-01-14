@@ -144,6 +144,49 @@
       display: block;
       margin-top: 8px;
     }
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .step-item {
+      display: grid;
+      grid-template-columns: minmax(200px, 1fr) minmax(200px, 1.2fr);
+      gap: 16px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--card);
+    }
+    .step-item img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .step-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .step-pair img {
+      max-height: 220px;
+    }
+    .step-item h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+    .step-item p {
+      margin: 0;
+      color: var(--muted);
+    }
+    @media (max-width: 760px) {
+      .step-item {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 
   <section class="hero">
@@ -208,6 +251,60 @@
       <div class="step-card"><span>Create or generate a draft grading guide and approve it.</span></div>
       <div class="step-card"><span>Upload submissions (PDFs, images, or text).</span></div>
       <div class="step-card"><span>Review automated results and export grades.</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Quick Start Walkthrough</h2>
+    <div class="step-list">
+      <div class="step-item">
+        <div>
+          <h3>Step 1 — Create an assignment</h3>
+          <p>Add the assignment title and problem statement to start a new grading run.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/quickstart-1.png') }}" alt="Create assignment screen" />
+      </div>
+      <div class="step-item">
+        <div>
+          <h3>Step 2 — Build a grading guide</h3>
+          <p>Create a guide manually or generate a draft with the model, then approve it.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/quickstart-2.png') }}" alt="Grading guide creation screen" />
+      </div>
+      <div class="step-item">
+        <div>
+          <h3>Step 2a — Guide examples</h3>
+          <p>See an example grading guide alongside the reference solution.</p>
+        </div>
+        <div class="step-pair">
+          <img src="{{ url_for('static', filename='images/guide-example.png') }}" alt="Example grading guide" />
+          <img src="{{ url_for('static', filename='images/reference-solution.png') }}" alt="Example reference solution" />
+        </div>
+      </div>
+      <div class="step-item">
+        <div>
+          <h3>Step 3 — Upload submissions</h3>
+          <p>Upload PDFs, images, or text files. ZIPs with all students are supported.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/quickstart-3.png') }}" alt="Submission upload screen" />
+      </div>
+      <div class="step-item">
+        <div>
+          <h3>Step 4 — Review results</h3>
+          <p>Inspect the feedback and export grades after instructor review.</p>
+        </div>
+        <img src="{{ url_for('static', filename='images/quickstart-4.png') }}" alt="Results and export screen" />
+      </div>
+      <div class="step-item">
+        <div>
+          <h3>Step 4a — Detailed submission view</h3>
+          <p>Open individual submissions to see detailed feedback and annotated results.</p>
+        </div>
+        <div class="step-pair">
+          <img src="{{ url_for('static', filename='images/submission-detail-1.png') }}" alt="Submission detail view" />
+          <img src="{{ url_for('static', filename='images/submission-detail-2.png') }}" alt="Submission detail feedback" />
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}
