@@ -59,7 +59,11 @@
               <td>{{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
               <td>{{ rubric.llm_model or 'manual' }}</td>
               <td>
-                {% if rubric.duration_seconds is not none %}
+                {% if rubric.status == 'GENERATING' and rubric.created_at %}
+                  <span class="duration-live" data-start="{{ rubric.created_at.isoformat() }}">
+                    {{ "%.2f"|format(rubric.duration_seconds or 0) }}
+                  </span>
+                {% elif rubric.duration_seconds is not none %}
                   {{ "%.2f"|format(rubric.duration_seconds) }}
                 {% else %}
                   --
@@ -286,7 +290,11 @@
               <td>{{ job.submission.student_identifier if job.submission else 'unknown' }}</td>
               <td>{{ job.llm_model or 'unknown' }}</td>
               <td>
-                {% if job.duration_seconds is not none %}
+                {% if job.status == 'RUNNING' and job.started_at %}
+                  <span class="duration-live" data-start="{{ job.started_at.isoformat() }}">
+                    {{ "%.2f"|format(job.duration_seconds or 0) }}
+                  </span>
+                {% elif job.duration_seconds is not none %}
                   {{ "%.2f"|format(job.duration_seconds) }}
                 {% else %}
                   --
@@ -319,4 +327,42 @@
       <p>No jobs yet.</p>
     {% endif %}
   </div>
+
+  <script>
+    (function () {
+      function parseStart(value) {
+        if (!value) {
+          return null;
+        }
+        var hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(value);
+        var normalized = hasTimezone ? value : value + "Z";
+        var date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        return date;
+      }
+      function updateDurations() {
+        var nodes = document.querySelectorAll(".duration-live");
+        if (!nodes.length) {
+          return;
+        }
+        var now = Date.now();
+        nodes.forEach(function (node) {
+          var startValue = node.getAttribute("data-start");
+          var start = parseStart(startValue);
+          if (!start) {
+            return;
+          }
+          var seconds = (now - start.getTime()) / 1000;
+          if (seconds < 0) {
+            seconds = 0;
+          }
+          node.textContent = seconds.toFixed(2);
+        });
+      }
+      updateDurations();
+      setInterval(updateDurations, 1000);
+    })();
+  </script>
 {% endblock %}
