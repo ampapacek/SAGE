@@ -43,7 +43,7 @@
     {% endif %}
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
       <label for="llm_model">Model options</label>
-      <select id="llm_model" name="llm_model">
+      <select id="llm_model" name="llm_model" class="compact-select">
         {% set selected_model = job.llm_model or default_model %}
         <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
         <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
