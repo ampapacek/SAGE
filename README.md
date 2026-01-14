@@ -23,6 +23,19 @@ pip install -r requirements.txt
 brew install poppler
 ```
 
+Linux options:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y poppler-utils
+
+# Fedora
+sudo dnf install -y poppler-utils
+
+# Arch
+sudo pacman -S poppler
+```
+
 ## Configure Environment
 
 Copy `.env.example` to `.env` and edit as needed:
