@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import Config
 from db import db
@@ -26,6 +26,18 @@ from processing.pdf_render import render_pdf_to_images
 logger = logging.getLogger(__name__)
 
 
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _is_cancelled(job_id):
     job = db.session.get(GradingJob, job_id)
     if not job:
@@ -39,7 +51,7 @@ def _finalize_cancelled(job_id, summary_lines):
     if not job:
         return
     if not job.finished_at:
-        job.finished_at = datetime.utcnow()
+        job.finished_at = _utcnow()
     if "Cancelled by user." not in job.message:
         summary_lines.append("Cancelled by user.")
         job.message = "\n".join(summary_lines)
@@ -123,7 +135,7 @@ def process_submission_job(job_id):
     job.status = JobStatus.RUNNING
     if not job.llm_model:
         job.llm_model = Config.LLM_MODEL
-    job.started_at = datetime.utcnow()
+    job.started_at = _utcnow()
     job.message = ""
     db.session.commit()
 
@@ -293,8 +305,8 @@ def process_submission_job(job_id):
         grade_result.error_message = ""
 
         job.status = JobStatus.SUCCESS
-        job.finished_at = datetime.utcnow()
-        duration_seconds = (job.finished_at - job.started_at).total_seconds()
+        job.finished_at = _utcnow()
+        duration_seconds = (_as_utc(job.finished_at) - _as_utc(job.started_at)).total_seconds()
         summary_lines.append(f"Duration: {duration_seconds:.2f} seconds")
         job.message = "\n".join(summary_lines)
         db.session.commit()
@@ -308,8 +320,8 @@ def process_submission_job(job_id):
         grade_result.raw_response = exc.raw_text or ""
         grade_result.error_message = str(exc)
         job.status = JobStatus.ERROR
-        job.finished_at = datetime.utcnow()
-        duration_seconds = (job.finished_at - job.started_at).total_seconds()
+        job.finished_at = _utcnow()
+        duration_seconds = (_as_utc(job.finished_at) - _as_utc(job.started_at)).total_seconds()
         summary_lines.append(f"Duration: {duration_seconds:.2f} seconds")
         summary_lines.append(f"Error: {exc}")
         job.message = "\n".join(summary_lines)
@@ -323,8 +335,8 @@ def process_submission_job(job_id):
         grade_result.raw_response = raw_response or ""
         grade_result.error_message = str(exc)
         job.status = JobStatus.ERROR
-        job.finished_at = datetime.utcnow()
-        duration_seconds = (job.finished_at - job.started_at).total_seconds()
+        job.finished_at = _utcnow()
+        duration_seconds = (_as_utc(job.finished_at) - _as_utc(job.started_at)).total_seconds()
         summary_lines.append(f"Duration: {duration_seconds:.2f} seconds")
         summary_lines.append(f"Error: {exc}")
         job.message = "\n".join(summary_lines)

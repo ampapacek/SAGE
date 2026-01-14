@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import Config
 from db import db
@@ -8,6 +8,10 @@ from grading.pricing import get_model_rates
 from models import Assignment, RubricStatus, RubricVersion
 
 logger = logging.getLogger(__name__)
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 def process_rubric_generation(rubric_id):
@@ -66,7 +70,7 @@ def process_rubric_generation(rubric_id):
         rubric.status = RubricStatus.DRAFT
         rubric.error_message = ""
         rubric.raw_response = raw_text
-        rubric.finished_at = datetime.utcnow()
+        rubric.finished_at = _utcnow()
         db.session.commit()
         logger.info(
             "Grading guide %s generated with model %s (prompt_tokens=%s completion_tokens=%s)",
@@ -82,12 +86,12 @@ def process_rubric_generation(rubric_id):
         rubric.status = RubricStatus.ERROR
         rubric.error_message = str(exc)
         rubric.raw_response = exc.raw_text or ""
-        rubric.finished_at = datetime.utcnow()
+        rubric.finished_at = _utcnow()
         db.session.commit()
     except Exception as exc:
         logger.exception("Grading guide generation error for %s", rubric_id)
         rubric.status = RubricStatus.ERROR
         rubric.error_message = str(exc)
         rubric.raw_response = ""
-        rubric.finished_at = datetime.utcnow()
+        rubric.finished_at = _utcnow()
         db.session.commit()

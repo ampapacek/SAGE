@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from db import db
 
 
@@ -19,11 +19,15 @@ class JobStatus:
     CANCELLED = "CANCELLED"
 
 
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     assignment_text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     rubrics = db.relationship("RubricVersion", backref="assignment", lazy=True)
     submissions = db.relationship("Submission", backref="assignment", lazy=True)
@@ -42,7 +46,7 @@ class RubricVersion(db.Model):
     completion_tokens = db.Column(db.Integer)
     total_tokens = db.Column(db.Integer)
     price_estimate = db.Column(db.Float)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     finished_at = db.Column(db.DateTime)
 
 
@@ -51,7 +55,7 @@ class Submission(db.Model):
     assignment_id = db.Column(db.Integer, db.ForeignKey("assignment.id"), nullable=False)
     student_identifier = db.Column(db.String(255), nullable=False)
     submitted_text = db.Column(db.Text, default="", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     files = db.relationship("SubmissionFile", backref="submission", lazy=True)
     grade_results = db.relationship("GradeResult", backref="submission", lazy=True)
@@ -63,7 +67,7 @@ class SubmissionFile(db.Model):
     file_path = db.Column(db.Text, nullable=False)
     file_type = db.Column(db.String(20), nullable=False)
     original_filename = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
 
 class GradingJob(db.Model):
@@ -79,7 +83,7 @@ class GradingJob(db.Model):
     completion_tokens = db.Column(db.Integer)
     total_tokens = db.Column(db.Integer)
     price_estimate = db.Column(db.Float)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     started_at = db.Column(db.DateTime)
     finished_at = db.Column(db.DateTime)
 
@@ -96,6 +100,6 @@ class GradeResult(db.Model):
     rendered_text = db.Column(db.Text, nullable=False)
     raw_response = db.Column(db.Text, default="", nullable=False)
     error_message = db.Column(db.Text, default="", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     rubric_version = db.relationship("RubricVersion", backref="grade_results", lazy=True)

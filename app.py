@@ -3,7 +3,7 @@ import io
 import logging
 import re
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import text
@@ -53,6 +53,18 @@ _IMAGE_CAPABLE_MODELS = {
     "gpt-5-nano",
     "o4-mini",
 }
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _ensure_data_dirs():
@@ -250,20 +262,34 @@ def create_app():
         )
         for rubric in rubrics:
             if rubric.finished_at:
-                rubric.duration_seconds = (
-                    rubric.finished_at - rubric.created_at
-                ).total_seconds()
+                finished_at = _as_utc(rubric.finished_at)
+                created_at = _as_utc(rubric.created_at)
+                if finished_at and created_at:
+                    rubric.duration_seconds = (finished_at - created_at).total_seconds()
+                else:
+                    rubric.duration_seconds = None
             elif rubric.status == RubricStatus.GENERATING:
-                rubric.duration_seconds = (
-                    datetime.utcnow() - rubric.created_at
-                ).total_seconds()
+                created_at = _as_utc(rubric.created_at)
+                if created_at:
+                    rubric.duration_seconds = (_utcnow() - created_at).total_seconds()
+                else:
+                    rubric.duration_seconds = None
             else:
                 rubric.duration_seconds = None
         for job in jobs:
             if job.started_at and job.finished_at:
-                job.duration_seconds = (job.finished_at - job.started_at).total_seconds()
+                started_at = _as_utc(job.started_at)
+                finished_at = _as_utc(job.finished_at)
+                if started_at and finished_at:
+                    job.duration_seconds = (finished_at - started_at).total_seconds()
+                else:
+                    job.duration_seconds = None
             elif job.started_at:
-                job.duration_seconds = (datetime.utcnow() - job.started_at).total_seconds()
+                started_at = _as_utc(job.started_at)
+                if started_at:
+                    job.duration_seconds = (_utcnow() - started_at).total_seconds()
+                else:
+                    job.duration_seconds = None
             else:
                 job.duration_seconds = None
             job.price_estimate_display = job.price_estimate
@@ -432,7 +458,7 @@ def create_app():
         if "Cancelled by user." not in rubric.error_message:
             rubric.error_message = "Cancelled by user."
         if not rubric.finished_at:
-            rubric.finished_at = datetime.utcnow()
+            rubric.finished_at = _utcnow()
         db.session.commit()
         flash("Grading guide generation cancelled.")
         return redirect(url_for("rubric_detail", rubric_id=rubric.id))
@@ -461,9 +487,14 @@ def create_app():
         assignment = Assignment.query.get_or_404(rubric.assignment_id)
         duration_seconds = None
         if rubric.finished_at:
-            duration_seconds = (rubric.finished_at - rubric.created_at).total_seconds()
+            finished_at = _as_utc(rubric.finished_at)
+            created_at = _as_utc(rubric.created_at)
+            if finished_at and created_at:
+                duration_seconds = (finished_at - created_at).total_seconds()
         elif rubric.status == RubricStatus.GENERATING:
-            duration_seconds = (datetime.utcnow() - rubric.created_at).total_seconds()
+            created_at = _as_utc(rubric.created_at)
+            if created_at:
+                duration_seconds = (_utcnow() - created_at).total_seconds()
         return render_template(
             "rubric_detail.html",
             rubric=rubric,
@@ -646,9 +677,14 @@ def create_app():
         )
         duration_seconds = None
         if job.started_at and job.finished_at:
-            duration_seconds = (job.finished_at - job.started_at).total_seconds()
+            started_at = _as_utc(job.started_at)
+            finished_at = _as_utc(job.finished_at)
+            if started_at and finished_at:
+                duration_seconds = (finished_at - started_at).total_seconds()
         elif job.started_at:
-            duration_seconds = (datetime.utcnow() - job.started_at).total_seconds()
+            started_at = _as_utc(job.started_at)
+            if started_at:
+                duration_seconds = (_utcnow() - started_at).total_seconds()
         return render_template(
             "job_detail.html",
             job=job,
@@ -667,7 +703,7 @@ def create_app():
             return redirect(url_for("job_detail", job_id=job.id))
         job.status = JobStatus.CANCELLED
         if not job.finished_at:
-            job.finished_at = datetime.utcnow()
+            job.finished_at = _utcnow()
         if "Cancelled by user." not in job.message:
             job.message = (job.message + "\n" if job.message else "") + "Cancelled by user."
         db.session.commit()
