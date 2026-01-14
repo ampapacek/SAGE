@@ -33,6 +33,7 @@ class Assignment(db.Model):
     submissions = db.relationship("Submission", backref="assignment", lazy=True)
 
 
+# "Rubric" in the codebase corresponds to the grading guide shown in the UI.
 class RubricVersion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey("assignment.id"), nullable=False)
