@@ -11,7 +11,7 @@
       <p>Duration: {{ "%.2f"|format(duration_seconds) }} seconds</p>
     {% endif %}
     {% if rubric.price_estimate is not none %}
-      <p>Price Estimate: ${{ "%.4f"|format(rubric.price_estimate) }}</p>
+      <p>Price Estimate: <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">${{ "%.4f"|format(rubric.price_estimate) }}</span></p>
     {% endif %}
     {% if rubric.error_message %}
       <p class="status ERROR">Error: {{ rubric.error_message }}</p>

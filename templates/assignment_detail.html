@@ -21,11 +21,14 @@
   {% endif %}
   <div class="card">
     <h2>{{ assignment.title }}</h2>
-    <div class="markdown">{{ assignment_html | safe }}</div>
-    <p>
+    <div class="markdown assignment-text">{{ assignment_html | safe }}</div>
+    <div class="section-divider"></div>
+    <p class="assignment-meta">
       Total Price Estimate (guides + jobs):
       {% if total_price_estimate is not none %}
-        ${{ "%.4f"|format(total_price_estimate) }}
+        <span class="price-amount" data-usd="{{ "%.6f"|format(total_price_estimate) }}">
+          ${{ "%.4f"|format(total_price_estimate) }}
+        </span>
       {% else %}
         --
       {% endif %}
@@ -71,7 +74,9 @@
               </td>
               <td>
                 {% if rubric.price_estimate is not none %}
-                  ${{ "%.4f"|format(rubric.price_estimate) }}
+                  <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">
+                    ${{ "%.4f"|format(rubric.price_estimate) }}
+                  </span>
                 {% else %}
                   --
                 {% endif %}
@@ -354,7 +359,9 @@
               </td>
               <td>
                 {% if job.price_estimate_display is not none %}
-                  ${{ "%.4f"|format(job.price_estimate_display) }}
+                  <span class="price-amount" data-usd="{{ "%.6f"|format(job.price_estimate_display) }}">
+                    ${{ "%.4f"|format(job.price_estimate_display) }}
+                  </span>
                 {% else %}
                   --
                 {% endif %}

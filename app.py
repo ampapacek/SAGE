@@ -904,6 +904,9 @@ def create_app():
         job = GradingJob.query.get_or_404(job_id)
         auto_refresh = job.status in {JobStatus.QUEUED, JobStatus.RUNNING}
         submission_requires_images = _submission_requires_images(job.submission)
+        job_price_display = job.price_estimate
+        if job_price_display is None:
+            job_price_display = _extract_price_estimate(job.message)
         grade_result = (
             GradeResult.query.filter_by(
                 submission_id=job.submission_id, rubric_version_id=job.rubric_version_id
@@ -929,6 +932,7 @@ def create_app():
             auto_refresh=auto_refresh,
             default_model=app.config.get("LLM_MODEL"),
             submission_requires_images=submission_requires_images,
+            job_price_display=job_price_display,
         )
 
     @app.route("/jobs/<int:job_id>/status.json")

@@ -6,26 +6,30 @@
     <p>Status: <span id="job-status" class="status {{ job.status }}">{{ job.status }}</span></p>
     <p>Model: {{ job.llm_model or 'unknown' }}</p>
     <p>Submission # <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
+    <div class="helper-text">Click the submission number to open details.</div>
     <p>Student: {{ job.submission.student_identifier if job.submission else 'unknown' }}</p>
-    <p>Guide Version: {{ job.rubric_version_id }}</p>
-    <p>Created: {{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p>Guide Version: <a href="{{ url_for('rubric_detail', rubric_id=job.rubric_version_id) }}">{{ job.rubric_version_id }}</a></p>
+    <p>Created: {{ job.created_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% if job.started_at %}
-      <p>Started: {{ job.started_at.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p>Started: {{ job.started_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% endif %}
     {% if job.finished_at %}
-      <p>Finished: {{ job.finished_at.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p>Finished: {{ job.finished_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% endif %}
     {% if duration_seconds is not none %}
       <p>Duration: <span id="job-duration">{{ "%.2f"|format(duration_seconds) }}</span> seconds</p>
     {% else %}
       <p>Duration: <span id="job-duration">--</span> seconds</p>
     {% endif %}
-    {% if job.price_estimate is not none %}
-      <p>Price Estimate: ${{ "%.4f"|format(job.price_estimate) }}</p>
+    {% if job_price_display is not none %}
+      <p>Price Estimate: <span class="price-amount" data-usd="{{ "%.6f"|format(job_price_display) }}">${{ "%.4f"|format(job_price_display) }}</span></p>
     {% endif %}
     {% if job.message %}
-      <h3>Processing Summary</h3>
-      <pre>{{ job.message }}</pre>
+      <button type="button" class="secondary" id="toggle-summary">Show Processing Summary</button>
+      <div id="processing-summary" class="hidden">
+        <h3>Processing Summary</h3>
+        <pre>{{ job.message }}</pre>
+      </div>
     {% endif %}
     {% if job.status in ['QUEUED', 'RUNNING'] %}
       <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
@@ -38,7 +42,7 @@
       </form>
     {% endif %}
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
-      <label for="llm_model">Model (optional)</label>
+      <label for="llm_model">Model options</label>
       <select id="llm_model" name="llm_model">
         {% set selected_model = job.llm_model or default_model %}
         <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
@@ -85,6 +89,22 @@
       <pre>{{ grade_result.raw_response }}</pre>
     {% endif %}
   </div>
+  {% if job.message %}
+    <script>
+      (function () {
+        var button = document.getElementById("toggle-summary");
+        var panel = document.getElementById("processing-summary");
+        if (!button || !panel) {
+          return;
+        }
+        button.addEventListener("click", function () {
+          var isHidden = panel.classList.contains("hidden");
+          panel.classList.toggle("hidden");
+          button.textContent = isHidden ? "Hide Processing Summary" : "Show Processing Summary";
+        });
+      })();
+    </script>
+  {% endif %}
   {% if auto_refresh %}
     <script>
       (function () {
