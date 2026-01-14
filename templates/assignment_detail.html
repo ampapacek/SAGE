@@ -148,6 +148,10 @@
 
   <div class="card">
     <h3>Upload Submissions</h3>
+    <button type="button" class="secondary" onclick="document.getElementById('upload-form').classList.toggle('hidden')">
+      Toggle Uploads
+    </button>
+    <div id="upload-form">
     {% if not approved_rubric %}
       <p><strong>Approve a grading guide to enable submissions.</strong></p>
     {% endif %}
@@ -183,6 +187,7 @@
       <button type="submit">Upload</button>
       </fieldset>
     </form>
+    </div>
     <script>
       (function () {
         var fileInput = document.getElementById("files");
