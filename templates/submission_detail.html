@@ -10,7 +10,7 @@
   <div class="card">
     <h3>Submitted Text</h3>
     {% if student_text %}
-      <pre>{{ student_text }}</pre>
+      <div class="markdown">{{ student_text_html | safe }}</div>
     {% else %}
       <p>No submitted text.</p>
     {% endif %}

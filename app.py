@@ -654,6 +654,7 @@ def create_app():
             except ValueError:
                 image_rel_paths.append(path)
         student_text = collect_submission_text(submission)
+        student_text_html = _render_markdown(student_text)
 
         return render_template(
             "submission_detail.html",
@@ -662,6 +663,7 @@ def create_app():
             grade_result=grade_result,
             images=image_rel_paths,
             student_text=student_text,
+            student_text_html=student_text_html,
         )
 
     @app.route("/assignments/<int:assignment_id>/export.csv")
