@@ -28,7 +28,7 @@
     <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
   </div>
 
-  {% if rubric.raw_response %}
+  {% if rubric.error_message and rubric.raw_response %}
     <div class="card">
       <h3>Raw LLM Response</h3>
       <pre>{{ rubric.raw_response }}</pre>
