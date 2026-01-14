@@ -1,12 +1,15 @@
 import csv
 import io
 import logging
+import html
 import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import text
+import bleach
+import markdown
 from flask import (
     Flask,
     Response,
@@ -54,6 +57,36 @@ _IMAGE_CAPABLE_MODELS = {
     "o4-mini",
 }
 
+_ALLOWED_TAGS = [
+    "p",
+    "br",
+    "strong",
+    "em",
+    "code",
+    "pre",
+    "ul",
+    "ol",
+    "li",
+    "blockquote",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "hr",
+    "a",
+]
+_ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title", "rel", "target"],
+}
+
 
 def _utcnow():
     return datetime.now(timezone.utc)
@@ -82,6 +115,46 @@ def _extract_price_estimate(message):
         return float(match.group(1))
     except ValueError:
         return None
+
+
+def _extract_math_blocks(text):
+    placeholders = {}
+    if not text:
+        return text, placeholders
+
+    def replace_display(match):
+        key = f"@@MATH_BLOCK_{len(placeholders)}@@"
+        content = html.escape(match.group(1))
+        placeholders[key] = f"$${content}$$"
+        return key
+
+    def replace_inline(match):
+        key = f"@@MATH_INLINE_{len(placeholders)}@@"
+        content = html.escape(match.group(1))
+        placeholders[key] = f"${content}$"
+        return key
+
+    text = re.sub(r"\$\$(.+?)\$\$", replace_display, text, flags=re.DOTALL)
+    text = re.sub(r"\$(.+?)\$", replace_inline, text)
+    return text, placeholders
+
+
+def _render_markdown(text):
+    if not text:
+        return ""
+    prepared, placeholders = _extract_math_blocks(text)
+    rendered = markdown.markdown(
+        prepared,
+        extensions=["extra", "tables", "fenced_code", "sane_lists"],
+        output_format="html5",
+    )
+    cleaned = bleach.clean(
+        rendered, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, strip=True
+    )
+    cleaned = bleach.linkify(cleaned)
+    for key, value in placeholders.items():
+        cleaned = cleaned.replace(key, value)
+    return cleaned
 
 
 def _model_supports_images(model_name):
@@ -243,6 +316,7 @@ def create_app():
     @app.route("/assignments/<int:assignment_id>")
     def assignment_detail(assignment_id):
         assignment = Assignment.query.get_or_404(assignment_id)
+        assignment_html = _render_markdown(assignment.assignment_text)
         rubrics = (
             RubricVersion.query.filter_by(assignment_id=assignment_id)
             .order_by(RubricVersion.created_at.desc())
@@ -316,6 +390,7 @@ def create_app():
         return render_template(
             "assignment_detail.html",
             assignment=assignment,
+            assignment_html=assignment_html,
             rubrics=rubrics,
             submissions=submissions,
             jobs=jobs,
@@ -411,11 +486,6 @@ def create_app():
         selected_model = request.form.get("llm_model", "").strip()
         if not selected_model:
             selected_model = app.config.get("LLM_MODEL")
-        if _submission_requires_images(job.submission) and not _model_supports_images(
-            selected_model
-        ):
-            flash("Selected model does not support images. Choose an image-capable model.")
-            return redirect(url_for("job_detail", job_id=job.id))
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
