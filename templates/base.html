@@ -142,7 +142,7 @@
       button { margin-top: 10px; padding: 8px 14px; border: none; background: var(--accent); color: #fff; border-radius: 4px; cursor: pointer; }
       button.secondary { background: var(--secondary); }
       button.danger { background: var(--danger); }
-      .file-input { width: 100%; max-width: 1040px; padding: 18px; border: 2px dashed var(--file-border); border-radius: 6px; background: var(--file-bg); color: var(--text); cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; }
+      .file-input { width: 100%; max-width: 1040px; padding: 18px; border: 2px dashed var(--file-border); border-radius: 6px; background: var(--file-bg); color: var(--text); cursor: pointer; box-sizing: border-box; transition: border-color 0.15s ease, background-color 0.15s ease; }
       .file-input:hover { border-color: var(--accent); background: var(--file-hover-bg); }
       table { width: 100%; border-collapse: collapse; }
       th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--table-border); }
@@ -160,6 +160,10 @@
       .hidden { display: none; }
       pre { white-space: pre-wrap; background: var(--pre-bg); padding: 10px; border-radius: 4px; color: var(--text); }
       a { color: var(--link); }
+      .markdown { line-height: 1.6; max-width: 1040px; }
+      .markdown h1, .markdown h2, .markdown h3, .markdown h4 { margin-top: 18px; }
+      .markdown table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+      .markdown th, .markdown td { border: 1px solid var(--table-border); padding: 6px 8px; }
     </style>
   </head>
   <body>
@@ -187,6 +191,18 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]],
+          displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+        },
+        options: {
+          skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+        }
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
     <script>
       (function () {
         var root = document.documentElement;
