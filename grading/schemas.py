@@ -19,11 +19,36 @@ def validate_grade_result(data):
 def render_grade_output(data):
     total_points = data.get("total_points")
     parts = data.get("parts", [])
+    total_possible = 0
+    has_possible = False
+    for part in parts:
+        try:
+            value = float(part.get("points_possible"))
+        except (TypeError, ValueError):
+            value = None
+        if value is None:
+            continue
+        total_possible += value
+        has_possible = True
+
+    def _format_points(value):
+        if value is None:
+            return "--"
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+        if numeric.is_integer():
+            return str(int(numeric))
+        return f"{numeric:.2f}".rstrip("0").rstrip(".")
     part_text = ", ".join(
         f"{p.get('points_awarded')}/{p.get('points_possible')}" for p in parts
     )
 
-    lines = [f"TOTAL: {total_points}", f"PARTS: {part_text}", ""]
+    total_display = _format_points(total_points)
+    if has_possible:
+        total_display = f"{total_display}/{_format_points(total_possible)}"
+    lines = [f"TOTAL: {total_display}", f"PARTS: {part_text}", ""]
 
     deductions = data.get("deductions", [])
     for deduction in deductions:

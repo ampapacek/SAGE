@@ -280,6 +280,18 @@ def _current_setting_value(app, key):
     return str(value)
 
 
+def _format_points(value):
+    if value is None:
+        return "--"
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if numeric.is_integer():
+        return str(int(numeric))
+    return f"{numeric:.2f}".rstrip("0").rstrip(".")
+
+
 def _extract_math_blocks(text):
     placeholders = {}
     if not text:
@@ -537,6 +549,36 @@ def create_app():
             job.status in {JobStatus.QUEUED, JobStatus.RUNNING} for job in jobs
         )
         approved_rubric = _get_approved_rubric(assignment_id)
+        for submission in submissions:
+            latest_result = None
+            if submission.grade_results:
+                latest_result = submission.grade_results[-1]
+            if not latest_result:
+                submission.grade_display = "--"
+                continue
+            data, _error = safe_json_loads(latest_result.json_result)
+            if not data:
+                submission.grade_display = _format_points(latest_result.total_points)
+                continue
+            parts = data.get("parts", [])
+            total_possible = 0.0
+            has_possible = False
+            for part in parts:
+                try:
+                    value = float(part.get("points_possible"))
+                except (TypeError, ValueError):
+                    value = None
+                if value is None:
+                    continue
+                total_possible += value
+                has_possible = True
+            total_points = data.get("total_points", latest_result.total_points)
+            if has_possible:
+                submission.grade_display = (
+                    f"{_format_points(total_points)}/{_format_points(total_possible)}"
+                )
+            else:
+                submission.grade_display = _format_points(total_points)
         total_price_estimate = 0.0
         has_price_estimate = False
         for rubric in rubrics:
