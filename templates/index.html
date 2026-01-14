@@ -127,6 +127,7 @@
       border-radius: 10px;
       padding: 14px;
       background: var(--card);
+      line-height: 1.5;
     }
     .step-card::before {
       counter-increment: step;
@@ -139,6 +140,10 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
+    .step-card span {
+      display: block;
+      margin-top: 8px;
+    }
   </style>
 
   <section class="hero">
@@ -146,8 +151,8 @@
       <div class="hero-eyebrow">SAGE</div>
       <h1 class="hero-title">Automated grading that feels rigorous, not rushed.</h1>
       <p class="hero-subtitle">
-        A grading workspace for assignments, submissions, and AI-assisted feedback.
-        Upload PDFs or images, apply a grading guide, and let SAGE handle the first pass.
+        A grading workspace for assignments, submissions, and AI-assisted feedback that
+        helps teachers move faster while staying in control.
       </p>
       <div class="hero-actions">
         <a class="btn primary" href="{{ url_for('list_assignments') }}">Open Assignments</a>
@@ -155,8 +160,8 @@
       </div>
       <div class="hero-chips">
         <span class="hero-chip">LLM-guided feedback</span>
-        <span class="hero-chip">PDF + image grading</span>
-        <span class="hero-chip">Export-ready results</span>
+        <span class="hero-chip">PDF + image + text</span>
+        <span class="hero-chip">ZIP uploads supported</span>
       </div>
     </div>
     <div class="hero-visual">
@@ -173,8 +178,8 @@
         <p class="feature-text">Use grading guides with part-level scoring and clear deductions.</p>
       </div>
       <div class="feature-card">
-        <h3 class="feature-title">Image-first reviews</h3>
-        <p class="feature-text">Grade directly from rendered PDF pages and submitted images.</p>
+        <h3 class="feature-title">Flexible formats</h3>
+        <p class="feature-text">Support PDFs, images, and text, plus ZIP uploads for whole classes.</p>
       </div>
       <div class="feature-card">
         <h3 class="feature-title">Traceable output</h3>
@@ -183,13 +188,26 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2 class="section-title">Responsible Use</h2>
+    <p class="feature-text">
+      SAGE is intended to speed up grading and support teacher review. All grading guides,
+      outputs, and final grades must be verified by the instructor before release.
+      Do not issue grades based only on model output.
+    </p>
+    <p class="feature-text" style="margin-top: 10px;">
+      Confirm with students and your department, school, or university that this tool is permitted
+      for use. Student data is private and should be handled accordingly.
+    </p>
+  </div>
+
   <div id="quick-start" class="card">
     <h2 class="section-title">Quick Start</h2>
     <div class="steps">
-      <div class="step-card">Create an assignment with the prompt or problem statement.</div>
-      <div class="step-card">Create or generate a draft grading guide and approve it.</div>
-      <div class="step-card">Upload submissions (PDFs, images, or text).</div>
-      <div class="step-card">Review automated results and export grades.</div>
+      <div class="step-card"><span>Create an assignment with the prompt or problem statement.</span></div>
+      <div class="step-card"><span>Create or generate a draft grading guide and approve it.</span></div>
+      <div class="step-card"><span>Upload submissions (PDFs, images, or text).</span></div>
+      <div class="step-card"><span>Review automated results and export grades.</span></div>
     </div>
   </div>
 {% endblock %}
