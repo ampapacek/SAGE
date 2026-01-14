@@ -1,16 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-  {% if auto_refresh %}
-    <script>
-      setTimeout(function () {
-        window.location.reload();
-      }, 5000);
-    </script>
-  {% endif %}
   <div class="card">
     <h2>Job {{ job.id }}</h2>
-    <p>Status: <span class="status {{ job.status }}">{{ job.status }}</span></p>
+    <p>Status: <span id="job-status" class="status {{ job.status }}">{{ job.status }}</span></p>
     <p>Model: {{ job.llm_model or 'unknown' }}</p>
     <p>Submission # <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
     <p>Student: {{ job.submission.student_identifier if job.submission else 'unknown' }}</p>
@@ -23,7 +16,9 @@
       <p>Finished: {{ job.finished_at.strftime('%Y-%m-%d %H:%M') }}</p>
     {% endif %}
     {% if duration_seconds is not none %}
-      <p>Duration: {{ "%.2f"|format(duration_seconds) }} seconds</p>
+      <p>Duration: <span id="job-duration">{{ "%.2f"|format(duration_seconds) }}</span> seconds</p>
+    {% else %}
+      <p>Duration: <span id="job-duration">--</span> seconds</p>
     {% endif %}
     {% if job.price_estimate is not none %}
       <p>Price Estimate: ${{ "%.4f"|format(job.price_estimate) }}</p>
@@ -90,4 +85,37 @@
       <pre>{{ grade_result.raw_response }}</pre>
     {% endif %}
   </div>
+  {% if auto_refresh %}
+    <script>
+      (function () {
+        var statusUrl = "{{ url_for('job_status', job_id=job.id) }}";
+        var statusEl = document.getElementById("job-status");
+        var durationEl = document.getElementById("job-duration");
+        if (!statusEl || !durationEl) {
+          return;
+        }
+        var intervalId = setInterval(function () {
+          fetch(statusUrl)
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+              if (!data) {
+                return;
+              }
+              if (data.status) {
+                statusEl.textContent = data.status;
+                statusEl.className = "status " + data.status;
+              }
+              if (data.duration_seconds !== null && data.duration_seconds !== undefined) {
+                durationEl.textContent = Number(data.duration_seconds).toFixed(2);
+              }
+              if (data.status && data.status !== "QUEUED" && data.status !== "RUNNING") {
+                clearInterval(intervalId);
+                window.location.reload();
+              }
+            })
+            .catch(function () {});
+        }, 4000);
+      })();
+    </script>
+  {% endif %}
 {% endblock %}

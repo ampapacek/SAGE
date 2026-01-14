@@ -696,6 +696,28 @@ def create_app():
             submission_requires_images=submission_requires_images,
         )
 
+    @app.route("/jobs/<int:job_id>/status.json")
+    def job_status(job_id):
+        job = GradingJob.query.get_or_404(job_id)
+        duration_seconds = None
+        if job.started_at and job.finished_at:
+            started_at = _as_utc(job.started_at)
+            finished_at = _as_utc(job.finished_at)
+            if started_at and finished_at:
+                duration_seconds = (finished_at - started_at).total_seconds()
+        elif job.started_at:
+            started_at = _as_utc(job.started_at)
+            if started_at:
+                duration_seconds = (_utcnow() - started_at).total_seconds()
+        return jsonify(
+            {
+                "status": job.status,
+                "duration_seconds": duration_seconds,
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            }
+        )
+
     @app.route("/jobs/<int:job_id>/terminate", methods=["POST"])
     def terminate_job(job_id):
         job = GradingJob.query.get_or_404(job_id)
