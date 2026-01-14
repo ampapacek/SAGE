@@ -1,5 +1,7 @@
 # SAGE (System for Automated Grading & Evaluation)
 
+![SAGE Welcome](docs/welcome.png)
+
 A minimal grading app. Upload an assignment, create or generate a grading guide, then upload student submissions (PDF/images/text). The system renders PDFs to images, grades automatically in the background, and stores results for review and export.
 
 ## Setup
