@@ -21,7 +21,7 @@
   {% endif %}
   <div class="card">
     <h2>{{ assignment.title }}</h2>
-    <pre>{{ assignment.assignment_text }}</pre>
+    <div class="markdown">{{ assignment_html | safe }}</div>
     <p>
       Total Price Estimate (guides + jobs):
       {% if total_price_estimate is not none %}
@@ -119,7 +119,7 @@
 
       <h4>Generate Draft Guide</h4>
       <form method="post" action="{{ url_for('generate_rubric', assignment_id=assignment.id) }}">
-        <label for="rubric_model">Model (optional)</label>
+        <label for="rubric_model">Choose model for generation</label>
         <select id="rubric_model" name="llm_model">
           {% set selected_model = default_model %}
           <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
