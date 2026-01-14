@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SAGE</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='sage.png') }}" />
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/sage.png') }}" />
     <style>
       :root {
         --bg: #f5f5f5;
@@ -128,9 +128,9 @@
       .hero-logo { width: 128px; height: 128px; max-width: 128px; max-height: 128px; object-fit: contain; display: block; }
       .home-button { background: var(--accent); padding: 6px 12px; border-radius: 4px; display: inline-block; color: #fff; }
       .back-button { background: #444; padding: 6px 12px; border-radius: 4px; border: none; color: #fff; cursor: pointer; }
-      .theme-toggle { background: transparent; border: 1px solid var(--header-text); color: var(--header-text); padding: 6px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+      .theme-toggle { background: transparent; border: 1px solid var(--header-text); color: var(--header-text); padding: 6px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
       .theme-toggle:hover { background: rgba(255, 255, 255, 0.12); }
-      .theme-toggle img { width: 20px; height: 20px; display: block; }
+      .theme-toggle img { width: 24px; height: 24px; display: block; transform: scale(2.0); transform-origin: center; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
       .nav-buttons { display: flex; gap: 8px; align-items: center; }
       main { max-width: 1100px; margin: 20px auto; padding: 0 20px 40px; }
@@ -165,12 +165,12 @@
   <body>
     <header>
       <a class="logo" href="{{ url_for('index') }}">
-        <img src="{{ url_for('static', filename='sage.png') }}" alt="" aria-hidden="true" />
+        <img src="{{ url_for('static', filename='images/sage.png') }}" alt="" aria-hidden="true" />
         <span>SAGE</span>
       </a>
       <div class="nav-buttons">
         <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
-          <img id="theme-icon" src="{{ url_for('static', filename='sun.png') }}" alt="" aria-hidden="true" />
+          <img id="theme-icon" src="{{ url_for('static', filename='images/sun.png') }}" alt="" aria-hidden="true" />
           <span class="sr-only">Toggle theme</span>
         </button>
         <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">Back</button>
@@ -194,8 +194,8 @@
         if (!button) {
           return;
         }
-        var sunIcon = "{{ url_for('static', filename='sun.png') }}";
-        var moonIcon = "{{ url_for('static', filename='moon.png') }}";
+        var sunIcon = "{{ url_for('static', filename='images/sun.png') }}";
+        var moonIcon = "{{ url_for('static', filename='images/moon.png') }}";
         var iconEl = document.getElementById("theme-icon");
         function applyTheme(theme) {
           if (theme) {
