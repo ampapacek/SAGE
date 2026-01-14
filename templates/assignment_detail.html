@@ -59,7 +59,7 @@
             <tr>
               <td>{{ rubric.id }}</td>
               <td class="status {{ rubric.status }}">{{ rubric.status }}</td>
-              <td>{{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ rubric.created_at.strftime('%b %d, %Y %H:%M') }}</td>
               <td>{{ rubric.llm_model or 'manual' }}</td>
               <td>
                 {% if rubric.status == 'GENERATING' and rubric.created_at %}
@@ -308,7 +308,7 @@
           {% for submission in submissions %}
             <tr>
               <td>{{ submission.student_identifier }}</td>
-              <td>{{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ submission.created_at.strftime('%b %d, %Y %H:%M') }}</td>
               <td>
                 {% if submission.grade_results %}
                   {{ submission.grade_results[-1].total_points }}
@@ -347,7 +347,7 @@
           {% for job in jobs %}
             <tr>
               <td class="status {{ job.status }}">{{ job.status }}</td>
-              <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ job.created_at.strftime('%b %d, %Y %H:%M') }}</td>
               <td>{{ job.submission_id }}</td>
               <td>{{ job.submission.student_identifier if job.submission else 'unknown' }}</td>
               <td>{{ job.llm_model or 'unknown' }}</td>
