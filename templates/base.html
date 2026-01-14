@@ -128,8 +128,10 @@
       .hero-logo { width: 128px; height: 128px; max-width: 128px; max-height: 128px; object-fit: contain; display: block; }
       .home-button { background: var(--accent); padding: 6px 12px; border-radius: 4px; display: inline-block; color: #fff; }
       .back-button { background: #444; padding: 6px 12px; border-radius: 4px; border: none; color: #fff; cursor: pointer; }
-      .theme-toggle { background: transparent; border: 1px solid var(--header-text); color: var(--header-text); padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+      .theme-toggle { background: transparent; border: 1px solid var(--header-text); color: var(--header-text); padding: 6px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
       .theme-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+      .theme-toggle img { width: 20px; height: 20px; display: block; }
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
       .nav-buttons { display: flex; gap: 8px; align-items: center; }
       main { max-width: 1100px; margin: 20px auto; padding: 0 20px 40px; }
       h1, h2, h3 { margin: 0 0 12px; }
@@ -167,7 +169,10 @@
         <span>SAGE</span>
       </a>
       <div class="nav-buttons">
-        <button id="theme-toggle" class="theme-toggle" type="button">Theme</button>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+          <img id="theme-icon" src="{{ url_for('static', filename='sun.png') }}" alt="" aria-hidden="true" />
+          <span class="sr-only">Toggle theme</span>
+        </button>
         <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">Back</button>
         <a class="home-button" href="{{ url_for('list_assignments') }}">Home</a>
       </div>
@@ -189,16 +194,25 @@
         if (!button) {
           return;
         }
+        var sunIcon = "{{ url_for('static', filename='sun.png') }}";
+        var moonIcon = "{{ url_for('static', filename='moon.png') }}";
+        var iconEl = document.getElementById("theme-icon");
         function applyTheme(theme) {
           if (theme) {
             root.setAttribute("data-theme", theme);
           } else {
             root.removeAttribute("data-theme");
           }
+          if (iconEl) {
+            iconEl.src = theme === "dark" ? moonIcon : sunIcon;
+          }
         }
         var stored = localStorage.getItem("sage-theme");
         if (stored === "light" || stored === "dark") {
           applyTheme(stored);
+        } else {
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          applyTheme(prefersDark ? "dark" : "light");
         }
         button.addEventListener("click", function () {
           var current = root.getAttribute("data-theme");
