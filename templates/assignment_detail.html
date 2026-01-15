@@ -39,8 +39,14 @@
     </form>
   </div>
 
-  <div class="card">
+  <div class="card{% if not rubrics %} attention{% endif %}">
     <h3>{{ t('grading_guides') }}</h3>
+    {% if not rubrics %}
+      <div class="callout">
+        <strong>{{ t('guide_empty_hint') }}</strong>
+        <div class="dropzone-hint">{{ t('guide_empty_note') }}</div>
+      </div>
+    {% endif %}
     {% if rubrics %}
       <table>
         <thead>
@@ -139,6 +145,9 @@
     {% endif %}
 
     <h4>{{ t('guide_creation') }}</h4>
+    {% if not rubrics %}
+      <div class="callout">{{ t('guide_empty_hint') }}</div>
+    {% endif %}
     <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
       {{ t('toggle_guide_form') }}
     </button>
@@ -195,6 +204,7 @@
     <div id="upload-form">
     {% if not approved_rubric %}
       <p><strong>{{ t('approve_guide_enable') }}</strong></p>
+      <div class="callout">{{ t('guide_empty_note') }}</div>
     {% endif %}
     <form method="post" action="{{ url_for('upload_submission', assignment_id=assignment.id) }}" enctype="multipart/form-data">
       <fieldset {% if not approved_rubric %}disabled{% endif %}>
@@ -230,7 +240,7 @@
             />
           </div>
           <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
-          <textarea id="submitted_text" name="submitted_text"></textarea>
+          <textarea id="submitted_text" name="submitted_text" placeholder="{{ t('submission_text_placeholder') }}"></textarea>
           <div class="dropzone" id="files-drop">
             <label for="files">{{ t('files_label') }}</label>
             <input type="file" id="files" name="files" multiple class="file-input" />
@@ -456,6 +466,7 @@
 
   <div class="card">
     <h3>{{ t('submissions') }}</h3>
+    <p class="helper-text">{{ t('submissions_desc') }}</p>
     {% if submissions %}
       <table>
         <thead>
@@ -492,6 +503,7 @@
 
   <div class="card">
     <h3>{{ t('jobs') }}</h3>
+    <p class="helper-text">{{ t('jobs_desc') }}</p>
     {% if jobs %}
       <table>
         <thead>

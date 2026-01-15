@@ -98,8 +98,15 @@ TRANSLATIONS = {
         "assignments_empty_steps": "To create an assignment, use the form above.",
         "assignment_title_placeholder": "Example: Week 1 homework",
         "assignment_text_placeholder": "Paste the problem statement here. You can include Markdown or LaTeX.",
-        "guide_text_placeholder": "Draft a grading guide: parts, points, and criteria.",
-        "reference_solution_placeholder": "Write the ideal solution outline for each part.",
+        "guide_text_placeholder": (
+            "Draft a grading guide: parts, points, and criteria.\n"
+            "Or choose provider and model to generate the draft and reference solution by LLM."
+        ),
+        "reference_solution_placeholder": (
+            "Write the ideal solution outline for each part.\n"
+            "Or choose provider and model to generate the draft and reference solution by LLM."
+        ),
+        "submission_text_placeholder": "Optional: add student text, clarifications, or notes.",
         "grading_guides": "Grading Guides",
         "guide_number": "Guide #",
         "status": "Status",
@@ -128,9 +135,12 @@ TRANSLATIONS = {
         "generate_draft_guide": "Generate Draft Guide",
         "choose_model_generation": "Choose model for generation",
         "generate_draft_llm": "Generate Draft via LLM",
+        "guide_empty_hint": "Start here -> Create a grading guide below.",
+        "guide_empty_note": "After the grading guide is ready, you can upload submissions.",
         "upload_submissions": "Upload Submissions",
         "toggle_uploads": "Toggle Uploads",
         "approve_guide_enable": "Approve a grading guide to enable submissions.",
+        "submissions_desc": "Student uploads and feedback results show up here.",
         "show_settings": "Show settings for",
         "hide_settings": "Hide settings for",
         "student_identifier": "Student Identifier (single upload)",
@@ -145,6 +155,7 @@ TRANSLATIONS = {
         "submissions": "Submissions",
         "student": "Student",
         "grade": "Grade",
+        "jobs_desc": "Background grading jobs and their progress.",
         "no_submissions": "No submissions yet.",
         "no_jobs": "No jobs yet.",
         "export_csv": "Export CSV",
@@ -314,8 +325,15 @@ TRANSLATIONS = {
         "assignments_empty_steps": "Pro vytvoření zadání použijte formulář výše.",
         "assignment_title_placeholder": "Příklad: Domácí úkol 1",
         "assignment_text_placeholder": "Sem vložte zadání. Můžete použít Markdown nebo LaTeX.",
-        "guide_text_placeholder": "Sepište průvodce: části, body a kritéria.",
-        "reference_solution_placeholder": "Napište ideální řešení ke každé části.",
+        "guide_text_placeholder": (
+            "Sepište průvodce: části, body a kritéria.\n"
+            "Nebo vyberte poskytovatele a model pro generování konceptu a řešení přes LLM."
+        ),
+        "reference_solution_placeholder": (
+            "Napište ideální řešení ke každé části.\n"
+            "Nebo vyberte poskytovatele a model pro generování konceptu a řešení přes LLM."
+        ),
+        "submission_text_placeholder": "Volitelně: přidejte text studenta, upřesnění nebo poznámky.",
         "grading_guides": "Hodnoticí průvodci",
         "guide_number": "Průvodce #",
         "status": "Stav",
@@ -344,9 +362,12 @@ TRANSLATIONS = {
         "generate_draft_guide": "Vygenerovat koncept průvodce",
         "choose_model_generation": "Vyberte model pro generování",
         "generate_draft_llm": "Vygenerovat koncept přes LLM",
+        "guide_empty_hint": "Začněte zde -> Vytvořte průvodce níže.",
+        "guide_empty_note": "Po dokončení průvodce můžete nahrát odevzdání.",
         "upload_submissions": "Nahrát řešení",
         "toggle_uploads": "Zobrazit/skrýt nahrávání",
         "approve_guide_enable": "Schvalte průvodce pro povolení nahrávání.",
+        "submissions_desc": "Zde se zobrazí nahraná odevzdání a výsledná zpětná vazba.",
         "show_settings": "Zobrazit nastavení pro",
         "hide_settings": "Skrýt nastavení pro",
         "student_identifier": "Identifikátor studenta (jednotlivě)",
@@ -361,6 +382,7 @@ TRANSLATIONS = {
         "submissions": "Odevzdání",
         "student": "Student",
         "grade": "Body",
+        "jobs_desc": "Úlohy zpracování hodnocení a jejich stav.",
         "no_submissions": "Zatím žádná odevzdání.",
         "no_jobs": "Zatím žádné úlohy.",
         "export_csv": "Export CSV",
