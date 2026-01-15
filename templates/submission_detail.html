@@ -228,4 +228,48 @@
       <p>{{ t('no_grade_result') }}</p>
     {% endif %}
   </div>
+
+  {% if grade_result %}
+    <div class="card">
+      <button
+        type="button"
+        class="secondary"
+        data-toggle-target="edit-grade-form"
+        data-show-label="{{ t('edit_grade') }}"
+        data-hide-label="{{ t('cancel') }}"
+      >
+        {{ t('edit_grade') }}
+      </button>
+      <div id="edit-grade-form" class="hidden" style="margin-top: 12px;">
+        <h3>{{ t('edit_grade') }}</h3>
+        <p class="helper-text">{{ t('edit_grade_hint') }}</p>
+        <form method="post" action="{{ url_for('edit_submission_grade', submission_id=submission.id) }}">
+          <label for="total_points">{{ t('total_points_override') }}</label>
+          <input
+            type="text"
+            id="total_points"
+            name="total_points"
+            value="{{ grade_result.total_points if grade_result.total_points is not none else '' }}"
+          />
+          <label for="rendered_text">{{ t('rendered_feedback') }}</label>
+          <textarea id="rendered_text" name="rendered_text">{{ grade_result.rendered_text }}</textarea>
+          <button type="submit">{{ t('update_grade') }}</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+  <script>
+    (function () {
+      var toggle = document.querySelector('[data-toggle-target="edit-grade-form"]');
+      var target = document.getElementById("edit-grade-form");
+      if (!toggle || !target) {
+        return;
+      }
+      toggle.addEventListener("click", function () {
+        var isHidden = target.classList.contains("hidden");
+        target.classList.toggle("hidden");
+        toggle.textContent = isHidden ? toggle.dataset.hideLabel : toggle.dataset.showLabel;
+      });
+    })();
+  </script>
 {% endblock %}

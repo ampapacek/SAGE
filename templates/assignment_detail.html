@@ -318,7 +318,12 @@
               <td>
                 {{ submission.grade_display }}
               </td>
-              <td><a class="action-link" href="{{ url_for('submission_detail', submission_id=submission.id) }}">{{ t('open') }}</a></td>
+              <td>
+                <a class="action-link" href="{{ url_for('submission_detail', submission_id=submission.id) }}">{{ t('open') }}</a>
+                <form method="post" action="{{ url_for('delete_submission', submission_id=submission.id) }}" onsubmit="return confirm('{{ t('delete_submission_confirm') }}');">
+                  <button type="submit" class="danger">{{ t('delete_submission') }}</button>
+                </form>
+              </td>
             </tr>
           {% endfor %}
         </tbody>

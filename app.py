@@ -1,4 +1,5 @@
 import csv
+import json
 import io
 import logging
 import html
@@ -27,6 +28,7 @@ from flask import (
 from config import Config, DATA_DIR, PROCESSED_DIR, UPLOAD_DIR
 from db import db
 from grading.schemas import safe_json_loads
+from grading.schemas import render_grade_output, validate_grade_result
 from models import (
     Assignment,
     GradeResult,
@@ -114,8 +116,8 @@ TRANSLATIONS = {
         "submitted_text_optional": "Submitted Text (optional)",
         "files_label": "Files (PDF, images, text)",
         "drop_files_hint": "Drag and drop files here or click to browse.",
-        "zip_label": "Or ZIP with folders per student",
-        "drop_zip_hint": "Drag and drop a ZIP here or click to browse.",
+        "zip_label": "Or ZIP with student files (or folders per student)",
+        "drop_zip_hint": "Drag and drop a ZIP of student files or folders here, or click to browse.",
         "upload": "Upload",
         "submissions": "Submissions",
         "student": "Student",
@@ -187,6 +189,16 @@ TRANSLATIONS = {
         "max_points": "Max points",
         "criteria": "Criteria",
         "part_label": "Part",
+        "edit_grade": "Edit grading and feedback",
+        "update_grade": "Save feedback",
+        "grade_json": "Grade JSON",
+        "rendered_feedback": "Rendered feedback",
+        "total_points_override": "Total points",
+        "edit_grade_hint": (
+            "Edit the feedback text or total points."
+        ),
+        "delete_submission": "Delete Submission",
+        "delete_submission_confirm": "Delete this submission and all related data?",
         "previous_image": "Previous image",
         "next_image": "Next image",
         "close": "Close",
@@ -292,8 +304,8 @@ TRANSLATIONS = {
         "submitted_text_optional": "Odevzdaný text (volitelný)",
         "files_label": "Soubory (PDF, obrázky, text)",
         "drop_files_hint": "Přetáhněte soubory sem nebo klikněte pro výběr.",
-        "zip_label": "Nebo ZIP se složkami studentů",
-        "drop_zip_hint": "Přetáhněte ZIP sem nebo klikněte pro výběr.",
+        "zip_label": "Nebo ZIP se soubory studentů (případně složky po studentech)",
+        "drop_zip_hint": "Přetáhněte ZIP se soubory nebo složkami sem, nebo klikněte pro výběr.",
         "upload": "Nahrát",
         "submissions": "Odevzdání",
         "student": "Student",
@@ -365,6 +377,16 @@ TRANSLATIONS = {
         "max_points": "Max bodů",
         "criteria": "Kritéria",
         "part_label": "Část",
+        "edit_grade": "Upravit hodnocení a zpětnou vazbu",
+        "update_grade": "Uložit zpětnou vazbu",
+        "grade_json": "JSON hodnocení",
+        "rendered_feedback": "Zobrazená zpětná vazba",
+        "total_points_override": "Celkem bodů",
+        "edit_grade_hint": (
+            "Upravte text zpětné vazby nebo celkové body."
+        ),
+        "delete_submission": "Smazat odevzdání",
+        "delete_submission_confirm": "Smazat toto odevzdání a všechna související data?",
         "previous_image": "Předchozí obrázek",
         "next_image": "Další obrázek",
         "close": "Zavřít",
@@ -1301,6 +1323,84 @@ def create_app():
             student_text=student_text,
             student_text_html=student_text_html,
         )
+
+    @app.route("/submissions/<int:submission_id>/grade/edit", methods=["POST"])
+    def edit_submission_grade(submission_id):
+        submission = Submission.query.get_or_404(submission_id)
+        grade_result = (
+            GradeResult.query.filter_by(submission_id=submission.id)
+            .order_by(GradeResult.created_at.desc())
+            .first()
+        )
+        if not grade_result:
+            flash("No grade result to edit.")
+            return redirect(url_for("submission_detail", submission_id=submission_id))
+
+        rendered_text = request.form.get("rendered_text", "").strip()
+        total_points_input = request.form.get("total_points", "").strip()
+        data, error = safe_json_loads(grade_result.json_result)
+        if not data:
+            flash("Stored grading data is invalid.")
+            return redirect(url_for("submission_detail", submission_id=submission_id))
+        valid, msg = validate_grade_result(data)
+        if not valid:
+            flash(f"Stored grading data is invalid: {msg}")
+            return redirect(url_for("submission_detail", submission_id=submission_id))
+
+        if total_points_input:
+            try:
+                data["total_points"] = float(total_points_input)
+            except ValueError:
+                flash("Total points must be a number.")
+                return redirect(url_for("submission_detail", submission_id=submission_id))
+        grade_result.total_points = data.get("total_points")
+        grade_result.json_result = json.dumps(data, ensure_ascii=True, indent=2)
+        if rendered_text:
+            grade_result.rendered_text = rendered_text
+        else:
+            grade_result.rendered_text = render_grade_output(data)
+        grade_result.error_message = ""
+        db.session.commit()
+
+        flash("Feedback updated.")
+        return redirect(url_for("submission_detail", submission_id=submission_id))
+
+    @app.route("/submissions/<int:submission_id>/delete", methods=["POST"])
+    def delete_submission(submission_id):
+        submission = Submission.query.get_or_404(submission_id)
+        assignment_id = submission.assignment_id
+        active_job = (
+            GradingJob.query.filter_by(submission_id=submission.id)
+            .filter(GradingJob.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]))
+            .first()
+        )
+        if active_job:
+            flash("Cancel running jobs before deleting the submission.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+
+        GradeResult.query.filter_by(submission_id=submission.id).delete(
+            synchronize_session=False
+        )
+        SubmissionFile.query.filter_by(submission_id=submission.id).delete(
+            synchronize_session=False
+        )
+        GradingJob.query.filter_by(submission_id=submission.id).delete(
+            synchronize_session=False
+        )
+        db.session.delete(submission)
+        db.session.commit()
+
+        shutil.rmtree(
+            UPLOAD_DIR / f"assignment_{assignment_id}" / f"submission_{submission.id}",
+            ignore_errors=True,
+        )
+        shutil.rmtree(
+            PROCESSED_DIR / f"assignment_{assignment_id}" / f"submission_{submission.id}",
+            ignore_errors=True,
+        )
+
+        flash("Submission deleted.")
+        return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
     @app.route("/assignments/<int:assignment_id>/export.csv")
     def export_csv(assignment_id):
