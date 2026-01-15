@@ -70,6 +70,7 @@ _MODEL_OPTIONS = [
     "o3-mini",
     "gpt-5",
     "gpt-5-nano",
+    "other",
 ]
 TRANSLATIONS = {
     "en": {
@@ -204,6 +205,7 @@ TRANSLATIONS = {
         "close": "Close",
         "custom_model_label": "Custom model name",
         "custom_model_placeholder": "Enter provider model name",
+        "other_model_option": "Other",
         "show_guide": "Show grading guide",
         "hide_guide": "Hide grading guide",
         "show_reference_solution": "Show reference solution",
@@ -402,6 +404,7 @@ TRANSLATIONS = {
         "close": "Zavřít",
         "custom_model_label": "Vlastní název modelu",
         "custom_model_placeholder": "Zadejte název modelu poskytovatele",
+        "other_model_option": "Jiný",
         "show_guide": "Zobrazit hodnoticího průvodce",
         "hide_guide": "Skrýt hodnoticího průvodce",
         "show_reference_solution": "Zobrazit referenční řešení",
@@ -756,10 +759,12 @@ def _model_supports_images(model_name):
 
 
 def _resolve_model_from_form(form, default_model):
-    custom_model = (form.get("custom_llm_model") or "").strip()
-    if custom_model:
-        return custom_model, True
     selected_model = (form.get("llm_model") or "").strip()
+    custom_model = (form.get("custom_llm_model") or "").strip()
+    if selected_model == "other":
+        if custom_model:
+            return custom_model, True
+        return default_model, False
     if not selected_model:
         selected_model = default_model
     return selected_model, False
@@ -1615,6 +1620,16 @@ def create_app():
                 field_type = field.get("type")
                 if field_type == "checkbox":
                     updates[key] = "1" if request.form.get(key) else "0"
+                elif key == "LLM_MODEL":
+                    selected = request.form.get(key, "").strip()
+                    if selected == "other":
+                        custom_model = request.form.get("LLM_MODEL_CUSTOM", "").strip()
+                        if not custom_model:
+                            flash("Custom model name is required when selecting Other.")
+                            return redirect(url_for("settings"))
+                        updates[key] = custom_model
+                    else:
+                        updates[key] = selected or app.config.get(key, "")
                 else:
                     updates[key] = request.form.get(key, "").strip()
             _update_env_file(updates)

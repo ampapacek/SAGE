@@ -11,7 +11,30 @@
       {% for field in fields %}
         <div style="margin-bottom: 16px;">
           <label for="{{ field.key }}">{{ field.label }}</label>
-          {% if field.type == "select" %}
+          {% if field.type == "select" and field.key == "LLM_MODEL" %}
+            {% set current_value = values[field.key] %}
+            {% set is_custom = current_value and current_value not in field.options %}
+            <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
+              {% for option in field.options %}
+                {% if option == "other" %}
+                  <option value="other" {% if is_custom or current_value == "other" %}selected{% endif %}>{{ t('other_model_option') }}</option>
+                {% else %}
+                  <option value="{{ option }}" {% if current_value == option %}selected{% endif %}>{{ option }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <div id="settings-custom-model" {% if not is_custom and current_value != "other" %}class="hidden"{% endif %} style="margin-top: 10px;">
+              <label for="LLM_MODEL_CUSTOM">{{ t('custom_model_label') }}</label>
+              <input
+                type="text"
+                id="LLM_MODEL_CUSTOM"
+                name="LLM_MODEL_CUSTOM"
+                value="{% if is_custom %}{{ current_value }}{% endif %}"
+                placeholder="{{ t('custom_model_placeholder') }}"
+                class="settings-input"
+              />
+            </div>
+          {% elif field.type == "select" %}
             <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
               {% for option in field.options %}
                 <option value="{{ option }}" {% if values[field.key] == option %}selected{% endif %}>{{ option }}</option>
@@ -39,4 +62,18 @@
       <button type="submit">{{ t('save_settings') }}</button>
     </form>
   </div>
+  <script>
+    (function () {
+      var modelSelect = document.getElementById("LLM_MODEL");
+      var customWrap = document.getElementById("settings-custom-model");
+      if (!modelSelect || !customWrap) {
+        return;
+      }
+      function toggleCustom() {
+        customWrap.classList.toggle("hidden", modelSelect.value !== "other");
+      }
+      modelSelect.addEventListener("change", toggleCustom);
+      toggleCustom();
+    })();
+  </script>
 {% endblock %}
