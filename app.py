@@ -209,7 +209,8 @@ TRANSLATIONS = {
         "no_guide_available": "No grading guide available.",
         "show_assignment_text": "Show assignment text",
         "hide_assignment_text": "Hide assignment text",
-        "hero_title": "Automated grading that feels rigorous, not rushed.",
+        "hero_title": "Save time with automatic grading assistant.",
+        "sage_acronym": "Smart Automated Grading Engine",
         "hero_subtitle": (
             "A grading workspace for assignments, submissions, and AI-assisted feedback "
             "that helps teachers move faster while staying in control."
@@ -404,7 +405,8 @@ TRANSLATIONS = {
         "no_guide_available": "Žádný hodnoticí průvodce není k dispozici.",
         "show_assignment_text": "Zobrazit text zadání",
         "hide_assignment_text": "Skrýt text zadání",
-        "hero_title": "Automatizované hodnocení, které je důsledné, ne uspěchané.",
+        "hero_title": "Ušetřete čas s automatickým asistentem na hodnocení úkolů.",
+        "sage_acronym": "Smart Automated Grading Engine",
         "hero_subtitle": (
             "Pracovní prostor pro zadání, odevzdání a AI asistovanou zpětnou vazbu, "
             "který pomáhá učitelům postupovat rychleji a přitom mít vše pod kontrolou."
