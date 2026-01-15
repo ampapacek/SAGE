@@ -74,7 +74,9 @@ _MODEL_OPTIONS = [
 ]
 _PROVIDER_OPTIONS = [
     "openai",
-    "other",
+    "custom1",
+    "custom2",
+    "custom3",
 ]
 TRANSLATIONS = {
     "en": {
@@ -523,31 +525,87 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
-        "key": "CUSTOM_LLM_PROVIDER_NAME",
-        "label": "Custom Provider Name",
+        "key": "CUSTOM_LLM_PROVIDER_1_NAME",
+        "label": "Custom Provider 1 Name",
         "type": "text",
-        "help": "Label shown for the custom provider option.",
+        "help": "Label shown for custom provider 1.",
         "restart": False,
     },
     {
-        "key": "CUSTOM_LLM_API_KEY",
-        "label": "Custom Provider API Key",
+        "key": "CUSTOM_LLM_PROVIDER_1_API_KEY",
+        "label": "Custom Provider 1 API Key",
         "type": "password",
-        "help": "API key for the custom provider.",
+        "help": "API key for custom provider 1.",
         "restart": False,
     },
     {
-        "key": "CUSTOM_LLM_API_BASE_URL",
-        "label": "Custom Provider Base URL",
+        "key": "CUSTOM_LLM_PROVIDER_1_API_BASE_URL",
+        "label": "Custom Provider 1 Base URL",
         "type": "text",
-        "help": "Base URL for the custom provider.",
+        "help": "Base URL for custom provider 1.",
         "restart": False,
     },
     {
-        "key": "CUSTOM_LLM_MODEL",
-        "label": "Custom Provider Default Model",
+        "key": "CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL",
+        "label": "Custom Provider 1 Default Model",
         "type": "text",
-        "help": "Default model name for the custom provider.",
+        "help": "Default model name for custom provider 1.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_2_NAME",
+        "label": "Custom Provider 2 Name",
+        "type": "text",
+        "help": "Label shown for custom provider 2.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_2_API_KEY",
+        "label": "Custom Provider 2 API Key",
+        "type": "password",
+        "help": "API key for custom provider 2.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_2_API_BASE_URL",
+        "label": "Custom Provider 2 Base URL",
+        "type": "text",
+        "help": "Base URL for custom provider 2.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL",
+        "label": "Custom Provider 2 Default Model",
+        "type": "text",
+        "help": "Default model name for custom provider 2.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_3_NAME",
+        "label": "Custom Provider 3 Name",
+        "type": "text",
+        "help": "Label shown for custom provider 3.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_3_API_KEY",
+        "label": "Custom Provider 3 API Key",
+        "type": "password",
+        "help": "API key for custom provider 3.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_3_API_BASE_URL",
+        "label": "Custom Provider 3 Base URL",
+        "type": "text",
+        "help": "Base URL for custom provider 3.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL",
+        "label": "Custom Provider 3 Default Model",
+        "type": "text",
+        "help": "Default model name for custom provider 3.",
         "restart": False,
     },
     {
@@ -822,16 +880,31 @@ def _resolve_provider_from_form(form, default_provider):
     selected = (form.get("llm_provider") or "").strip()
     if not selected:
         selected = default_provider
-    return selected
+    return _normalize_provider_key(selected)
 
 
 def _provider_config(provider_key):
-    if provider_key == "other":
+    provider_key = _normalize_provider_key(provider_key)
+    if provider_key == "custom1":
         return {
-            "name": Config.CUSTOM_LLM_PROVIDER_NAME or "Other",
-            "api_key": Config.CUSTOM_LLM_API_KEY,
-            "base_url": Config.CUSTOM_LLM_API_BASE_URL,
-            "default_model": Config.CUSTOM_LLM_MODEL or Config.LLM_MODEL,
+            "name": Config.CUSTOM_LLM_PROVIDER_1_NAME or "Other 1",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_1_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_1_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL or Config.LLM_MODEL,
+        }
+    if provider_key == "custom2":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_2_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_2_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL or Config.LLM_MODEL,
+        }
+    if provider_key == "custom3":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_3_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_3_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL or Config.LLM_MODEL,
         }
     return {
         "name": "OpenAI",
@@ -842,9 +915,31 @@ def _provider_config(provider_key):
 
 
 def _provider_display(provider_key):
-    if provider_key == "other":
-        return Config.CUSTOM_LLM_PROVIDER_NAME or "Other"
+    provider_key = _normalize_provider_key(provider_key)
+    if provider_key == "custom1":
+        return Config.CUSTOM_LLM_PROVIDER_1_NAME or "Other 1"
+    if provider_key == "custom2":
+        return Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2"
+    if provider_key == "custom3":
+        return Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3"
     return "OpenAI"
+
+
+def _normalize_provider_key(provider_key):
+    if not provider_key:
+        return "openai"
+    if provider_key == "other":
+        return "custom1"
+    return provider_key
+
+
+def _provider_option_items():
+    return [
+        {"value": "openai", "label": t("provider_openai")},
+        {"value": "custom1", "label": Config.CUSTOM_LLM_PROVIDER_1_NAME or "Other 1"},
+        {"value": "custom2", "label": Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2"},
+        {"value": "custom3", "label": Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3"},
+    ]
 
 
 def _submission_requires_images(submission):
@@ -1124,6 +1219,7 @@ def create_app():
             total_price_estimate = None
 
         default_provider_cfg = _provider_config(Config.LLM_PROVIDER)
+        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
         return render_template(
             "assignment_detail.html",
             assignment=assignment,
@@ -1136,8 +1232,8 @@ def create_app():
             approved_rubric=approved_rubric,
             default_model=default_provider_cfg["default_model"],
             total_price_estimate=total_price_estimate,
-            custom_provider_name=Config.CUSTOM_LLM_PROVIDER_NAME or t("provider_other"),
-            default_provider=Config.LLM_PROVIDER,
+            provider_options=_provider_option_items(),
+            default_provider=default_provider,
         )
 
     @app.route("/assignments/<int:assignment_id>/edit", methods=["GET", "POST"])
@@ -1673,7 +1769,8 @@ def create_app():
             started_at = _as_utc(job.started_at)
             if started_at:
                 duration_seconds = (_utcnow() - started_at).total_seconds()
-        default_provider_cfg = _provider_config(Config.LLM_PROVIDER)
+        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
+        default_provider_cfg = _provider_config(default_provider)
         return render_template(
             "job_detail.html",
             job=job,
@@ -1683,8 +1780,8 @@ def create_app():
             default_model=default_provider_cfg["default_model"],
             submission_requires_images=submission_requires_images,
             job_price_display=job_price_display,
-            custom_provider_name=Config.CUSTOM_LLM_PROVIDER_NAME or t("provider_other"),
-            default_provider=Config.LLM_PROVIDER,
+            provider_options=_provider_option_items(),
+            default_provider=default_provider,
             job_provider_display=job_provider_display,
         )
 
@@ -1787,10 +1884,13 @@ def create_app():
             field["key"]: _current_setting_value(app, field["key"])
             for field in _SETTINGS_FIELDS
         }
+        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
         return render_template(
             "settings.html",
             fields=_SETTINGS_FIELDS,
             values=field_values,
+            provider_options=_provider_option_items(),
+            default_provider=default_provider,
         )
 
     @app.route("/jobs/<int:job_id>/rerun", methods=["POST"])

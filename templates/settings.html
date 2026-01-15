@@ -9,7 +9,6 @@
   <div class="card">
     <form method="post">
       {% for field in fields %}
-        {% if field.key != "CUSTOM_LLM_PROVIDER_NAME" %}
         <div style="margin-bottom: 16px;">
           <label for="{{ field.key }}">{{ field.label }}</label>
           {% if field.type == "select" and field.key == "LLM_MODEL" %}
@@ -37,26 +36,14 @@
             </div>
           {% elif field.type == "select" and field.key == "LLM_PROVIDER" %}
             {% set provider_value = values[field.key] %}
+            {% if provider_value == "other" %}
+              {% set provider_value = "custom1" %}
+            {% endif %}
             <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
-              {% for option in field.options %}
-                {% if option == "other" %}
-                  <option value="other" {% if provider_value == "other" %}selected{% endif %}>{{ values["CUSTOM_LLM_PROVIDER_NAME"] or t('provider_other') }}</option>
-                {% else %}
-                  <option value="{{ option }}" {% if provider_value == option %}selected{% endif %}>{{ t('provider_openai') }}</option>
-                {% endif %}
+              {% for option in provider_options %}
+                <option value="{{ option.value }}" {% if provider_value == option.value %}selected{% endif %}>{{ option.label }}</option>
               {% endfor %}
             </select>
-            <div id="settings-custom-provider" {% if provider_value != "other" %}class="hidden"{% endif %} style="margin-top: 10px;">
-              <label for="CUSTOM_LLM_PROVIDER_NAME">{{ t('provider_other') }}</label>
-              <input
-                type="text"
-                id="CUSTOM_LLM_PROVIDER_NAME"
-                name="CUSTOM_LLM_PROVIDER_NAME"
-                value="{{ values["CUSTOM_LLM_PROVIDER_NAME"] }}"
-                placeholder="{{ t('provider_other') }}"
-                class="settings-input"
-              />
-            </div>
           {% elif field.type == "select" %}
             <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
               {% for option in field.options %}
@@ -81,7 +68,6 @@
             <div class="dropzone-hint">{{ t('restart_required') }}</div>
           {% endif %}
         </div>
-        {% endif %}
       {% endfor %}
       <button type="submit">{{ t('save_settings') }}</button>
     </form>
@@ -90,26 +76,14 @@
     (function () {
       var modelSelect = document.getElementById("LLM_MODEL");
       var customWrap = document.getElementById("settings-custom-model");
-      var providerSelect = document.getElementById("LLM_PROVIDER");
-      var providerWrap = document.getElementById("settings-custom-provider");
       if (!modelSelect || !customWrap) {
         return;
       }
       function toggleCustom() {
         customWrap.classList.toggle("hidden", modelSelect.value !== "other");
       }
-      function toggleProvider() {
-        if (!providerSelect || !providerWrap) {
-          return;
-        }
-        providerWrap.classList.toggle("hidden", providerSelect.value !== "other");
-      }
       modelSelect.addEventListener("change", toggleCustom);
-      if (providerSelect) {
-        providerSelect.addEventListener("change", toggleProvider);
-      }
       toggleCustom();
-      toggleProvider();
     })();
   </script>
 {% endblock %}

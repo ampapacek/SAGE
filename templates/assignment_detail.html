@@ -137,14 +137,15 @@
         <label for="rubric_provider">{{ t('provider_label') }}</label>
         <select id="rubric_provider" name="llm_provider">
           {% set selected_provider = default_provider %}
-          <option value="openai" {% if selected_provider == 'openai' %}selected{% endif %}>{{ t('provider_openai') }}</option>
-          <option value="other" {% if selected_provider == 'other' %}selected{% endif %}>{{ custom_provider_name }}</option>
+          {% for option in provider_options %}
+            <option value="{{ option.value }}" {% if selected_provider == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
         </select>
         <label for="rubric_model">{{ t('choose_model_generation') }}</label>
         <select id="rubric_model" name="llm_model">
           {% set selected_model = default_model %}
           {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-          {% set is_custom = selected_provider == 'other' or selected_model not in known_models %}
+          {% set is_custom = selected_provider != 'openai' or selected_model not in known_models %}
           <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
           <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
           <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -188,14 +189,15 @@
           <label for="llm_provider">{{ t('provider_label') }}</label>
           <select id="llm_provider" name="llm_provider">
             {% set selected_provider = default_provider %}
-            <option value="openai" {% if selected_provider == 'openai' %}selected{% endif %}>{{ t('provider_openai') }}</option>
-            <option value="other" {% if selected_provider == 'other' %}selected{% endif %}>{{ custom_provider_name }}</option>
+            {% for option in provider_options %}
+              <option value="{{ option.value }}" {% if selected_provider == option.value %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
           </select>
           <label for="llm_model">{{ t('model_selection') }}</label>
           <select id="llm_model" name="llm_model">
             {% set selected_model = default_model %}
             {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-            {% set is_custom = selected_provider == 'other' or selected_model not in known_models %}
+            {% set is_custom = selected_provider != 'openai' or selected_model not in known_models %}
             <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
             <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
             <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -305,7 +307,7 @@
           return option.dataset.supportsImages !== "false";
         }
         function requiresImages() {
-          if (providerSelect && providerSelect.value === "other") {
+          if (providerSelect && providerSelect.value !== "openai") {
             return false;
           }
           if (zipInput.files && zipInput.files.length) {
@@ -329,20 +331,20 @@
         }
         function updateModelOptions() {
           if (providerSelect && modelSelect) {
-            if (providerSelect.value === "other") {
+            if (providerSelect.value !== "openai") {
               modelSelect.value = "other";
             }
           }
           if (rubricProvider && rubricModel) {
-            if (rubricProvider.value === "other") {
+            if (rubricProvider.value !== "openai") {
               rubricModel.value = "other";
             }
           }
           toggleCustomModel(modelSelect, customWrap);
           toggleCustomModel(rubricModel, rubricCustomWrap);
-          if (providerSelect && providerSelect.value === "other") {
+          if (providerSelect && providerSelect.value !== "openai") {
             for (var i = 0; i < modelSelect.options.length; i++) {
-              modelSelect.options[i].disabled = false;
+              modelSelect.options[i].disabled = modelSelect.options[i].value !== "other";
             }
             return;
           }
@@ -364,6 +366,17 @@
             firstEnabled !== null
           ) {
             modelSelect.value = firstEnabled;
+          }
+          if (rubricModel) {
+            if (rubricProvider && rubricProvider.value !== "openai") {
+              for (var r = 0; r < rubricModel.options.length; r++) {
+                rubricModel.options[r].disabled = rubricModel.options[r].value !== "other";
+              }
+            } else {
+              for (var r = 0; r < rubricModel.options.length; r++) {
+                rubricModel.options[r].disabled = false;
+              }
+            }
           }
         }
         fileInput.addEventListener("change", updateModelOptions);

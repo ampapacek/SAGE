@@ -32,12 +32,26 @@ def _utcnow():
 
 
 def _provider_config(provider_key):
-    if provider_key == "other":
+    if provider_key in {"other", "custom1"}:
         return {
-            "name": Config.CUSTOM_LLM_PROVIDER_NAME or "Other",
-            "api_key": Config.CUSTOM_LLM_API_KEY,
-            "base_url": Config.CUSTOM_LLM_API_BASE_URL,
-            "default_model": Config.CUSTOM_LLM_MODEL or Config.LLM_MODEL,
+            "name": Config.CUSTOM_LLM_PROVIDER_1_NAME or "Other 1",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_1_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_1_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL or Config.LLM_MODEL,
+        }
+    if provider_key == "custom2":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_2_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_2_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL or Config.LLM_MODEL,
+        }
+    if provider_key == "custom3":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3",
+            "api_key": Config.CUSTOM_LLM_PROVIDER_3_API_KEY,
+            "base_url": Config.CUSTOM_LLM_PROVIDER_3_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL or Config.LLM_MODEL,
         }
     return {
         "name": "OpenAI",
