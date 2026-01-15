@@ -14,9 +14,9 @@
     <div id="assignment-form" {% if assignments %}class="hidden"{% endif %}>
       <form method="post">
         <label for="title">{{ t('title') }}</label>
-        <input type="text" id="title" name="title" required />
+        <input type="text" id="title" name="title" required {% if not assignments %}placeholder="{{ t('assignment_title_placeholder') }}"{% endif %} />
         <label for="assignment_text">{{ t('assignment_text') }}</label>
-        <textarea id="assignment_text" name="assignment_text" required></textarea>
+        <textarea id="assignment_text" name="assignment_text" required {% if not assignments %}placeholder="{{ t('assignment_text_placeholder') }}"{% endif %}></textarea>
         <button type="submit">{{ t('create') }}</button>
       </form>
     </div>
