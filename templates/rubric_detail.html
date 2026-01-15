@@ -2,35 +2,35 @@
 
 {% block content %}
   <div class="card">
-    <h2>Grading Guide {{ rubric.id }}</h2>
-    <p>Assignment: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
-    <p>Status: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
-    <p>Model: {{ rubric.llm_model or 'manual' }}</p>
-    <p>Created: {{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <h2>{{ t('guide') }} {{ rubric.id }}</h2>
+    <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
+    <p>{{ t('status') }}: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
+    <p>{{ t('model') }}: {{ rubric.llm_model or 'manual' }}</p>
+    <p>{{ t('created') }}: {{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
     {% if duration_seconds is not none %}
-      <p>Duration: {{ "%.2f"|format(duration_seconds) }} seconds</p>
+      <p>{{ t('duration_s') }}: {{ "%.2f"|format(duration_seconds) }}</p>
     {% endif %}
     {% if rubric.price_estimate is not none %}
-      <p>Price Estimate: <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">${{ "%.4f"|format(rubric.price_estimate) }}</span></p>
+      <p>{{ t('price_estimate') }}: <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">${{ "%.4f"|format(rubric.price_estimate) }}</span></p>
     {% endif %}
     {% if rubric.error_message %}
-      <p class="status ERROR">Error: {{ rubric.error_message }}</p>
+      <p class="status ERROR">{{ t('error') }}: {{ rubric.error_message }}</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3>Grading Guide Text</h3>
+    <h3>{{ t('guide_text') }}</h3>
     <pre>{{ rubric.rubric_text or 'Not available yet.' }}</pre>
   </div>
 
   <div class="card">
-    <h3>Reference Solution</h3>
+    <h3>{{ t('reference_solution') }}</h3>
     <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
   </div>
 
   {% if rubric.error_message and rubric.raw_response %}
     <div class="card">
-      <h3>Raw LLM Response</h3>
+      <h3>{{ t('raw_llm_response') }}</h3>
       <pre>{{ rubric.raw_response }}</pre>
     </div>
   {% endif %}
@@ -38,16 +38,16 @@
   <div class="card">
     {% if rubric.status == 'DRAFT' %}
       <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
-        <button type="submit">Approve Guide</button>
+        <button type="submit">{{ t('approve_guide') }}</button>
       </form>
     {% elif rubric.status == 'GENERATING' %}
       <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
-        <button type="submit" class="secondary">Cancel Generation</button>
+        <button type="submit" class="secondary">{{ t('cancel_generation') }}</button>
       </form>
     {% elif rubric.status == 'APPROVED' %}
-      <p>Approved guide in use.</p>
+      <p>{{ t('approved_guide_in_use') }}</p>
     {% else %}
-      <p>Guide is not ready to approve.</p>
+      <p>{{ t('guide_not_ready') }}</p>
     {% endif %}
   </div>
 {% endblock %}

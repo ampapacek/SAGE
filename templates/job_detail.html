@@ -2,47 +2,47 @@
 
 {% block content %}
   <div class="card">
-    <h2>Job {{ job.id }}</h2>
-    <p>Status: <span id="job-status" class="status {{ job.status }}">{{ job.status }}</span></p>
-    <p>Model: {{ job.llm_model or 'unknown' }}</p>
-    <p>Submission # <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
-    <div class="helper-text">Click the submission number to open details.</div>
-    <p>Student: {{ job.submission.student_identifier if job.submission else 'unknown' }}</p>
-    <p>Guide Version: <a href="{{ url_for('rubric_detail', rubric_id=job.rubric_version_id) }}">{{ job.rubric_version_id }}</a></p>
-    <p>Created: {{ job.created_at.strftime('%b %d, %Y %H:%M') }}</p>
+    <h2>{{ t('job') }} {{ job.id }}</h2>
+    <p>{{ t('status') }}: <span id="job-status" class="status {{ job.status }}">{{ job.status }}</span></p>
+    <p>{{ t('model') }}: {{ job.llm_model or 'unknown' }}</p>
+    <p>{{ t('submission_number') }} <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
+    <div class="helper-text">{{ t('student_hint') }}</div>
+    <p>{{ t('student') }}: {{ job.submission.student_identifier if job.submission else 'unknown' }}</p>
+    <p>{{ t('guide_version') }}: <a href="{{ url_for('rubric_detail', rubric_id=job.rubric_version_id) }}">{{ job.rubric_version_id }}</a></p>
+    <p>{{ t('created') }}: {{ job.created_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% if job.started_at %}
-      <p>Started: {{ job.started_at.strftime('%b %d, %Y %H:%M') }}</p>
+      <p>{{ t('started') }}: {{ job.started_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% endif %}
     {% if job.finished_at %}
-      <p>Finished: {{ job.finished_at.strftime('%b %d, %Y %H:%M') }}</p>
+      <p>{{ t('finished') }}: {{ job.finished_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% endif %}
     {% if duration_seconds is not none %}
-      <p>Duration: <span id="job-duration">{{ "%.2f"|format(duration_seconds) }}</span> seconds</p>
+      <p>{{ t('duration_s') }}: <span id="job-duration">{{ "%.2f"|format(duration_seconds) }}</span></p>
     {% else %}
-      <p>Duration: <span id="job-duration">--</span> seconds</p>
+      <p>{{ t('duration_s') }}: <span id="job-duration">--</span></p>
     {% endif %}
     {% if job_price_display is not none %}
-      <p>Price Estimate: <span class="price-amount" data-usd="{{ "%.6f"|format(job_price_display) }}">${{ "%.4f"|format(job_price_display) }}</span></p>
+      <p>{{ t('price_estimate') }}: <span class="price-amount" data-usd="{{ "%.6f"|format(job_price_display) }}">${{ "%.4f"|format(job_price_display) }}</span></p>
     {% endif %}
     {% if job.message %}
-      <button type="button" class="secondary" id="toggle-summary">Show Processing Summary</button>
+      <button type="button" class="secondary" id="toggle-summary" data-show="{{ t('show_processing_summary') }}" data-hide="{{ t('hide_processing_summary') }}">{{ t('show_processing_summary') }}</button>
       <div id="processing-summary" class="hidden">
-        <h3>Processing Summary</h3>
+        <h3>{{ t('processing_summary') }}</h3>
         <pre>{{ job.message }}</pre>
       </div>
     {% endif %}
     {% if job.status in ['QUEUED', 'RUNNING'] %}
       <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
-        <button type="submit" class="secondary">Terminate Job</button>
+        <button type="submit" class="secondary">{{ t('terminate_job') }}</button>
       </form>
     {% endif %}
     {% if job.status not in ['QUEUED', 'RUNNING'] %}
       <form method="post" action="{{ url_for('delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete this job?');">
-        <button type="submit" class="danger">Delete Job</button>
+        <button type="submit" class="danger">{{ t('delete_job') }}</button>
       </form>
     {% endif %}
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
-      <label for="llm_model">Model options</label>
+      <label for="llm_model">{{ t('model_options') }}</label>
       <select id="llm_model" name="llm_model" class="compact-select">
         {% set selected_model = job.llm_model or default_model %}
         <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
@@ -55,7 +55,7 @@
         <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
         <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
       </select>
-      <button type="submit">Rerun Job</button>
+      <button type="submit">{{ t('rerun_job') }}</button>
     </form>
     {% if submission_requires_images %}
       <script>
@@ -85,7 +85,7 @@
       </script>
     {% endif %}
     {% if grade_result and grade_result.error_message and grade_result.raw_response %}
-      <h3>Raw LLM Response (Error)</h3>
+      <h3>{{ t('raw_llm_response_error') }}</h3>
       <pre>{{ grade_result.raw_response }}</pre>
     {% endif %}
   </div>
@@ -100,7 +100,7 @@
         button.addEventListener("click", function () {
           var isHidden = panel.classList.contains("hidden");
           panel.classList.toggle("hidden");
-          button.textContent = isHidden ? "Hide Processing Summary" : "Show Processing Summary";
+          button.textContent = isHidden ? button.dataset.hide : button.dataset.show;
         });
       })();
     </script>

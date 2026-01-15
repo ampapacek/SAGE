@@ -2,22 +2,22 @@
 
 {% block content %}
   <div class="card">
-    <h2>Submission {{ submission.id }} - {{ submission.student_identifier }}</h2>
-    <p>Assignment: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
-    <p>Submitted: {{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <h2>{{ t('submission') }} {{ submission.id }} - {{ submission.student_identifier }}</h2>
+    <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
+    <p>{{ t('submitted') }}: {{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
   </div>
 
   <div class="card">
-    <h3>Submitted Text</h3>
+    <h3>{{ t('submitted_text') }}</h3>
     {% if student_text %}
       <div class="markdown">{{ student_text_html | safe }}</div>
     {% else %}
-      <p>No submitted text.</p>
+      <p>{{ t('no_submitted_text') }}</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3>Files</h3>
+    <h3>{{ t('files') }}</h3>
     {% if submission.files %}
       <ul>
         {% for file in submission.files %}
@@ -25,12 +25,12 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p>No files.</p>
+      <p>{{ t('no_files') }}</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3>Images</h3>
+    <h3>{{ t('images') }}</h3>
     {% if images %}
       <div class="grid">
         {% for path in images %}
@@ -40,25 +40,25 @@
         {% endfor %}
       </div>
     {% else %}
-      <p>No images rendered.</p>
+      <p>{{ t('no_images') }}</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3>Grade Result</h3>
+    <h3>{{ t('grade_result') }}</h3>
     {% if grade_result %}
       {% if grade_result.error_message %}
-        <p class="status ERROR">Error: {{ grade_result.error_message }}</p>
+        <p class="status ERROR">{{ t('error') }}: {{ grade_result.error_message }}</p>
         {% if grade_result.raw_response %}
-          <h4>Raw LLM Response</h4>
+          <h4>{{ t('raw_llm_response') }}</h4>
           <pre>{{ grade_result.raw_response }}</pre>
         {% endif %}
-        <h4>Raw JSON</h4>
+        <h4>{{ t('raw_json') }}</h4>
         <pre>{{ grade_result.json_result }}</pre>
       {% endif %}
       <pre>{{ grade_result.rendered_text }}</pre>
     {% else %}
-      <p>No grade result yet.</p>
+      <p>{{ t('no_grade_result') }}</p>
     {% endif %}
   </div>
 {% endblock %}

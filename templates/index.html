@@ -38,6 +38,25 @@
       gap: 10px;
       margin-bottom: 16px;
     }
+    .hero-action {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-icon {
+      width: 18px;
+      height: 18px;
+    }
+    .btn-text {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
     .btn {
       display: inline-flex;
       align-items: center;
@@ -234,8 +253,24 @@
         helps teachers move faster while staying in control.
       </p>
       <div class="hero-actions">
-        <a class="btn primary" href="{{ url_for('list_assignments') }}">Open Assignments</a>
-        <a class="btn ghost" href="#quick-start">Quick Start</a>
+        <div class="hero-action">
+          <a class="btn primary" href="{{ url_for('list_assignments') }}">
+            <span>
+              <img class="btn-icon" src="{{ url_for('static', filename='images/assignments.png') }}" alt="" aria-hidden="true" />
+              {{ t('open_assignments') }}
+            </span>
+          </a>
+          <p class="btn-text">Manage assignments, grading guides, and submissions.</p>
+        </div>
+        <div class="hero-action">
+          <a class="btn ghost" href="#quick-start">
+            <span>
+              <img class="btn-icon" src="{{ url_for('static', filename='images/quickstart.png') }}" alt="" aria-hidden="true" />
+              {{ t('quick_start') }}
+            </span>
+          </a>
+          <p class="btn-text">Jump to a step-by-step walkthrough below.</p>
+        </div>
       </div>
       <div class="hero-chips">
         <span class="hero-chip">LLM-guided feedback</span>
@@ -250,25 +285,25 @@
   </section>
 
   <div class="card" style="margin-top: 18px;">
-    <h2 class="section-title">Why SAGE</h2>
+    <h2 class="section-title">{{ t('why_sage') }}</h2>
     <div class="feature-grid">
       <div class="feature-card">
-        <h3 class="feature-title">Structured evaluation</h3>
+        <h3 class="feature-title">{{ t('structured_evaluation') }}</h3>
         <p class="feature-text">Use grading guides with part-level scoring and clear deductions.</p>
       </div>
       <div class="feature-card">
-        <h3 class="feature-title">Flexible formats</h3>
+        <h3 class="feature-title">{{ t('flexible_formats') }}</h3>
         <p class="feature-text">Support PDFs, images, and text, plus ZIP uploads for whole classes.</p>
       </div>
       <div class="feature-card">
-        <h3 class="feature-title">Traceable output</h3>
+        <h3 class="feature-title">{{ t('traceable_output') }}</h3>
         <p class="feature-text">Get JSON, readable feedback, and exportable CSV results.</p>
       </div>
     </div>
   </div>
 
   <div id="quick-start" class="card">
-    <h2 class="section-title">Quick Start</h2>
+    <h2 class="section-title">{{ t('quick_start') }}</h2>
     <div class="steps">
       <div class="step-card"><span>Create an assignment with the prompt or problem statement.</span></div>
       <div class="step-card"><span>Create or generate a draft grading guide and approve it.</span></div>
@@ -278,19 +313,19 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title">Top Bar Icons</h2>
+    <h2 class="section-title">{{ t('top_bar_icons') }}</h2>
     <div class="icon-strip">
       <div class="icon-strip-item">
         <img src="{{ url_for('static', filename='images/sage.png') }}" alt="SAGE logo" />
         <div>
-          <strong>SAGE Home</strong>
+          <strong>{{ t('sage_home') }}</strong>
           <div class="icon-strip-text">Click the SAGE logo in the header to return here.</div>
         </div>
       </div>
       <div class="icon-strip-item">
         <img src="{{ url_for('static', filename='images/settings.png') }}" alt="Settings icon" />
         <div>
-          <strong>Settings</strong>
+          <strong>{{ t('settings') }}</strong>
           <div class="icon-strip-text">Update API keys, model defaults, and limits.</div>
         </div>
       </div>
@@ -300,7 +335,7 @@
           <img class="flag-icon" src="{{ url_for('static', filename='images/flag-cz.png') }}" alt="Czech flag icon" />
         </div>
         <div>
-          <strong>Language / Currency</strong>
+          <strong>{{ t('language_currency') }}</strong>
           <div class="icon-strip-text">Switch between English and Czech currency display.</div>
         </div>
       </div>
@@ -310,7 +345,7 @@
           <img src="{{ url_for('static', filename='images/moon.png') }}" alt="Dark mode icon" />
         </div>
         <div>
-          <strong>Theme</strong>
+          <strong>{{ t('theme') }}</strong>
           <div class="icon-strip-text">Toggle light or dark mode.</div>
         </div>
       </div>
@@ -318,7 +353,7 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title">Quick Start Walkthrough</h2>
+    <h2 class="section-title">{{ t('quick_start_walkthrough') }}</h2>
     <div class="step-list">
       <div class="step-item">
         <div>
@@ -372,7 +407,7 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title">Responsible Use</h2>
+    <h2 class="section-title">{{ t('responsible_use') }}</h2>
     <p class="feature-text">
       SAGE is intended to speed up grading and support teacher review. All grading guides,
       outputs, and final grades must be verified by the instructor before release.

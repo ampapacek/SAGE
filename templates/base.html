@@ -196,8 +196,8 @@
           <img id="theme-icon" src="{{ url_for('static', filename='images/sun.png') }}" alt="" aria-hidden="true" />
           <span class="sr-only">Toggle theme</span>
         </button>
-        <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">Back</button>
-        <a class="home-button" href="{{ url_for('list_assignments') }}">Home</a>
+        <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">{{ t('nav_back') }}</button>
+        <a class="home-button" href="{{ url_for('list_assignments') }}">{{ t('nav_home') }}</a>
       </div>
     </header>
     <main>
@@ -264,6 +264,12 @@
         var flagUs = "{{ url_for('static', filename='images/flag-us.png') }}";
         var flagCz = "{{ url_for('static', filename='images/flag-cz.png') }}";
         var rateCzk = 23.0;
+        function getCookie(name) {
+          return document.cookie.split(";").map(function (c) { return c.trim(); }).filter(function (c) { return c.indexOf(name + "=") === 0; }).map(function (c) { return c.split("=").slice(1).join("="); })[0];
+        }
+        function setCookie(name, value) {
+          document.cookie = name + "=" + value + "; path=/; max-age=31536000";
+        }
         function formatPrice(usdValue, currency) {
           if (currency === "CZK") {
             return (usdValue * rateCzk).toFixed(2) + " Kč";
@@ -285,16 +291,19 @@
             node.textContent = formatPrice(usdValue, currency);
           });
         }
-        var stored = localStorage.getItem("sage-locale");
+        var stored = getCookie("sage_locale") || localStorage.getItem("sage-locale") || "en";
         if (stored !== "cs" && stored !== "en") {
           stored = "en";
         }
+        setCookie("sage_locale", stored);
         applyLocale(stored);
         if (localeToggle) {
           localeToggle.addEventListener("click", function () {
             stored = stored === "cs" ? "en" : "cs";
             localStorage.setItem("sage-locale", stored);
+            setCookie("sage_locale", stored);
             applyLocale(stored);
+            window.location.reload();
           });
         }
       })();

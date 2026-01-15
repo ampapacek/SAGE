@@ -2,29 +2,29 @@
 
 {% block content %}
   <div class="card">
-    <h2>Create Assignment</h2>
+    <h2>{{ t('assignments_create') }}</h2>
     <button type="button" class="secondary" onclick="document.getElementById('assignment-form').classList.toggle('hidden')">
-      Toggle Create Assignment
+      {{ t('assignments_toggle_create') }}
     </button>
     <div id="assignment-form" class="hidden">
       <form method="post">
-        <label for="title">Title</label>
+        <label for="title">{{ t('title') }}</label>
         <input type="text" id="title" name="title" required />
-        <label for="assignment_text">Assignment Text</label>
+        <label for="assignment_text">{{ t('assignment_text') }}</label>
         <textarea id="assignment_text" name="assignment_text" required></textarea>
-        <button type="submit">Create</button>
+        <button type="submit">{{ t('create') }}</button>
       </form>
     </div>
   </div>
 
   <div class="card">
-    <h2>Assignments</h2>
+    <h2>{{ t('assignments_title') }}</h2>
     {% if assignments %}
       <table>
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Created</th>
+            <th>{{ t('title') }}</th>
+            <th>{{ t('created') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -34,9 +34,9 @@
               <td>{{ assignment.title }}</td>
               <td>{{ assignment.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
               <td>
-                <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">Open</a>
+                <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
                 <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                  <button type="submit" class="danger">Delete</button>
+                  <button type="submit" class="danger">{{ t('delete') }}</button>
                 </form>
               </td>
             </tr>
@@ -44,7 +44,7 @@
         </tbody>
       </table>
     {% else %}
-      <p>No assignments yet.</p>
+      <p>{{ t('no_assignments') }}</p>
     {% endif %}
   </div>
 {% endblock %}

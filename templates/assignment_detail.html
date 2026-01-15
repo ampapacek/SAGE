@@ -24,7 +24,7 @@
     <div class="markdown assignment-text">{{ assignment_html | safe }}</div>
     <div class="section-divider"></div>
     <p class="assignment-meta">
-      Total Price Estimate (guides + jobs):
+      {{ t('total_price_estimate') }}
       {% if total_price_estimate is not none %}
         <span class="price-amount" data-usd="{{ "%.6f"|format(total_price_estimate) }}">
           ${{ "%.4f"|format(total_price_estimate) }}
@@ -34,24 +34,24 @@
       {% endif %}
     </p>
     <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-      <button type="submit" class="danger">Delete Assignment</button>
+      <button type="submit" class="danger">{{ t('delete_assignment') }}</button>
     </form>
   </div>
 
   <div class="card">
-    <h3>Grading Guides</h3>
+    <h3>{{ t('grading_guides') }}</h3>
     {% if rubrics %}
       <table>
         <thead>
           <tr>
-            <th>Guide #</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Model</th>
-            <th>Duration (s)</th>
-            <th>Price</th>
-            <th>Preview</th>
-            <th>Actions</th>
+            <th>{{ t('guide_number') }}</th>
+            <th>{{ t('status') }}</th>
+            <th>{{ t('created') }}</th>
+            <th>{{ t('model') }}</th>
+            <th>{{ t('duration_s') }}</th>
+            <th>{{ t('price') }}</th>
+            <th>{{ t('preview') }}</th>
+            <th>{{ t('actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -90,18 +90,18 @@
                 {% endif %}
               </td>
               <td>
-                <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">View</a>
+                <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">{{ t('view') }}</a>
                 {% if rubric.status == 'DRAFT' %}
                   <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
-                    <button type="submit" class="secondary">Approve Guide</button>
+                    <button type="submit" class="secondary">{{ t('approve_guide') }}</button>
                   </form>
                 {% elif rubric.status == 'GENERATING' %}
                   <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
-                    <button type="submit" class="secondary">Cancel</button>
+                    <button type="submit" class="secondary">{{ t('cancel') }}</button>
                   </form>
                 {% endif %}
                 <form method="post" action="{{ url_for('delete_rubric', rubric_id=rubric.id) }}" onsubmit="return confirm('Delete this grading guide and related results?');">
-                  <button type="submit" class="danger">Delete Guide</button>
+                  <button type="submit" class="danger">{{ t('delete_guide') }}</button>
                 </form>
               </td>
             </tr>
@@ -109,26 +109,26 @@
         </tbody>
       </table>
     {% else %}
-      <p>No grading guides yet.</p>
+      <p>{{ t('no_guides') }}</p>
     {% endif %}
 
-    <h4>Grading Guide Creation</h4>
+    <h4>{{ t('guide_creation') }}</h4>
     <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
-      Toggle Guide Form
+      {{ t('toggle_guide_form') }}
     </button>
     <div id="rubric-forms" {% if approved_rubric %}class="hidden"{% endif %}>
-      <h4>Create Grading Guide (Manual)</h4>
+      <h4>{{ t('create_guide_manual') }}</h4>
       <form method="post" action="{{ url_for('create_rubric', assignment_id=assignment.id) }}">
-        <label for="rubric_text">Grading Guide Text</label>
+        <label for="rubric_text">{{ t('guide_text') }}</label>
         <textarea id="rubric_text" name="rubric_text" required></textarea>
-        <label for="reference_solution_text">Reference Solution</label>
+        <label for="reference_solution_text">{{ t('reference_solution') }}</label>
         <textarea id="reference_solution_text" name="reference_solution_text" required></textarea>
-        <button type="submit">Save Draft</button>
+        <button type="submit">{{ t('save_draft') }}</button>
       </form>
 
-      <h4>Generate Draft Guide</h4>
+      <h4>{{ t('generate_draft_guide') }}</h4>
       <form method="post" action="{{ url_for('generate_rubric', assignment_id=assignment.id) }}">
-        <label for="rubric_model">Choose model for generation</label>
+        <label for="rubric_model">{{ t('choose_model_generation') }}</label>
         <select id="rubric_model" name="llm_model">
           {% set selected_model = default_model %}
           <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
@@ -141,25 +141,25 @@
           <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
           <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
         </select>
-        <button type="submit">Generate Draft via LLM</button>
+        <button type="submit">{{ t('generate_draft_llm') }}</button>
       </form>
     </div>
   </div>
 
   <div class="card">
-    <h3>Upload Submissions</h3>
+    <h3>{{ t('upload_submissions') }}</h3>
     <button type="button" class="secondary" onclick="document.getElementById('upload-form').classList.toggle('hidden')">
-      Toggle Uploads
+      {{ t('toggle_uploads') }}
     </button>
     <div id="upload-form">
     {% if not approved_rubric %}
-      <p><strong>Approve a grading guide to enable submissions.</strong></p>
+      <p><strong>{{ t('approve_guide_enable') }}</strong></p>
     {% endif %}
     <form method="post" action="{{ url_for('upload_submission', assignment_id=assignment.id) }}" enctype="multipart/form-data">
       <fieldset {% if not approved_rubric %}disabled{% endif %}>
-      <label for="student_identifier">Student Identifier (single upload)</label>
+      <label for="student_identifier">{{ t('student_identifier') }}</label>
       <input type="text" id="student_identifier" name="student_identifier" />
-      <label for="llm_model">Model (optional)</label>
+      <label for="llm_model">{{ t('model_optional') }}</label>
       <select id="llm_model" name="llm_model">
         {% set selected_model = default_model %}
         <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
@@ -172,19 +172,19 @@
         <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
         <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
       </select>
-      <label for="submitted_text">Submitted Text (optional)</label>
+      <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
       <textarea id="submitted_text" name="submitted_text"></textarea>
       <div class="dropzone" id="files-drop">
-        <label for="files">Files (PDF, images, text)</label>
+        <label for="files">{{ t('files_label') }}</label>
         <input type="file" id="files" name="files" multiple class="file-input" />
-        <div class="dropzone-hint">Drag and drop files here or click to browse.</div>
+        <div class="dropzone-hint">{{ t('drop_files_hint') }}</div>
       </div>
       <div class="dropzone" id="zip-drop">
-        <label for="zip_file">Or ZIP with folders per student</label>
+        <label for="zip_file">{{ t('zip_label') }}</label>
         <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
-        <div class="dropzone-hint">Drag and drop a ZIP here or click to browse.</div>
+        <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
       </div>
-      <button type="submit">Upload</button>
+      <button type="submit">{{ t('upload') }}</button>
       </fieldset>
     </form>
     </div>
@@ -293,14 +293,14 @@
   </div>
 
   <div class="card">
-    <h3>Submissions</h3>
+    <h3>{{ t('submissions') }}</h3>
     {% if submissions %}
       <table>
         <thead>
           <tr>
-            <th>Student</th>
-            <th>Created</th>
-            <th>Grade</th>
+            <th>{{ t('student') }}</th>
+            <th>{{ t('created') }}</th>
+            <th>{{ t('grade') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -312,30 +312,30 @@
               <td>
                 {{ submission.grade_display }}
               </td>
-              <td><a class="action-link" href="{{ url_for('submission_detail', submission_id=submission.id) }}">Open</a></td>
+              <td><a class="action-link" href="{{ url_for('submission_detail', submission_id=submission.id) }}">{{ t('open') }}</a></td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
-      <p><a href="{{ url_for('export_csv', assignment_id=assignment.id) }}">Export CSV</a></p>
+      <p><a href="{{ url_for('export_csv', assignment_id=assignment.id) }}">{{ t('export_csv') }}</a></p>
     {% else %}
-      <p>No submissions yet.</p>
+      <p>{{ t('no_submissions') }}</p>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3>Jobs</h3>
+    <h3>{{ t('jobs') }}</h3>
     {% if jobs %}
       <table>
         <thead>
           <tr>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Submission #</th>
-            <th>Student</th>
-            <th>Model</th>
-            <th>Duration (s)</th>
-            <th>Price</th>
+            <th>{{ t('status') }}</th>
+            <th>{{ t('created') }}</th>
+            <th>{{ t('submission_number') }}</th>
+            <th>{{ t('student') }}</th>
+            <th>{{ t('model') }}</th>
+            <th>{{ t('duration_s') }}</th>
+            <th>{{ t('price') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -368,14 +368,14 @@
                 {% endif %}
               </td>
               <td>
-                <a class="action-link" href="{{ url_for('job_detail', job_id=job.id) }}">View</a>
+                <a class="action-link" href="{{ url_for('job_detail', job_id=job.id) }}">{{ t('view') }}</a>
                 {% if job.status in ['QUEUED', 'RUNNING'] %}
                   <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
-                    <button type="submit" class="secondary">Terminate</button>
+                    <button type="submit" class="secondary">{{ t('terminate_job') }}</button>
                   </form>
                 {% else %}
                   <form method="post" action="{{ url_for('delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete this job?');">
-                    <button type="submit" class="danger">Delete</button>
+                    <button type="submit" class="danger">{{ t('delete_job') }}</button>
                   </form>
                 {% endif %}
               </td>
@@ -384,7 +384,7 @@
         </tbody>
       </table>
     {% else %}
-      <p>No jobs yet.</p>
+      <p>{{ t('no_jobs') }}</p>
     {% endif %}
   </div>
 
