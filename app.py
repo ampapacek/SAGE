@@ -311,6 +311,7 @@ TRANSLATIONS = {
             "Confirm with students and your department, school, or university that this tool is permitted "
             "for use. Student data is private and should be handled accordingly."
         ),
+        "license_notice": "Licensed under Apache 2.0.",
     },
     "cs": {
         "nav_back": "Zpět",
@@ -542,6 +543,7 @@ TRANSLATIONS = {
             "Ověřte se studenty a vedením katedry, školy či univerzity, že je tento nástroj "
             "povolený k použití. Studentská data jsou soukromá a je nutné s nimi tak zacházet."
         ),
+        "license_notice": "Licencováno pod Apache 2.0.",
     },
 }
 _SETTINGS_FIELDS = [
