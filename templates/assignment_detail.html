@@ -146,9 +146,9 @@
       <h4>{{ t('create_guide_manual') }}</h4>
       <form method="post" action="{{ url_for('create_rubric', assignment_id=assignment.id) }}">
         <label for="rubric_text">{{ t('guide_text') }}</label>
-        <textarea id="rubric_text" name="rubric_text" required></textarea>
+        <textarea id="rubric_text" name="rubric_text" required {% if not rubrics %}placeholder="{{ t('guide_text_placeholder') }}"{% endif %}></textarea>
         <label for="reference_solution_text">{{ t('reference_solution') }}</label>
-        <textarea id="reference_solution_text" name="reference_solution_text" required></textarea>
+        <textarea id="reference_solution_text" name="reference_solution_text" required {% if not rubrics %}placeholder="{{ t('reference_solution_placeholder') }}"{% endif %}></textarea>
         <button type="submit">{{ t('save_draft') }}</button>
       </form>
 
