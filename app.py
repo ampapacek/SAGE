@@ -1784,8 +1784,8 @@ def create_app():
     @app.route("/rubrics/<int:rubric_id>/edit", methods=["GET", "POST"])
     def edit_rubric(rubric_id):
         rubric = RubricVersion.query.get_or_404(rubric_id)
-        if rubric.status != RubricStatus.DRAFT:
-            flash("Only DRAFT grading guides can be edited.")
+        if rubric.status not in {RubricStatus.DRAFT, RubricStatus.APPROVED}:
+            flash("Only DRAFT or APPROVED grading guides can be edited.")
             return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
         if request.method == "POST":

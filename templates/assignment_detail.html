@@ -110,7 +110,7 @@
               </td>
               <td>
                 <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">{{ t('view') }}</a>
-                {% if rubric.status == 'DRAFT' %}
+                {% if rubric.status in ['DRAFT', 'APPROVED'] %}
                   <a class="action-link" href="{{ url_for('edit_rubric', rubric_id=rubric.id) }}">{{ t('edit') }}</a>
                 {% endif %}
                 {% if rubric.status == 'DRAFT' %}
