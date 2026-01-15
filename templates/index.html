@@ -298,7 +298,19 @@
       align-items: center;
       justify-content: space-between;
       gap: 18px;
-      padding: 18px;
+      padding: 26px;
+      border: 2px solid var(--accent);
+      background: linear-gradient(120deg, rgba(27, 110, 243, 0.18), rgba(27, 110, 243, 0.04));
+    }
+    .cta-card h2 {
+      font-size: 26px;
+    }
+    .cta-card .feature-text {
+      font-size: 15px;
+    }
+    .cta-card .btn.primary {
+      font-size: 16px;
+      padding: 12px 20px;
     }
     @media (max-width: 760px) {
       .cta-card {
@@ -478,18 +490,18 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2 class="section-title">{{ t('responsible_use') }}</h2>
+    <p class="feature-text">{{ t('responsible_use_p1') }}</p>
+    <p class="feature-text" style="margin-top: 10px;">{{ t('responsible_use_p2') }}</p>
+  </div>
+
   <div class="card cta-card">
     <div>
       <h2 class="section-title" style="margin-bottom: 6px;">{{ t('quick_start_cta_title') }}</h2>
       <p class="feature-text" style="margin: 0;">{{ t('quick_start_cta_desc') }}</p>
     </div>
     <a class="btn primary" href="{{ url_for('list_assignments') }}">{{ t('quick_start_cta_button') }}</a>
-  </div>
-
-  <div class="card">
-    <h2 class="section-title">{{ t('responsible_use') }}</h2>
-    <p class="feature-text">{{ t('responsible_use_p1') }}</p>
-    <p class="feature-text" style="margin-top: 10px;">{{ t('responsible_use_p2') }}</p>
   </div>
 
   <div class="lightbox" id="quickstart-lightbox" aria-hidden="true">
