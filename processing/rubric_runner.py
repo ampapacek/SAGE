@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -12,6 +13,20 @@ logger = logging.getLogger(__name__)
 
 def _utcnow():
     return datetime.now(timezone.utc)
+
+
+def _normalize_text(value, field_name):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return "\n".join(item.strip() for item in value if item is not None).strip()
+    if isinstance(value, dict) or isinstance(value, list):
+        return json.dumps(value, ensure_ascii=True, indent=2)
+    raise ValueError(
+        f"Draft response expected {field_name} as string or object, got {type(value).__name__}."
+    )
 
 
 def process_rubric_generation(rubric_id):
@@ -32,6 +47,7 @@ def process_rubric_generation(rubric_id):
         return
 
     model = rubric.llm_model or Config.LLM_MODEL
+    raw_text = ""
     try:
         data, usage, raw_text, meta = generate_rubric_draft(
             assignment.assignment_text,
@@ -45,8 +61,12 @@ def process_rubric_generation(rubric_id):
         db.session.refresh(rubric)
         if rubric.status == RubricStatus.CANCELLED:
             return
-        rubric.rubric_text = data.get("rubric_text", "").strip()
-        rubric.reference_solution_text = data.get("reference_solution_text", "").strip()
+        rubric.rubric_text = _normalize_text(
+            data.get("rubric_text", ""), "rubric_text"
+        )
+        rubric.reference_solution_text = _normalize_text(
+            data.get("reference_solution_text", ""), "reference_solution_text"
+        )
         if not rubric.rubric_text or not rubric.reference_solution_text:
             raise ValueError(
                 "Draft response missing grading guide or reference solution text "
@@ -93,6 +113,6 @@ def process_rubric_generation(rubric_id):
         logger.exception("Grading guide generation error for %s", rubric_id)
         rubric.status = RubricStatus.ERROR
         rubric.error_message = str(exc)
-        rubric.raw_response = ""
+        rubric.raw_response = raw_text or ""
         rubric.finished_at = _utcnow()
         db.session.commit()

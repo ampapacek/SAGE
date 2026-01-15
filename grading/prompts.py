@@ -49,13 +49,28 @@ def build_rubric_draft_prompt(assignment_text):
 Create a grading guide and reference solution for the assignment.
 Include the maximum points of the task in total. Include maximum points for each part.
 Return JSON only with keys rubric_text and reference_solution_text.
+Use the same language as the assignment text for all fields.
+Use structured objects for rubric_text and reference_solution_text (not plain strings).
 
 Assignment:
 {assignment_text}
 
 Output JSON schema:
 {{
-  "rubric_text": string,
-  "reference_solution_text": string
+  "rubric_text": {{
+    "total_points": number,
+    "parts": {{
+      "part_id": {{
+        "max_points": number,
+        "criteria": [string]
+      }}
+    }}
+  }},
+  "reference_solution_text": {{
+    "part_id": {{
+      "solution": string,
+      "key_steps": [string]
+    }}
+  }}
 }}
 """.strip()
