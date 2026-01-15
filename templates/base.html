@@ -177,6 +177,27 @@
       .markdown h1, .markdown h2, .markdown h3, .markdown h4 { margin-top: 18px; }
       .markdown table { width: 100%; border-collapse: collapse; margin: 12px 0; }
       .markdown th, .markdown td { border: 1px solid var(--table-border); padding: 6px 8px; }
+      .back-to-top {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        font-size: 18px;
+        font-weight: 700;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+        cursor: pointer;
+        z-index: 20;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      }
+      .back-to-top:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgba(0, 0, 0, 0.2); }
     </style>
   </head>
   <body>
@@ -210,6 +231,9 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="{{ t('back_to_top') }}">
+      &uarr;<span class="sr-only">{{ t('back_to_top') }}</span>
+    </button>
     <script>
       window.MathJax = {
         tex: {
@@ -306,6 +330,23 @@
             window.location.reload();
           });
         }
+      })();
+    </script>
+    <script>
+      (function () {
+        var backToTop = document.getElementById("back-to-top");
+        if (!backToTop) {
+          return;
+        }
+        function toggleBackToTop() {
+          var shouldShow = window.scrollY > 300;
+          backToTop.style.display = shouldShow ? "flex" : "none";
+        }
+        backToTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        window.addEventListener("scroll", toggleBackToTop);
+        toggleBackToTop();
       })();
     </script>
   </body>

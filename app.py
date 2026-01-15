@@ -177,6 +177,7 @@ TRANSLATIONS = {
         "sage_home": "SAGE Home",
         "language_currency": "Language",
         "theme": "Theme",
+        "back_to_top": "Back to top",
         "hero_title": "Automated grading that feels rigorous, not rushed.",
         "hero_subtitle": (
             "A grading workspace for assignments, submissions, and AI-assisted feedback "
@@ -342,6 +343,7 @@ TRANSLATIONS = {
         "sage_home": "SAGE domů",
         "language_currency": "Jazyk",
         "theme": "Motiv",
+        "back_to_top": "Zpět nahoru",
         "hero_title": "Automatizované hodnocení, které je důsledné, ne uspěchané.",
         "hero_subtitle": (
             "Pracovní prostor pro zadání, odevzdání a AI asistovanou zpětnou vazbu, "
