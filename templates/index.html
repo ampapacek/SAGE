@@ -185,6 +185,57 @@
       border-radius: 10px;
       border: 1px solid var(--border);
     }
+    .zoom-trigger {
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: zoom-in;
+    }
+    .zoom-trigger:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+    .zoom-trigger img {
+      display: block;
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: -50px;
+      right: 0;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 18px;
+    }
     .step-pair {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -365,14 +416,18 @@
           <h3>{{ t('walk_step1_title') }}</h3>
           <p>{{ t('walk_step1_desc') }}</p>
         </div>
-        <img src="{{ url_for('static', filename='images/quickstart-1.png') }}" alt="{{ t('walk_alt_step1') }}" />
+        <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/quickstart-1.png') }}" aria-label="{{ t('walk_alt_step1') }}">
+          <img src="{{ url_for('static', filename='images/quickstart-1.png') }}" alt="{{ t('walk_alt_step1') }}" />
+        </button>
       </div>
       <div class="step-item">
         <div>
           <h3>{{ t('walk_step2_title') }}</h3>
           <p>{{ t('walk_step2_desc') }}</p>
         </div>
-        <img src="{{ url_for('static', filename='images/quickstart-2.png') }}" alt="{{ t('walk_alt_step2') }}" />
+        <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/quickstart-2.png') }}" aria-label="{{ t('walk_alt_step2') }}">
+          <img src="{{ url_for('static', filename='images/quickstart-2.png') }}" alt="{{ t('walk_alt_step2') }}" />
+        </button>
       </div>
       <div class="step-item">
         <div>
@@ -380,8 +435,12 @@
           <p>{{ t('walk_step2a_desc') }}</p>
         </div>
         <div class="step-pair">
-          <img src="{{ url_for('static', filename='images/guide-example.png') }}" alt="{{ t('walk_alt_step2a_guide') }}" />
-          <img src="{{ url_for('static', filename='images/reference-solution.png') }}" alt="{{ t('walk_alt_step2a_reference') }}" />
+          <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/guide-example.png') }}" aria-label="{{ t('walk_alt_step2a_guide') }}">
+            <img src="{{ url_for('static', filename='images/guide-example.png') }}" alt="{{ t('walk_alt_step2a_guide') }}" />
+          </button>
+          <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/reference-solution.png') }}" aria-label="{{ t('walk_alt_step2a_reference') }}">
+            <img src="{{ url_for('static', filename='images/reference-solution.png') }}" alt="{{ t('walk_alt_step2a_reference') }}" />
+          </button>
         </div>
       </div>
       <div class="step-item">
@@ -389,14 +448,18 @@
           <h3>{{ t('walk_step3_title') }}</h3>
           <p>{{ t('walk_step3_desc') }}</p>
         </div>
-        <img src="{{ url_for('static', filename='images/quickstart-3.png') }}" alt="{{ t('walk_alt_step3') }}" />
+        <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/quickstart-3.png') }}" aria-label="{{ t('walk_alt_step3') }}">
+          <img src="{{ url_for('static', filename='images/quickstart-3.png') }}" alt="{{ t('walk_alt_step3') }}" />
+        </button>
       </div>
       <div class="step-item">
         <div>
           <h3>{{ t('walk_step4_title') }}</h3>
           <p>{{ t('walk_step4_desc') }}</p>
         </div>
-        <img src="{{ url_for('static', filename='images/quickstart-4.png') }}" alt="{{ t('walk_alt_step4') }}" />
+        <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/quickstart-4.png') }}" aria-label="{{ t('walk_alt_step4') }}">
+          <img src="{{ url_for('static', filename='images/quickstart-4.png') }}" alt="{{ t('walk_alt_step4') }}" />
+        </button>
       </div>
       <div class="step-item">
         <div>
@@ -404,8 +467,12 @@
           <p>{{ t('walk_step4a_desc') }}</p>
         </div>
         <div class="step-pair">
-          <img src="{{ url_for('static', filename='images/submission-detail-1.png') }}" alt="{{ t('walk_alt_step4a_left') }}" />
-          <img src="{{ url_for('static', filename='images/submission-detail-2.png') }}" alt="{{ t('walk_alt_step4a_right') }}" />
+          <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/submission-detail-1.png') }}" aria-label="{{ t('walk_alt_step4a_left') }}">
+            <img src="{{ url_for('static', filename='images/submission-detail-1.png') }}" alt="{{ t('walk_alt_step4a_left') }}" />
+          </button>
+          <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/submission-detail-2.png') }}" aria-label="{{ t('walk_alt_step4a_right') }}">
+            <img src="{{ url_for('static', filename='images/submission-detail-2.png') }}" alt="{{ t('walk_alt_step4a_right') }}" />
+          </button>
         </div>
       </div>
     </div>
@@ -424,4 +491,56 @@
     <p class="feature-text">{{ t('responsible_use_p1') }}</p>
     <p class="feature-text" style="margin-top: 10px;">{{ t('responsible_use_p2') }}</p>
   </div>
+
+  <div class="lightbox" id="quickstart-lightbox" aria-hidden="true">
+    <div class="lightbox-inner">
+      <img id="quickstart-lightbox-img" src="" alt="" />
+      <button class="lightbox-close" type="button" aria-label="{{ t('close') }}">×</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var triggers = document.querySelectorAll(".zoom-trigger");
+      var lightbox = document.getElementById("quickstart-lightbox");
+      var imageEl = document.getElementById("quickstart-lightbox-img");
+      var closeBtn = lightbox ? lightbox.querySelector(".lightbox-close") : null;
+      if (!triggers.length || !lightbox || !imageEl || !closeBtn) {
+        return;
+      }
+      function show(src, alt) {
+        imageEl.src = src;
+        imageEl.alt = alt || "";
+        lightbox.classList.add("active");
+        lightbox.setAttribute("aria-hidden", "false");
+      }
+      function hide() {
+        lightbox.classList.remove("active");
+        lightbox.setAttribute("aria-hidden", "true");
+        imageEl.src = "";
+        imageEl.alt = "";
+      }
+      triggers.forEach(function (trigger) {
+        trigger.addEventListener("click", function () {
+          var src = trigger.getAttribute("data-zoom-src") || "";
+          var img = trigger.querySelector("img");
+          var alt = img ? img.alt : "";
+          if (src) {
+            show(src, alt);
+          }
+        });
+      });
+      lightbox.addEventListener("click", function (event) {
+        if (event.target === lightbox) {
+          hide();
+        }
+      });
+      closeBtn.addEventListener("click", hide);
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && lightbox.classList.contains("active")) {
+          hide();
+        }
+      });
+    })();
+  </script>
 {% endblock %}
