@@ -105,6 +105,141 @@
   </div>
 
   <div class="card">
+    <h3>{{ t('guide') }}</h3>
+    {% if rubric %}
+      <p>
+        <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">
+          {{ t('view') }}
+        </a>
+      </p>
+      <button
+        type="button"
+        class="secondary"
+        data-toggle-target="submission-guide"
+        data-show-label="{{ t('show_guide') }}"
+        data-hide-label="{{ t('hide_guide') }}"
+      >
+        {{ t('show_guide') }}
+      </button>
+      <div id="submission-guide" class="hidden" style="margin-top: 12px;">
+        {% if rubric_structured %}
+          <div class="guide-structured">
+            {% if rubric_structured.total_points is not none %}
+              <p><strong>{{ t('total_points') }}:</strong> {{ rubric_structured.total_points }}</p>
+            {% endif %}
+            {% set parts = rubric_structured.get('parts') %}
+            {% if parts %}
+              <table class="guide-table">
+                <thead>
+                  <tr>
+                    <th>{{ t('part_label') }}</th>
+                    <th>{{ t('max_points') }}</th>
+                    <th>{{ t('criteria') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if parts is mapping %}
+                    {% for part_id, part in parts.items() %}
+                      <tr>
+                        <td>{{ part_id }}</td>
+                        <td>{{ part.max_points or part.points_possible or part.points or '--' }}</td>
+                        <td>
+                          {% set criteria = part.criteria %}
+                          {% if criteria is sequence and criteria is not string %}
+                            <ul class="guide-list">
+                              {% for item in criteria %}
+                                <li>{{ item }}</li>
+                              {% endfor %}
+                            </ul>
+                          {% elif criteria %}
+                            {{ criteria }}
+                          {% else %}
+                            --
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% elif parts is sequence and parts is not string %}
+                    {% for part in parts %}
+                      <tr>
+                        <td>{{ part.part_id or loop.index }}</td>
+                        <td>{{ part.max_points or part.points_possible or part.points or '--' }}</td>
+                        <td>
+                          {% set criteria = part.criteria %}
+                          {% if criteria is sequence and criteria is not string %}
+                            <ul class="guide-list">
+                              {% for item in criteria %}
+                                <li>{{ item }}</li>
+                              {% endfor %}
+                            </ul>
+                          {% elif criteria %}
+                            {{ criteria }}
+                          {% else %}
+                            --
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+            {% endif %}
+          </div>
+        {% else %}
+          <pre>{{ rubric.rubric_text or 'Not available yet.' }}</pre>
+        {% endif %}
+      </div>
+      <button
+        type="button"
+        class="secondary"
+        data-toggle-target="submission-reference"
+        data-show-label="{{ t('show_reference_solution') }}"
+        data-hide-label="{{ t('hide_reference_solution') }}"
+        style="margin-left: 8px;"
+      >
+        {{ t('show_reference_solution') }}
+      </button>
+      <div id="submission-reference" class="hidden" style="margin-top: 12px;">
+        {% if reference_structured %}
+          <div class="guide-structured">
+            {% for part_id, part in reference_structured.items() %}
+              <div class="guide-part">
+                <h4 style="margin: 0 0 6px;">{{ t('part_label') }} {{ part_id }}</h4>
+                {% if part is mapping %}
+                  <ul class="guide-list">
+                    {% for key, value in part.items() %}
+                      <li>
+                        <strong>{{ key|replace('_', ' ')|title }}:</strong>
+                        {% if value is sequence and value is not string %}
+                          {{ value|join(', ') }}
+                        {% else %}
+                          {{ value }}
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% elif part is sequence and part is not string %}
+                  <ul class="guide-list">
+                    {% for item in part %}
+                      <li>{{ item }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p style="margin: 0;">{{ part }}</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
+        {% endif %}
+      </div>
+    {% else %}
+      <p>{{ t('no_guide_available') }}</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
     <h3>{{ t('images') }}</h3>
     {% if images %}
       <div class="grid">
@@ -269,6 +404,25 @@
         var isHidden = target.classList.contains("hidden");
         target.classList.toggle("hidden");
         toggle.textContent = isHidden ? toggle.dataset.hideLabel : toggle.dataset.showLabel;
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      document.querySelectorAll("[data-toggle-target]").forEach(function (button) {
+        var targetId = button.getAttribute("data-toggle-target");
+        if (targetId === "edit-grade-form") {
+          return;
+        }
+        var target = document.getElementById(targetId);
+        if (!target) {
+          return;
+        }
+        button.addEventListener("click", function () {
+          var isHidden = target.classList.contains("hidden");
+          target.classList.toggle("hidden");
+          button.textContent = isHidden ? button.dataset.hideLabel : button.dataset.showLabel;
+        });
       });
     })();
   </script>

@@ -202,6 +202,11 @@ TRANSLATIONS = {
         "previous_image": "Previous image",
         "next_image": "Next image",
         "close": "Close",
+        "show_guide": "Show grading guide",
+        "hide_guide": "Hide grading guide",
+        "show_reference_solution": "Show reference solution",
+        "hide_reference_solution": "Hide reference solution",
+        "no_guide_available": "No grading guide available.",
         "hero_title": "Automated grading that feels rigorous, not rushed.",
         "hero_subtitle": (
             "A grading workspace for assignments, submissions, and AI-assisted feedback "
@@ -390,6 +395,11 @@ TRANSLATIONS = {
         "previous_image": "Předchozí obrázek",
         "next_image": "Další obrázek",
         "close": "Zavřít",
+        "show_guide": "Zobrazit hodnoticího průvodce",
+        "hide_guide": "Skrýt hodnoticího průvodce",
+        "show_reference_solution": "Zobrazit referenční řešení",
+        "hide_reference_solution": "Skrýt referenční řešení",
+        "no_guide_available": "Žádný hodnoticí průvodce není k dispozici.",
         "hero_title": "Automatizované hodnocení, které je důsledné, ne uspěchané.",
         "hero_subtitle": (
             "Pracovní prostor pro zadání, odevzdání a AI asistovanou zpětnou vazbu, "
@@ -1304,6 +1314,21 @@ def create_app():
             .order_by(GradeResult.created_at.desc())
             .first()
         )
+        rubric = None
+        rubric_structured = None
+        reference_structured = None
+        if grade_result and grade_result.rubric_version:
+            rubric = grade_result.rubric_version
+        else:
+            rubric = _get_approved_rubric(submission.assignment_id)
+        if rubric and rubric.rubric_text:
+            structured, _error = safe_json_loads(rubric.rubric_text)
+            if isinstance(structured, dict) and structured.get("parts"):
+                rubric_structured = structured
+        if rubric and rubric.reference_solution_text:
+            structured, _error = safe_json_loads(rubric.reference_solution_text)
+            if isinstance(structured, dict):
+                reference_structured = structured
         images = collect_submission_images(submission)
         image_rel_paths = []
         for path in images:
@@ -1319,6 +1344,9 @@ def create_app():
             submission=submission,
             assignment=assignment,
             grade_result=grade_result,
+            rubric=rubric,
+            rubric_structured=rubric_structured,
+            reference_structured=reference_structured,
             images=image_rel_paths,
             student_text=student_text,
             student_text_html=student_text_html,
