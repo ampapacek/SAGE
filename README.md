@@ -46,10 +46,19 @@ Copy `.env.example` to `.env` and edit as needed:
 cp .env.example .env
 ```
 
+You can edit settings directly in `.env` or in the web UI (**Settings** in the top bar). Some changes require a restart.
+
 Key variables:
 - `LLM_API_KEY`: API key for your OpenAI-compatible provider
 - `LLM_API_BASE_URL`: base endpoint (e.g., `https://api.openai.com/v1`)
 - `LLM_MODEL`: model name
+- `LLM_PROVIDER`: default provider key (`openai`, `custom1`, `custom2`, `custom3`)
+- `OPENAI_MODEL_OPTIONS`: comma-separated list for OpenAI model dropdowns
+- `CUSTOM_LLM_PROVIDER_1_NAME/2/3_NAME`: display names for custom providers
+- `CUSTOM_LLM_PROVIDER_1_API_KEY/2/3_API_KEY`: API keys for custom providers
+- `CUSTOM_LLM_PROVIDER_1_API_BASE_URL/2/3_API_BASE_URL`: base endpoints for custom providers
+- `CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL/2/3_DEFAULT_MODEL`: default models for custom providers
+- `CUSTOM_LLM_PROVIDER_1_MODELS/2/3_MODELS`: comma-separated model lists per custom provider
 - `LLM_USE_JSON_MODE`: set to `1` to force JSON responses (recommended)
 - `LLM_MAX_OUTPUT_TOKENS`: max tokens for model responses (helps avoid truncation)
 - `LLM_REQUEST_TIMEOUT`: HTTP timeout for LLM requests (seconds)
@@ -99,3 +108,8 @@ Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app fall
 - All uploads and rendered files are stored under `./data/` (gitignored).
 - PDF rendering uses `pdf2image` and Poppler.
 - LLM responses must be strict JSON; invalid responses are stored as errors.
+- Multiple providers can be configured; select provider + model per grading guide and job in the UI.
+
+## License
+
+Apache-2.0. See `LICENSE`.
