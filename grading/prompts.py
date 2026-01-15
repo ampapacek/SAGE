@@ -47,6 +47,7 @@ Output JSON schema:
 def build_rubric_draft_prompt(assignment_text):
     return f"""
 Create a grading guide and reference solution for the assignment.
+Include the maximum points of the task in total. Include maximum points for each part.
 Return JSON only with keys rubric_text and reference_solution_text.
 
 Assignment:
