@@ -1,6 +1,7 @@
 import base64
 import json
 import mimetypes
+import re
 import requests
 
 from grading.prompts import SYSTEM_PROMPT, build_grading_prompt, build_rubric_draft_prompt
@@ -19,6 +20,32 @@ def _parse_error_message(text):
         return data.get("error", {}).get("message", text)
     except Exception:
         return text
+
+
+def _parse_json_from_text(raw_text):
+    if raw_text is None:
+        return None, "Empty response", ""
+    cleaned = raw_text.strip().lstrip("\ufeff")
+    data, error = safe_json_loads(cleaned)
+    if not error:
+        return data, "", cleaned
+
+    fenced = re.search(r"```(?:json)?\\s*(\\{.*?\\})\\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+    if fenced:
+        candidate = fenced.group(1).strip()
+        data, error = safe_json_loads(candidate)
+        if not error:
+            return data, "", candidate
+
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = cleaned[start : end + 1].strip()
+        data, error = safe_json_loads(candidate)
+        if not error:
+            return data, "", candidate
+
+    return None, error, cleaned
 
 
 def _encode_image(path):
@@ -320,7 +347,7 @@ def grade_submission_and_raw(
             raw_text, usage = _call(api_used, False)
         else:
             raise
-    data, error = safe_json_loads(raw_text)
+    data, error, _parsed = _parse_json_from_text(raw_text)
     if error:
         raise LLMResponseError(f"Invalid JSON from LLM: {error}", raw_text=raw_text)
     meta = {
@@ -411,7 +438,7 @@ def generate_rubric_draft(
             raw_text, usage = _call(api_used, False)
         else:
             raise
-    data, error = safe_json_loads(raw_text)
+    data, error, _parsed = _parse_json_from_text(raw_text)
     if error:
         raise LLMResponseError(f"Invalid JSON from LLM: {error}", raw_text=raw_text)
     meta = {
