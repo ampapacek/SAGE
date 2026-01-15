@@ -126,6 +126,9 @@ TRANSLATIONS = {
         "submission_number": "Submission #",
         "total_price_estimate": "Total Price Estimate (guides + jobs):",
         "delete_assignment": "Delete Assignment",
+        "edit_assignment": "Edit Assignment",
+        "edit": "Edit",
+        "save_changes": "Save Changes",
         "submission": "Submission",
         "assignment": "Assignment",
         "submitted": "Submitted",
@@ -292,6 +295,9 @@ TRANSLATIONS = {
         "submission_number": "Odevzdání #",
         "total_price_estimate": "Celkový odhad ceny (průvodci + úlohy):",
         "delete_assignment": "Smazat zadání",
+        "edit_assignment": "Upravit zadání",
+        "edit": "Upravit",
+        "save_changes": "Uložit změny",
         "submission": "Odevzdání",
         "assignment": "Zadání",
         "submitted": "Odevzdáno",
@@ -957,6 +963,24 @@ def create_app():
             default_model=app.config.get("LLM_MODEL"),
             total_price_estimate=total_price_estimate,
         )
+
+    @app.route("/assignments/<int:assignment_id>/edit", methods=["GET", "POST"])
+    def edit_assignment(assignment_id):
+        assignment = Assignment.query.get_or_404(assignment_id)
+        if request.method == "POST":
+            title = request.form.get("title", "").strip()
+            assignment_text = request.form.get("assignment_text", "").strip()
+            if not title or not assignment_text:
+                flash("Title and assignment text are required.")
+                return redirect(url_for("edit_assignment", assignment_id=assignment_id))
+
+            assignment.title = title
+            assignment.assignment_text = assignment_text
+            db.session.commit()
+            flash("Assignment updated.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+
+        return render_template("assignment_edit.html", assignment=assignment)
 
     @app.route("/assignments/<int:assignment_id>/delete", methods=["POST"])
     def delete_assignment(assignment_id):
