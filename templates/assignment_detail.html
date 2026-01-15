@@ -145,9 +145,6 @@
     {% endif %}
 
     <h4>{{ t('guide_creation') }}</h4>
-    {% if not rubrics %}
-      <div class="callout">{{ t('guide_empty_hint') }}</div>
-    {% endif %}
     <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
       {{ t('toggle_guide_form') }}
     </button>
@@ -245,11 +242,13 @@
             <label for="files">{{ t('files_label') }}</label>
             <input type="file" id="files" name="files" multiple class="file-input" />
             <div class="dropzone-hint">{{ t('drop_files_hint') }}</div>
+            <div class="dropzone-hint">{{ t('files_hint') }}</div>
           </div>
           <div class="dropzone" id="zip-drop">
             <label for="zip_file">{{ t('zip_label') }}</label>
             <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
             <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
+            <div class="dropzone-hint">{{ t('zip_hint') }}</div>
           </div>
           <button type="submit">{{ t('upload') }}</button>
         </div>
