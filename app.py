@@ -207,6 +207,8 @@ TRANSLATIONS = {
         "show_reference_solution": "Show reference solution",
         "hide_reference_solution": "Hide reference solution",
         "no_guide_available": "No grading guide available.",
+        "show_assignment_text": "Show assignment text",
+        "hide_assignment_text": "Hide assignment text",
         "hero_title": "Automated grading that feels rigorous, not rushed.",
         "hero_subtitle": (
             "A grading workspace for assignments, submissions, and AI-assisted feedback "
@@ -400,6 +402,8 @@ TRANSLATIONS = {
         "show_reference_solution": "Zobrazit referenční řešení",
         "hide_reference_solution": "Skrýt referenční řešení",
         "no_guide_available": "Žádný hodnoticí průvodce není k dispozici.",
+        "show_assignment_text": "Zobrazit text zadání",
+        "hide_assignment_text": "Skrýt text zadání",
         "hero_title": "Automatizované hodnocení, které je důsledné, ne uspěchané.",
         "hero_subtitle": (
             "Pracovní prostor pro zadání, odevzdání a AI asistovanou zpětnou vazbu, "
@@ -1338,6 +1342,7 @@ def create_app():
                 image_rel_paths.append(path)
         student_text = collect_submission_text(submission)
         student_text_html = _render_markdown(student_text)
+        assignment_text_html = _render_markdown(assignment.assignment_text or "")
 
         return render_template(
             "submission_detail.html",
@@ -1350,6 +1355,7 @@ def create_app():
             images=image_rel_paths,
             student_text=student_text,
             student_text_html=student_text_html,
+            assignment_text_html=assignment_text_html,
         )
 
     @app.route("/submissions/<int:submission_id>/grade/edit", methods=["POST"])

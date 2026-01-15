@@ -80,6 +80,18 @@
     <h2>{{ t('submission') }} {{ submission.id }} - {{ submission.student_identifier }}</h2>
     <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
     <p>{{ t('submitted') }}: {{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <button
+      type="button"
+      class="secondary"
+      data-toggle-target="assignment-text"
+      data-show-label="{{ t('show_assignment_text') }}"
+      data-hide-label="{{ t('hide_assignment_text') }}"
+    >
+      {{ t('show_assignment_text') }}
+    </button>
+    <div id="assignment-text" class="hidden" style="margin-top: 12px;">
+      <div class="markdown">{{ assignment_text_html | safe }}</div>
+    </div>
   </div>
 
   <div class="card">
