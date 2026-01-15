@@ -108,6 +108,8 @@ TRANSLATIONS = {
         "activate_guide": "Activate Guide",
         "cancel": "Cancel",
         "delete_guide": "Delete Guide",
+        "criteria_one_per_line": "Criteria (one per line)",
+        "add_part": "Add part",
         "no_guides": "No grading guides yet.",
         "guide_creation": "Grading Guide Creation",
         "toggle_guide_form": "Toggle Guide Form",
@@ -314,6 +316,8 @@ TRANSLATIONS = {
         "activate_guide": "Aktivovat průvodce",
         "cancel": "Zrušit",
         "delete_guide": "Smazat průvodce",
+        "criteria_one_per_line": "Kritéria (jedno na řádek)",
+        "add_part": "Přidat část",
         "no_guides": "Zatím žádné průvodce.",
         "guide_creation": "Vytvoření průvodce",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
@@ -961,6 +965,59 @@ def _extract_preview_part(part_id, part):
         "part_id": part_id,
         "max_points": max_points,
         "criteria": criteria,
+    }
+
+
+def _parse_float_field(value, label):
+    raw = (value or "").strip()
+    if not raw:
+        return None, None
+    try:
+        return float(raw), None
+    except ValueError:
+        return None, f"{label} must be a number."
+
+
+def _build_rubric_edit_data(rubric_text):
+    if not rubric_text:
+        return None
+    structured, _error = safe_json_loads(rubric_text)
+    if not isinstance(structured, dict) or not structured.get("parts"):
+        return None
+    parts_raw = structured.get("parts")
+    parts = []
+    if isinstance(parts_raw, dict):
+        items = list(parts_raw.items())
+    elif isinstance(parts_raw, list):
+        items = [(str(index), part) for index, part in enumerate(parts_raw, start=1)]
+    else:
+        items = []
+    for part_id, part in items:
+        max_points = None
+        criteria = []
+        if isinstance(part, dict):
+            max_points = part.get("max_points")
+            if max_points is None:
+                max_points = part.get("points_possible")
+            if max_points is None:
+                max_points = part.get("points")
+            criteria_raw = part.get("criteria")
+        else:
+            criteria_raw = part
+        if isinstance(criteria_raw, list):
+            criteria = [str(item) for item in criteria_raw if str(item).strip()]
+        elif criteria_raw:
+            criteria = [str(criteria_raw)]
+        parts.append(
+            {
+                "part_id": str(part_id),
+                "max_points": max_points,
+                "criteria": criteria,
+            }
+        )
+    return {
+        "total_points": structured.get("total_points"),
+        "parts": parts,
     }
 
 
@@ -1652,10 +1709,69 @@ def create_app():
             return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
         if request.method == "POST":
-            rubric_text = request.form.get("rubric_text", "").strip()
+            rubric_text = ""
             reference_solution_text = request.form.get(
                 "reference_solution_text", ""
             ).strip()
+            structured_editor = request.form.get("structured_editor") == "1"
+            if structured_editor:
+                total_points, total_error = _parse_float_field(
+                    request.form.get("total_points"), "Total points"
+                )
+                part_ids = request.form.getlist("part_id")
+                part_points = request.form.getlist("part_max_points")
+                part_criteria = request.form.getlist("part_criteria")
+                parts = []
+                errors = []
+                if total_error:
+                    errors.append(total_error)
+                total_count = max(
+                    len(part_ids), len(part_points), len(part_criteria)
+                )
+                for index in range(total_count):
+                    part_id = part_ids[index].strip() if index < len(part_ids) else ""
+                    points_raw = (
+                        part_points[index].strip()
+                        if index < len(part_points)
+                        else ""
+                    )
+                    criteria_raw = (
+                        part_criteria[index]
+                        if index < len(part_criteria)
+                        else ""
+                    )
+                    if not part_id and not points_raw and not criteria_raw.strip():
+                        continue
+                    max_points, max_error = _parse_float_field(
+                        points_raw, f"Part {part_id or index + 1} max points"
+                    )
+                    if max_error:
+                        errors.append(max_error)
+                    criteria = [
+                        line.strip()
+                        for line in criteria_raw.splitlines()
+                        if line.strip()
+                    ]
+                    parts.append(
+                        {
+                            "part_id": part_id or str(index + 1),
+                            "max_points": max_points,
+                            "criteria": criteria,
+                        }
+                    )
+                if not parts:
+                    errors.append("At least one part is required.")
+                if errors:
+                    flash(" ".join(errors))
+                    return redirect(url_for("edit_rubric", rubric_id=rubric.id))
+
+                rubric_structured = {"parts": parts}
+                if total_points is not None:
+                    rubric_structured["total_points"] = total_points
+                rubric_text = json.dumps(rubric_structured, ensure_ascii=True, indent=2)
+            else:
+                rubric_text = request.form.get("rubric_text", "").strip()
+
             if not rubric_text or not reference_solution_text:
                 flash("Grading guide text and reference solution are required.")
                 return redirect(url_for("edit_rubric", rubric_id=rubric.id))
@@ -1666,7 +1782,12 @@ def create_app():
             flash("Grading guide updated.")
             return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
-        return render_template("rubric_edit.html", rubric=rubric)
+        edit_data = _build_rubric_edit_data(rubric.rubric_text)
+        return render_template(
+            "rubric_edit.html",
+            rubric=rubric,
+            rubric_edit_data=edit_data,
+        )
 
     @app.route("/assignments/<int:assignment_id>/submissions/upload", methods=["POST"])
     def upload_submission(assignment_id):
