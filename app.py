@@ -60,6 +60,9 @@ _IMAGE_CAPABLE_MODELS = {
     "gpt-5-nano",
     "o4-mini",
 }
+_NON_IMAGE_MODELS = {
+    "o3-mini",
+}
 _MODEL_OPTIONS = [
     "gpt-4o-mini",
     "gpt-5-mini",
@@ -70,7 +73,6 @@ _MODEL_OPTIONS = [
     "o3-mini",
     "gpt-5",
     "gpt-5-nano",
-    "other",
 ]
 _PROVIDER_OPTIONS = [
     "openai",
@@ -517,6 +519,13 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
+        "key": "OPENAI_MODEL_OPTIONS",
+        "label": "OpenAI Model Options",
+        "type": "text",
+        "help": "Comma-separated list for the OpenAI model dropdown.",
+        "restart": False,
+    },
+    {
         "key": "LLM_PROVIDER",
         "label": "Default LLM Provider",
         "type": "select",
@@ -553,6 +562,13 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
+        "key": "CUSTOM_LLM_PROVIDER_1_MODELS",
+        "label": "Custom Provider 1 Model Options",
+        "type": "text",
+        "help": "Comma-separated list for custom provider 1.",
+        "restart": False,
+    },
+    {
         "key": "CUSTOM_LLM_PROVIDER_2_NAME",
         "label": "Custom Provider 2 Name",
         "type": "text",
@@ -581,6 +597,13 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
+        "key": "CUSTOM_LLM_PROVIDER_2_MODELS",
+        "label": "Custom Provider 2 Model Options",
+        "type": "text",
+        "help": "Comma-separated list for custom provider 2.",
+        "restart": False,
+    },
+    {
         "key": "CUSTOM_LLM_PROVIDER_3_NAME",
         "label": "Custom Provider 3 Name",
         "type": "text",
@@ -606,6 +629,13 @@ _SETTINGS_FIELDS = [
         "label": "Custom Provider 3 Default Model",
         "type": "text",
         "help": "Default model name for custom provider 3.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_3_MODELS",
+        "label": "Custom Provider 3 Model Options",
+        "type": "text",
+        "help": "Comma-separated list for custom provider 3.",
         "restart": False,
     },
     {
@@ -856,12 +886,15 @@ def _render_markdown(text):
 
 def _model_supports_images(model_name):
     if not model_name:
-        return False
+        return True
     name = model_name.strip().lower()
+    for model in _NON_IMAGE_MODELS:
+        if name == model or name.startswith(f"{model}-"):
+            return False
     for model in _IMAGE_CAPABLE_MODELS:
         if name == model or name.startswith(f"{model}-"):
             return True
-    return False
+    return True
 
 
 def _resolve_model_from_form(form, default_model):
@@ -940,6 +973,51 @@ def _provider_option_items():
         {"value": "custom2", "label": Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2"},
         {"value": "custom3", "label": Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3"},
     ]
+
+
+def _parse_model_options(raw, fallback):
+    if raw is None:
+        return list(fallback)
+    items = [item.strip() for item in raw.split(",") if item.strip()]
+    return items or list(fallback)
+
+
+def _build_model_option_items(model_list, include_supports_images=True):
+    items = []
+    seen = set()
+    for model in model_list:
+        if not model:
+            continue
+        key = model.strip()
+        if not key or key.lower() == "other" or key in seen:
+            continue
+        seen.add(key)
+        item = {"value": key}
+        if include_supports_images:
+            item["supports_images"] = _model_supports_images(key)
+        items.append(item)
+    return items
+
+
+def _provider_model_option_items():
+    openai_models = _parse_model_options(Config.OPENAI_MODEL_OPTIONS, _MODEL_OPTIONS)
+    if Config.LLM_MODEL and Config.LLM_MODEL not in openai_models:
+        openai_models = [Config.LLM_MODEL] + openai_models
+    custom1_models = _parse_model_options(Config.CUSTOM_LLM_PROVIDER_1_MODELS, [])
+    if Config.CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL and Config.CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL not in custom1_models:
+        custom1_models = [Config.CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL] + custom1_models
+    custom2_models = _parse_model_options(Config.CUSTOM_LLM_PROVIDER_2_MODELS, [])
+    if Config.CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL and Config.CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL not in custom2_models:
+        custom2_models = [Config.CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL] + custom2_models
+    custom3_models = _parse_model_options(Config.CUSTOM_LLM_PROVIDER_3_MODELS, [])
+    if Config.CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL and Config.CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL not in custom3_models:
+        custom3_models = [Config.CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL] + custom3_models
+    return {
+        "openai": _build_model_option_items(openai_models, include_supports_images=True),
+        "custom1": _build_model_option_items(custom1_models, include_supports_images=False),
+        "custom2": _build_model_option_items(custom2_models, include_supports_images=False),
+        "custom3": _build_model_option_items(custom3_models, include_supports_images=False),
+    }
 
 
 def _submission_requires_images(submission):
@@ -1233,6 +1311,7 @@ def create_app():
             default_model=default_provider_cfg["default_model"],
             total_price_estimate=total_price_estimate,
             provider_options=_provider_option_items(),
+            provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
         )
 
@@ -1781,6 +1860,7 @@ def create_app():
             submission_requires_images=submission_requires_images,
             job_price_display=job_price_display,
             provider_options=_provider_option_items(),
+            provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
             job_provider_display=job_provider_display,
         )
@@ -1890,6 +1970,7 @@ def create_app():
             fields=_SETTINGS_FIELDS,
             values=field_values,
             provider_options=_provider_option_items(),
+            provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
         )
 

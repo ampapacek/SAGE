@@ -22,6 +22,7 @@ class Config:
     LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
     LLM_API_BASE_URL = os.environ.get("LLM_API_BASE_URL", "https://api.openai.com/v1")
     LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-5-mini")
+    OPENAI_MODEL_OPTIONS = os.environ.get("OPENAI_MODEL_OPTIONS", "")
     LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openai")
     CUSTOM_LLM_PROVIDER_1_NAME = os.environ.get(
         "CUSTOM_LLM_PROVIDER_1_NAME",
@@ -39,6 +40,7 @@ class Config:
         "CUSTOM_LLM_PROVIDER_1_DEFAULT_MODEL",
         os.environ.get("CUSTOM_LLM_MODEL", ""),
     )
+    CUSTOM_LLM_PROVIDER_1_MODELS = os.environ.get("CUSTOM_LLM_PROVIDER_1_MODELS", "")
     CUSTOM_LLM_PROVIDER_2_NAME = os.environ.get("CUSTOM_LLM_PROVIDER_2_NAME", "Other 2")
     CUSTOM_LLM_PROVIDER_2_API_KEY = os.environ.get("CUSTOM_LLM_PROVIDER_2_API_KEY", "")
     CUSTOM_LLM_PROVIDER_2_API_BASE_URL = os.environ.get(
@@ -47,6 +49,7 @@ class Config:
     CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL = os.environ.get(
         "CUSTOM_LLM_PROVIDER_2_DEFAULT_MODEL", ""
     )
+    CUSTOM_LLM_PROVIDER_2_MODELS = os.environ.get("CUSTOM_LLM_PROVIDER_2_MODELS", "")
     CUSTOM_LLM_PROVIDER_3_NAME = os.environ.get("CUSTOM_LLM_PROVIDER_3_NAME", "Other 3")
     CUSTOM_LLM_PROVIDER_3_API_KEY = os.environ.get("CUSTOM_LLM_PROVIDER_3_API_KEY", "")
     CUSTOM_LLM_PROVIDER_3_API_BASE_URL = os.environ.get(
@@ -55,6 +58,7 @@ class Config:
     CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL = os.environ.get(
         "CUSTOM_LLM_PROVIDER_3_DEFAULT_MODEL", ""
     )
+    CUSTOM_LLM_PROVIDER_3_MODELS = os.environ.get("CUSTOM_LLM_PROVIDER_3_MODELS", "")
     LLM_PRICE_INPUT_PER_1K = float(os.environ.get("LLM_PRICE_INPUT_PER_1K", "0"))
     LLM_PRICE_OUTPUT_PER_1K = float(os.environ.get("LLM_PRICE_OUTPUT_PER_1K", "0"))
     LLM_IMAGE_TOKENS_PER_IMAGE = int(os.environ.get("LLM_IMAGE_TOKENS_PER_IMAGE", "0"))

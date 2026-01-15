@@ -12,16 +12,19 @@
         <div style="margin-bottom: 16px;">
           <label for="{{ field.key }}">{{ field.label }}</label>
           {% if field.type == "select" and field.key == "LLM_MODEL" %}
+            {% set provider_value = values["LLM_PROVIDER"] %}
+            {% if provider_value == "other" %}
+              {% set provider_value = "custom1" %}
+            {% endif %}
             {% set current_value = values[field.key] %}
-            {% set is_custom = current_value and current_value not in field.options %}
+            {% set model_options = provider_model_options.get(provider_value, []) %}
+            {% set model_values = model_options | map(attribute='value') | list %}
+            {% set is_custom = current_value and current_value not in model_values %}
             <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
-              {% for option in field.options %}
-                {% if option == "other" %}
-                  <option value="other" {% if is_custom or current_value == "other" %}selected{% endif %}>{{ t('other_model_option') }}</option>
-                {% else %}
-                  <option value="{{ option }}" {% if current_value == option %}selected{% endif %}>{{ option }}</option>
-                {% endif %}
+              {% for option in model_options %}
+                <option value="{{ option.value }}" {% if option.supports_images is not none and not option.supports_images %}data-supports-images="false"{% endif %} {% if current_value == option.value %}selected{% endif %}>{{ option.value }}</option>
               {% endfor %}
+              <option value="other" {% if is_custom or current_value == "other" %}selected{% endif %}>{{ t('other_model_option') }}</option>
             </select>
             <div id="settings-custom-model" {% if not is_custom and current_value != "other" %}class="hidden"{% endif %} style="margin-top: 10px;">
               <label for="LLM_MODEL_CUSTOM">{{ t('custom_model_label') }}</label>
@@ -74,16 +77,69 @@
   </div>
   <script>
     (function () {
+      var providerSelect = document.getElementById("LLM_PROVIDER");
       var modelSelect = document.getElementById("LLM_MODEL");
       var customWrap = document.getElementById("settings-custom-model");
+      var customInput = document.getElementById("LLM_MODEL_CUSTOM");
+      var providerModelOptions = {{ provider_model_options | tojson }};
+      var otherLabel = "{{ t('other_model_option') }}";
       if (!modelSelect || !customWrap) {
         return;
       }
       function toggleCustom() {
         customWrap.classList.toggle("hidden", modelSelect.value !== "other");
       }
+      function selectedModelValue() {
+        if (modelSelect.value === "other" && customInput && customInput.value.trim()) {
+          return customInput.value.trim();
+        }
+        return modelSelect.value || "";
+      }
+      function rebuildOptions(selectedValue) {
+        var providerKey = providerSelect ? providerSelect.value : "openai";
+        if (providerKey === "other") {
+          providerKey = "custom1";
+        }
+        var options = providerModelOptions[providerKey] || [];
+        modelSelect.innerHTML = "";
+        options.forEach(function (opt) {
+          var option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.value;
+          if (opt.supports_images === false) {
+            option.dataset.supportsImages = "false";
+          }
+          modelSelect.appendChild(option);
+        });
+        var otherOption = document.createElement("option");
+        otherOption.value = "other";
+        otherOption.textContent = otherLabel;
+        modelSelect.appendChild(otherOption);
+        var hasMatch = options.some(function (opt) {
+          return opt.value === selectedValue;
+        });
+        if (selectedValue && hasMatch) {
+          modelSelect.value = selectedValue;
+        } else {
+          modelSelect.value = "other";
+        }
+        if (customInput) {
+          if (selectedValue && !hasMatch) {
+            customInput.value = selectedValue;
+          } else if (modelSelect.value !== "other") {
+            customInput.value = "";
+          }
+        }
+      }
+      function refreshModels() {
+        rebuildOptions(selectedModelValue());
+        toggleCustom();
+      }
+      if (providerSelect) {
+        providerSelect.addEventListener("change", refreshModels);
+      }
       modelSelect.addEventListener("change", toggleCustom);
-      toggleCustom();
+      refreshModels();
     })();
   </script>
 {% endblock %}

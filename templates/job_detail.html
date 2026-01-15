@@ -56,17 +56,12 @@
       <label for="llm_model">{{ t('model_options') }}</label>
       <select id="llm_model" name="llm_model" class="compact-select">
         {% set selected_model = job.llm_model or default_model %}
-        {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-        {% set is_custom = selected_provider != 'openai' or selected_model not in known_models %}
-        <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
-        <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
-        <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
-        <option value="gpt-4.1" data-supports-images="true" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
-        <option value="gpt-4.1-mini" data-supports-images="true" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
-        <option value="o4-mini" data-supports-images="true" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
-        <option value="o3-mini" data-supports-images="false" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
-        <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
-        <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+        {% set job_model_options = provider_model_options.get(selected_provider, []) %}
+        {% set job_model_values = job_model_options | map(attribute='value') | list %}
+        {% set is_custom = selected_model and selected_model not in job_model_values %}
+        {% for option in job_model_options %}
+          <option value="{{ option.value }}" {% if option.supports_images is not none and not option.supports_images %}data-supports-images="false"{% endif %} {% if selected_model == option.value %}selected{% endif %}>{{ option.value }}</option>
+        {% endfor %}
         <option value="other" {% if is_custom %}selected{% endif %}>{{ t('other_model_option') }}</option>
       </select>
       <div id="custom_model_wrap" {% if not is_custom %}class="hidden"{% endif %}>
@@ -86,61 +81,67 @@
         var providerSelect = document.getElementById("llm_provider");
         var modelSelect = document.getElementById("llm_model");
         var customWrap = document.getElementById("custom_model_wrap");
+        var customInput = document.getElementById("custom_llm_model");
+        var providerModelOptions = {{ provider_model_options | tojson }};
+        var otherLabel = "{{ t('other_model_option') }}";
+        var needsImages = {{ "true" if submission_requires_images else "false" }};
         if (!modelSelect || !customWrap) {
           return;
+        }
+        function optionSupportsImages(option) {
+          return option.dataset.supportsImages !== "false";
+        }
+        function selectedModelValue() {
+          if (modelSelect.value === "other" && customInput && customInput.value.trim()) {
+            return customInput.value.trim();
+          }
+          return modelSelect.value || "";
+        }
+        function rebuildOptions(selectedValue) {
+          var providerKey = providerSelect ? providerSelect.value : "openai";
+          var options = providerModelOptions[providerKey] || [];
+          modelSelect.innerHTML = "";
+          options.forEach(function (opt) {
+            var option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.value;
+            if (opt.supports_images === false) {
+              option.dataset.supportsImages = "false";
+            }
+            modelSelect.appendChild(option);
+          });
+          var otherOption = document.createElement("option");
+          otherOption.value = "other";
+          otherOption.textContent = otherLabel;
+          modelSelect.appendChild(otherOption);
+          var hasMatch = options.some(function (opt) {
+            return opt.value === selectedValue;
+          });
+          if (selectedValue && hasMatch) {
+            modelSelect.value = selectedValue;
+          } else {
+            modelSelect.value = "other";
+          }
+          if (customInput) {
+            if (selectedValue && !hasMatch) {
+              customInput.value = selectedValue;
+            } else if (modelSelect.value !== "other") {
+              customInput.value = "";
+            }
+          }
         }
         function toggleCustom() {
           customWrap.classList.toggle("hidden", modelSelect.value !== "other");
         }
-      function syncProvider() {
-          if (providerSelect && providerSelect.value !== "openai") {
-            modelSelect.value = "other";
-          }
-        }
-      function enforceProviderModels() {
-        if (!providerSelect) {
-          return;
-        }
-        var options = modelSelect.options;
-        if (providerSelect.value !== "openai") {
-          for (var i = 0; i < options.length; i++) {
-            options[i].disabled = options[i].value !== "other";
-          }
-          return;
-        }
-        for (var i = 0; i < options.length; i++) {
-          options[i].disabled = false;
-        }
-      }
-      if (providerSelect) {
-        providerSelect.addEventListener("change", function () {
-          syncProvider();
-          toggleCustom();
-          enforceProviderModels();
-        });
-      }
-      modelSelect.addEventListener("change", toggleCustom);
-      syncProvider();
-      toggleCustom();
-      enforceProviderModels();
-    })();
-  </script>
-    {% if submission_requires_images %}
-      <script>
-        (function () {
-          var providerSelect = document.getElementById("llm_provider");
-          var modelSelect = document.getElementById("llm_model");
-          if (!modelSelect) {
+        function applyImageConstraints() {
+          if (!needsImages) {
             return;
           }
           var options = modelSelect.options;
           var firstEnabled = null;
-          if (providerSelect && providerSelect.value !== "openai") {
-            return;
-          }
           for (var i = 0; i < options.length; i++) {
             var option = options[i];
-            var disabled = option.dataset.supportsImages === "false";
+            var disabled = !optionSupportsImages(option);
             option.disabled = disabled;
             if (!disabled && firstEnabled === null) {
               firstEnabled = option.value;
@@ -153,9 +154,22 @@
           ) {
             modelSelect.value = firstEnabled;
           }
-        })();
-      </script>
-    {% endif %}
+        }
+        function refreshModels() {
+          rebuildOptions(selectedModelValue());
+          toggleCustom();
+          applyImageConstraints();
+        }
+        if (providerSelect) {
+          providerSelect.addEventListener("change", refreshModels);
+        }
+        modelSelect.addEventListener("change", function () {
+          toggleCustom();
+          applyImageConstraints();
+        });
+        refreshModels();
+      })();
+    </script>
     {% if grade_result and grade_result.error_message and grade_result.raw_response %}
       <h3>{{ t('raw_llm_response_error') }}</h3>
       <pre>{{ grade_result.raw_response }}</pre>
