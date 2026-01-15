@@ -182,6 +182,13 @@ TRANSLATIONS = {
         "language_currency": "Language",
         "theme": "Theme",
         "back_to_top": "Back to top",
+        "total_points": "Total points",
+        "max_points": "Max points",
+        "criteria": "Criteria",
+        "part_label": "Part",
+        "previous_image": "Previous image",
+        "next_image": "Next image",
+        "close": "Close",
         "hero_title": "Automated grading that feels rigorous, not rushed.",
         "hero_subtitle": (
             "A grading workspace for assignments, submissions, and AI-assisted feedback "
@@ -352,6 +359,13 @@ TRANSLATIONS = {
         "language_currency": "Jazyk",
         "theme": "Motiv",
         "back_to_top": "Zpět nahoru",
+        "total_points": "Celkem bodů",
+        "max_points": "Max bodů",
+        "criteria": "Kritéria",
+        "part_label": "Část",
+        "previous_image": "Předchozí obrázek",
+        "next_image": "Další obrázek",
+        "close": "Zavřít",
         "hero_title": "Automatizované hodnocení, které je důsledné, ne uspěchané.",
         "hero_subtitle": (
             "Pracovní prostor pro zadání, odevzdání a AI asistovanou zpětnou vazbu, "
@@ -1149,11 +1163,24 @@ def create_app():
             created_at = _as_utc(rubric.created_at)
             if created_at:
                 duration_seconds = (_utcnow() - created_at).total_seconds()
+        rubric_structured = None
+        if rubric.rubric_text:
+            structured, _error = safe_json_loads(rubric.rubric_text)
+            if isinstance(structured, dict) and structured.get("parts"):
+                rubric_structured = structured
+        reference_structured = None
+        if rubric.reference_solution_text:
+            structured, _error = safe_json_loads(rubric.reference_solution_text)
+            if isinstance(structured, dict):
+                reference_structured = structured
+
         return render_template(
             "rubric_detail.html",
             rubric=rubric,
             assignment=assignment,
             duration_seconds=duration_seconds,
+            rubric_structured=rubric_structured,
+            reference_structured=reference_structured,
         )
 
     @app.route("/rubrics/<int:rubric_id>/edit", methods=["GET", "POST"])

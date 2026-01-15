@@ -23,12 +23,109 @@
 
   <div class="card">
     <h3>{{ t('guide_text') }}</h3>
-    <pre>{{ rubric.rubric_text or 'Not available yet.' }}</pre>
+    {% if rubric_structured %}
+      <div class="guide-structured">
+        {% if rubric_structured.total_points is not none %}
+          <p><strong>{{ t('total_points') }}:</strong> {{ rubric_structured.total_points }}</p>
+        {% endif %}
+        {% set parts = rubric_structured.get('parts') %}
+        {% if parts %}
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th>{{ t('part_label') }}</th>
+                <th>{{ t('max_points') }}</th>
+                <th>{{ t('criteria') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if parts is mapping %}
+                {% for part_id, part in parts.items() %}
+                  <tr>
+                    <td>{{ part_id }}</td>
+                    <td>{{ part.max_points or part.points_possible or part.points or '--' }}</td>
+                    <td>
+                      {% set criteria = part.criteria %}
+                      {% if criteria is sequence and criteria is not string %}
+                        <ul class="guide-list">
+                          {% for item in criteria %}
+                            <li>{{ item }}</li>
+                          {% endfor %}
+                        </ul>
+                      {% elif criteria %}
+                        {{ criteria }}
+                      {% else %}
+                        --
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% elif parts is sequence and parts is not string %}
+                {% for part in parts %}
+                  <tr>
+                    <td>{{ part.part_id or loop.index }}</td>
+                    <td>{{ part.max_points or part.points_possible or part.points or '--' }}</td>
+                    <td>
+                      {% set criteria = part.criteria %}
+                      {% if criteria is sequence and criteria is not string %}
+                        <ul class="guide-list">
+                          {% for item in criteria %}
+                            <li>{{ item }}</li>
+                          {% endfor %}
+                        </ul>
+                      {% elif criteria %}
+                        {{ criteria }}
+                      {% else %}
+                        --
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        {% endif %}
+      </div>
+    {% else %}
+      <pre>{{ rubric.rubric_text or 'Not available yet.' }}</pre>
+    {% endif %}
   </div>
 
   <div class="card">
     <h3>{{ t('reference_solution') }}</h3>
-    <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
+    {% if reference_structured %}
+      <div class="guide-structured">
+        {% for part_id, part in reference_structured.items() %}
+          <div class="guide-part">
+            <h4 style="margin: 0 0 6px;">{{ t('part_label') }} {{ part_id }}</h4>
+            {% if part is mapping %}
+              <ul class="guide-list">
+                {% for key, value in part.items() %}
+                  <li>
+                    <strong>{{ key|replace('_', ' ')|title }}:</strong>
+                    {% if value is sequence and value is not string %}
+                      {{ value|join(', ') }}
+                    {% else %}
+                      {{ value }}
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% elif part is sequence and part is not string %}
+              <ul class="guide-list">
+                {% for item in part %}
+                  <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p style="margin: 0;">{{ part }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <pre>{{ rubric.reference_solution_text or 'Not available yet.' }}</pre>
+    {% endif %}
   </div>
 
   {% if rubric.error_message and rubric.raw_response %}
