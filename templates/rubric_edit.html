@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>{{ t('edit_guide') }}</h2>
+    <form method="post">
+      <label for="rubric_text">{{ t('guide_text') }}</label>
+      <textarea id="rubric_text" name="rubric_text" required>{{ rubric.rubric_text }}</textarea>
+      <label for="reference_solution_text">{{ t('reference_solution') }}</label>
+      <textarea id="reference_solution_text" name="reference_solution_text" required>{{ rubric.reference_solution_text }}</textarea>
+      <button type="submit">{{ t('save_changes') }}</button>
+      <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">{{ t('cancel') }}</a>
+    </form>
+  </div>
+{% endblock %}

@@ -129,6 +129,7 @@ TRANSLATIONS = {
         "edit_assignment": "Edit Assignment",
         "edit": "Edit",
         "save_changes": "Save Changes",
+        "edit_guide": "Edit Grading Guide",
         "submission": "Submission",
         "assignment": "Assignment",
         "submitted": "Submitted",
@@ -298,6 +299,7 @@ TRANSLATIONS = {
         "edit_assignment": "Upravit zadání",
         "edit": "Upravit",
         "save_changes": "Uložit změny",
+        "edit_guide": "Upravit hodnoticího průvodce",
         "submission": "Odevzdání",
         "assignment": "Zadání",
         "submitted": "Odevzdáno",
@@ -1153,6 +1155,30 @@ def create_app():
             assignment=assignment,
             duration_seconds=duration_seconds,
         )
+
+    @app.route("/rubrics/<int:rubric_id>/edit", methods=["GET", "POST"])
+    def edit_rubric(rubric_id):
+        rubric = RubricVersion.query.get_or_404(rubric_id)
+        if rubric.status != RubricStatus.DRAFT:
+            flash("Only DRAFT grading guides can be edited.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+        if request.method == "POST":
+            rubric_text = request.form.get("rubric_text", "").strip()
+            reference_solution_text = request.form.get(
+                "reference_solution_text", ""
+            ).strip()
+            if not rubric_text or not reference_solution_text:
+                flash("Grading guide text and reference solution are required.")
+                return redirect(url_for("edit_rubric", rubric_id=rubric.id))
+
+            rubric.rubric_text = rubric_text
+            rubric.reference_solution_text = reference_solution_text
+            db.session.commit()
+            flash("Grading guide updated.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+        return render_template("rubric_edit.html", rubric=rubric)
 
     @app.route("/assignments/<int:assignment_id>/submissions/upload", methods=["POST"])
     def upload_submission(assignment_id):
