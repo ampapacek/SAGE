@@ -4,6 +4,7 @@
   <div class="card">
     <h2>{{ t('job') }} {{ job.id }}</h2>
     <p>{{ t('status') }}: <span id="job-status" class="status {{ job.status }}">{{ job.status }}</span></p>
+    <p>{{ t('provider') }}: {{ job_provider_display }}</p>
     <p>{{ t('model') }}: {{ job.llm_model or 'unknown' }}</p>
     <p>{{ t('submission_number') }} <a href="{{ url_for('submission_detail', submission_id=job.submission_id) }}">{{ job.submission_id }}</a></p>
     <div class="helper-text">{{ t('student_hint') }}</div>
@@ -42,11 +43,17 @@
       </form>
     {% endif %}
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
+      <label for="llm_provider">{{ t('provider_label') }}</label>
+      <select id="llm_provider" name="llm_provider" class="compact-select">
+        {% set selected_provider = job.llm_provider or default_provider %}
+        <option value="openai" {% if selected_provider == 'openai' %}selected{% endif %}>{{ t('provider_openai') }}</option>
+        <option value="other" {% if selected_provider == 'other' %}selected{% endif %}>{{ custom_provider_name }}</option>
+      </select>
       <label for="llm_model">{{ t('model_options') }}</label>
       <select id="llm_model" name="llm_model" class="compact-select">
         {% set selected_model = job.llm_model or default_model %}
         {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-        {% set is_custom = selected_model not in known_models %}
+        {% set is_custom = selected_provider == 'other' or selected_model not in known_models %}
         <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
         <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
         <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -70,26 +77,44 @@
       </div>
       <button type="submit">{{ t('rerun_job') }}</button>
     </form>
+    <script>
+      (function () {
+        var providerSelect = document.getElementById("llm_provider");
+        var modelSelect = document.getElementById("llm_model");
+        var customWrap = document.getElementById("custom_model_wrap");
+        if (!modelSelect || !customWrap) {
+          return;
+        }
+        function toggleCustom() {
+          customWrap.classList.toggle("hidden", modelSelect.value !== "other");
+        }
+        function syncProvider() {
+          if (providerSelect && providerSelect.value === "other") {
+            modelSelect.value = "other";
+          }
+        }
+        if (providerSelect) {
+          providerSelect.addEventListener("change", function () {
+            syncProvider();
+            toggleCustom();
+          });
+        }
+        modelSelect.addEventListener("change", toggleCustom);
+        syncProvider();
+        toggleCustom();
+      })();
+    </script>
     {% if submission_requires_images %}
       <script>
         (function () {
+          var providerSelect = document.getElementById("llm_provider");
           var modelSelect = document.getElementById("llm_model");
-          var customModel = document.getElementById("custom_llm_model");
-          var customWrap = document.getElementById("custom_model_wrap");
           if (!modelSelect) {
             return;
           }
-          function toggleCustom() {
-            if (!customWrap) {
-              return;
-            }
-            customWrap.classList.toggle("hidden", modelSelect.value !== "other");
-          }
-          toggleCustom();
-          modelSelect.addEventListener("change", toggleCustom);
           var options = modelSelect.options;
           var firstEnabled = null;
-          if (modelSelect.value === "other") {
+          if (providerSelect && providerSelect.value === "other") {
             return;
           }
           for (var i = 0; i < options.length; i++) {

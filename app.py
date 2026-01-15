@@ -72,6 +72,10 @@ _MODEL_OPTIONS = [
     "gpt-5-nano",
     "other",
 ]
+_PROVIDER_OPTIONS = [
+    "openai",
+    "other",
+]
 TRANSLATIONS = {
     "en": {
         "nav_back": "Back",
@@ -89,6 +93,7 @@ TRANSLATIONS = {
         "grading_guides": "Grading Guides",
         "guide_number": "Guide #",
         "status": "Status",
+        "provider": "Provider",
         "model": "Model",
         "duration_s": "Duration (s)",
         "price": "Price",
@@ -206,6 +211,9 @@ TRANSLATIONS = {
         "custom_model_label": "Custom model name",
         "custom_model_placeholder": "Enter provider model name",
         "other_model_option": "Other",
+        "provider_label": "Provider",
+        "provider_openai": "OpenAI",
+        "provider_other": "Other",
         "show_guide": "Show grading guide",
         "hide_guide": "Hide grading guide",
         "show_reference_solution": "Show reference solution",
@@ -288,6 +296,7 @@ TRANSLATIONS = {
         "grading_guides": "Hodnoticí průvodci",
         "guide_number": "Průvodce #",
         "status": "Stav",
+        "provider": "Poskytovatel",
         "model": "Model",
         "duration_s": "Délka (s)",
         "price": "Cena",
@@ -405,6 +414,9 @@ TRANSLATIONS = {
         "custom_model_label": "Vlastní název modelu",
         "custom_model_placeholder": "Zadejte název modelu poskytovatele",
         "other_model_option": "Jiný",
+        "provider_label": "Poskytovatel",
+        "provider_openai": "OpenAI",
+        "provider_other": "Jiný",
         "show_guide": "Zobrazit hodnoticího průvodce",
         "hide_guide": "Skrýt hodnoticího průvodce",
         "show_reference_solution": "Zobrazit referenční řešení",
@@ -500,6 +512,42 @@ _SETTINGS_FIELDS = [
         "type": "select",
         "options": _MODEL_OPTIONS,
         "help": "Used when no model is chosen elsewhere.",
+        "restart": False,
+    },
+    {
+        "key": "LLM_PROVIDER",
+        "label": "Default LLM Provider",
+        "type": "select",
+        "options": _PROVIDER_OPTIONS,
+        "help": "Default provider for grading and rubric generation.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_PROVIDER_NAME",
+        "label": "Custom Provider Name",
+        "type": "text",
+        "help": "Label shown for the custom provider option.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_API_KEY",
+        "label": "Custom Provider API Key",
+        "type": "password",
+        "help": "API key for the custom provider.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_API_BASE_URL",
+        "label": "Custom Provider Base URL",
+        "type": "text",
+        "help": "Base URL for the custom provider.",
+        "restart": False,
+    },
+    {
+        "key": "CUSTOM_LLM_MODEL",
+        "label": "Custom Provider Default Model",
+        "type": "text",
+        "help": "Default model name for the custom provider.",
         "restart": False,
     },
     {
@@ -770,6 +818,35 @@ def _resolve_model_from_form(form, default_model):
     return selected_model, False
 
 
+def _resolve_provider_from_form(form, default_provider):
+    selected = (form.get("llm_provider") or "").strip()
+    if not selected:
+        selected = default_provider
+    return selected
+
+
+def _provider_config(provider_key):
+    if provider_key == "other":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_NAME or "Other",
+            "api_key": Config.CUSTOM_LLM_API_KEY,
+            "base_url": Config.CUSTOM_LLM_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_MODEL or Config.LLM_MODEL,
+        }
+    return {
+        "name": "OpenAI",
+        "api_key": Config.LLM_API_KEY,
+        "base_url": Config.LLM_API_BASE_URL,
+        "default_model": Config.LLM_MODEL,
+    }
+
+
+def _provider_display(provider_key):
+    if provider_key == "other":
+        return Config.CUSTOM_LLM_PROVIDER_NAME or "Other"
+    return "OpenAI"
+
+
 def _submission_requires_images(submission):
     if not submission:
         return False
@@ -811,6 +888,12 @@ def _ensure_schema_updates():
                 text("ALTER TABLE grading_job ADD COLUMN price_estimate REAL")
             )
             db.session.commit()
+        if "llm_provider" not in columns:
+            db.session.execute(
+                text("ALTER TABLE grading_job ADD COLUMN llm_provider VARCHAR(64)")
+            )
+            db.session.commit()
+            logger.info("Added llm_provider column to grading_job table")
         result = db.session.execute(text("PRAGMA table_info(rubric_version)"))
         rubric_columns = {row[1] for row in result.fetchall()}
         if "llm_model" not in rubric_columns:
@@ -819,6 +902,12 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added llm_model column to rubric_version table")
+        if "llm_provider" not in rubric_columns:
+            db.session.execute(
+                text("ALTER TABLE rubric_version ADD COLUMN llm_provider VARCHAR(64)")
+            )
+            db.session.commit()
+            logger.info("Added llm_provider column to rubric_version table")
         if "error_message" not in rubric_columns:
             db.session.execute(
                 text("ALTER TABLE rubric_version ADD COLUMN error_message TEXT DEFAULT ''")
@@ -944,6 +1033,12 @@ def create_app():
             rubric.status == RubricStatus.GENERATING for rubric in rubrics
         )
         for rubric in rubrics:
+            if rubric.llm_model:
+                rubric.provider_display = _provider_display(
+                    rubric.llm_provider or Config.LLM_PROVIDER
+                )
+            else:
+                rubric.provider_display = "manual"
             if rubric.finished_at:
                 finished_at = _as_utc(rubric.finished_at)
                 created_at = _as_utc(rubric.created_at)
@@ -960,6 +1055,9 @@ def create_app():
             else:
                 rubric.duration_seconds = None
         for job in jobs:
+            job.provider_display = _provider_display(
+                job.llm_provider or Config.LLM_PROVIDER
+            )
             if job.started_at and job.finished_at:
                 started_at = _as_utc(job.started_at)
                 finished_at = _as_utc(job.finished_at)
@@ -1025,6 +1123,7 @@ def create_app():
         if not has_price_estimate:
             total_price_estimate = None
 
+        default_provider_cfg = _provider_config(Config.LLM_PROVIDER)
         return render_template(
             "assignment_detail.html",
             assignment=assignment,
@@ -1035,8 +1134,10 @@ def create_app():
             has_active_jobs=has_active_jobs,
             has_pending_rubrics=has_pending_rubrics,
             approved_rubric=approved_rubric,
-            default_model=app.config.get("LLM_MODEL"),
+            default_model=default_provider_cfg["default_model"],
             total_price_estimate=total_price_estimate,
+            custom_provider_name=Config.CUSTOM_LLM_PROVIDER_NAME or t("provider_other"),
+            default_provider=Config.LLM_PROVIDER,
         )
 
     @app.route("/assignments/<int:assignment_id>/edit", methods=["GET", "POST"])
@@ -1139,14 +1240,19 @@ def create_app():
     @app.route("/assignments/<int:assignment_id>/rubrics/generate_draft", methods=["POST"])
     def generate_rubric(assignment_id):
         assignment = Assignment.query.get_or_404(assignment_id)
+        provider_key = _resolve_provider_from_form(
+            request.form, app.config.get("LLM_PROVIDER")
+        )
+        provider_cfg = _provider_config(provider_key)
         selected_model, _custom_used = _resolve_model_from_form(
-            request.form, app.config.get("LLM_MODEL")
+            request.form, provider_cfg["default_model"]
         )
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
             reference_solution_text="",
             status=RubricStatus.GENERATING,
+            llm_provider=provider_key,
             llm_model=selected_model,
             error_message="",
             raw_response="",
@@ -1233,6 +1339,9 @@ def create_app():
             if isinstance(structured, dict):
                 reference_structured = structured
 
+        provider_display = "manual"
+        if rubric.llm_model:
+            provider_display = _provider_display(rubric.llm_provider or Config.LLM_PROVIDER)
         return render_template(
             "rubric_detail.html",
             rubric=rubric,
@@ -1240,6 +1349,7 @@ def create_app():
             duration_seconds=duration_seconds,
             rubric_structured=rubric_structured,
             reference_structured=reference_structured,
+            provider_display=provider_display,
         )
 
     @app.route("/rubrics/<int:rubric_id>/edit", methods=["GET", "POST"])
@@ -1274,8 +1384,12 @@ def create_app():
             flash("Approve a grading guide before uploading submissions.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
         zip_file = request.files.get("zip_file")
+        provider_key = _resolve_provider_from_form(
+            request.form, app.config.get("LLM_PROVIDER")
+        )
+        provider_cfg = _provider_config(provider_key)
         selected_model, custom_used = _resolve_model_from_form(
-            request.form, app.config.get("LLM_MODEL")
+            request.form, provider_cfg["default_model"]
         )
 
         submissions = []
@@ -1309,7 +1423,12 @@ def create_app():
         requires_images = any(
             _submission_requires_images(submission) for submission in submissions
         )
-        if requires_images and not custom_used and not _model_supports_images(selected_model):
+        if (
+            requires_images
+            and provider_key != "other"
+            and not custom_used
+            and not _model_supports_images(selected_model)
+        ):
             flash("Selected model does not support images. Choose an image-capable model.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
@@ -1319,6 +1438,7 @@ def create_app():
                 submission_id=submission.id,
                 rubric_version_id=approved_rubric.id,
                 status=JobStatus.QUEUED,
+                llm_provider=provider_key,
                 llm_model=selected_model,
             )
             db.session.add(job)
@@ -1532,6 +1652,7 @@ def create_app():
         job = GradingJob.query.get_or_404(job_id)
         auto_refresh = job.status in {JobStatus.QUEUED, JobStatus.RUNNING}
         submission_requires_images = _submission_requires_images(job.submission)
+        job_provider_display = _provider_display(job.llm_provider or Config.LLM_PROVIDER)
         job_price_display = job.price_estimate
         if job_price_display is None:
             job_price_display = _extract_price_estimate(job.message)
@@ -1552,15 +1673,19 @@ def create_app():
             started_at = _as_utc(job.started_at)
             if started_at:
                 duration_seconds = (_utcnow() - started_at).total_seconds()
+        default_provider_cfg = _provider_config(Config.LLM_PROVIDER)
         return render_template(
             "job_detail.html",
             job=job,
             duration_seconds=duration_seconds,
             grade_result=grade_result,
             auto_refresh=auto_refresh,
-            default_model=app.config.get("LLM_MODEL"),
+            default_model=default_provider_cfg["default_model"],
             submission_requires_images=submission_requires_images,
             job_price_display=job_price_display,
+            custom_provider_name=Config.CUSTOM_LLM_PROVIDER_NAME or t("provider_other"),
+            default_provider=Config.LLM_PROVIDER,
+            job_provider_display=job_provider_display,
         )
 
     @app.route("/jobs/<int:job_id>/status.json")
@@ -1644,12 +1769,13 @@ def create_app():
                     "LLM_IMAGE_TOKENS_PER_IMAGE",
                     "MAX_CONTENT_LENGTH",
                     "PDF_DPI",
+                    "PDF_TEXT_MIN_CHARS",
                 }:
                     try:
                         app.config[key] = int(value) if value else app.config.get(key)
                     except ValueError:
                         pass
-                if key in {"LLM_PRICE_INPUT_PER_1K", "LLM_PRICE_OUTPUT_PER_1K"}:
+                if key in {"LLM_PRICE_INPUT_PER_1K", "LLM_PRICE_OUTPUT_PER_1K", "PDF_TEXT_MIN_RATIO"}:
                     try:
                         app.config[key] = float(value) if value else app.config.get(key)
                     except ValueError:
@@ -1675,8 +1801,12 @@ def create_app():
             flash("Approved grading guide required to rerun job.")
             return redirect(url_for("job_detail", job_id=job.id))
 
+        provider_key = _resolve_provider_from_form(
+            request.form, app.config.get("LLM_PROVIDER")
+        )
+        provider_cfg = _provider_config(provider_key)
         selected_model, _custom_used = _resolve_model_from_form(
-            request.form, app.config.get("LLM_MODEL")
+            request.form, provider_cfg["default_model"]
         )
 
         grade_result = GradeResult(
@@ -1696,6 +1826,7 @@ def create_app():
             submission_id=job.submission_id,
             rubric_version_id=job.rubric_version_id,
             status=JobStatus.QUEUED,
+            llm_provider=provider_key,
             llm_model=selected_model,
         )
         db.session.add(new_job)

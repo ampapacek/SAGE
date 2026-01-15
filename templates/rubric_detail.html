@@ -5,6 +5,7 @@
     <h2>{{ t('guide') }} {{ rubric.id }}</h2>
     <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
     <p>{{ t('status') }}: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
+    <p>{{ t('provider') }}: {{ provider_display }}</p>
     <p>{{ t('model') }}: {{ rubric.llm_model or 'manual' }}</p>
     <p>{{ t('created') }}: {{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
     {% if duration_seconds is not none %}

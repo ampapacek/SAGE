@@ -47,6 +47,7 @@
           <tr>
             <th>{{ t('guide_number') }}</th>
             <th>{{ t('status') }}</th>
+            <th>{{ t('provider') }}</th>
             <th>{{ t('created') }}</th>
             <th>{{ t('model') }}</th>
             <th>{{ t('duration_s') }}</th>
@@ -60,6 +61,7 @@
             <tr>
               <td>{{ rubric.id }}</td>
               <td class="status {{ rubric.status }}">{{ rubric.status }}</td>
+              <td>{{ rubric.provider_display }}</td>
               <td>{{ rubric.created_at.strftime('%b %d, %Y %H:%M') }}</td>
               <td>{{ rubric.llm_model or 'manual' }}</td>
               <td>
@@ -132,11 +134,17 @@
 
       <h4>{{ t('generate_draft_guide') }}</h4>
       <form method="post" action="{{ url_for('generate_rubric', assignment_id=assignment.id) }}">
+        <label for="rubric_provider">{{ t('provider_label') }}</label>
+        <select id="rubric_provider" name="llm_provider">
+          {% set selected_provider = default_provider %}
+          <option value="openai" {% if selected_provider == 'openai' %}selected{% endif %}>{{ t('provider_openai') }}</option>
+          <option value="other" {% if selected_provider == 'other' %}selected{% endif %}>{{ custom_provider_name }}</option>
+        </select>
         <label for="rubric_model">{{ t('choose_model_generation') }}</label>
         <select id="rubric_model" name="llm_model">
           {% set selected_model = default_model %}
           {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-          {% set is_custom = selected_model not in known_models %}
+          {% set is_custom = selected_provider == 'other' or selected_model not in known_models %}
           <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
           <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
           <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -148,23 +156,23 @@
           <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
           <option value="other" {% if is_custom %}selected{% endif %}>{{ t('other_model_option') }}</option>
         </select>
-        <div id="rubric_custom_wrap" {% if not is_custom %}class="hidden"{% endif %}>
-          <label for="rubric_custom_model">{{ t('custom_model_label') }}</label>
-          <input
-            type="text"
-            id="rubric_custom_model"
-            name="custom_llm_model"
-            value="{% if is_custom %}{{ selected_model }}{% endif %}"
-            placeholder="{{ t('custom_model_placeholder') }}"
-          />
-        </div>
+          <div id="rubric_custom_wrap" {% if not is_custom %}class="hidden"{% endif %}>
+            <label for="rubric_custom_model">{{ t('custom_model_label') }}</label>
+            <input
+              type="text"
+              id="rubric_custom_model"
+              name="custom_llm_model"
+              value="{% if is_custom %}{{ selected_model }}{% endif %}"
+              placeholder="{{ t('custom_model_placeholder') }}"
+            />
+          </div>
         <button type="submit">{{ t('generate_draft_llm') }}</button>
       </form>
     </div>
   </div>
 
   <div class="card">
-    <h3>{{ t('upload_submissions') }}</h3>
+      <h3>{{ t('upload_submissions') }}</h3>
     <button type="button" class="secondary" onclick="document.getElementById('upload-form').classList.toggle('hidden')">
       {{ t('toggle_uploads') }}
     </button>
@@ -177,11 +185,17 @@
         <div class="upload-form-inner">
           <label for="student_identifier">{{ t('student_identifier') }}</label>
           <input type="text" id="student_identifier" name="student_identifier" />
+          <label for="llm_provider">{{ t('provider_label') }}</label>
+          <select id="llm_provider" name="llm_provider">
+            {% set selected_provider = default_provider %}
+            <option value="openai" {% if selected_provider == 'openai' %}selected{% endif %}>{{ t('provider_openai') }}</option>
+            <option value="other" {% if selected_provider == 'other' %}selected{% endif %}>{{ custom_provider_name }}</option>
+          </select>
           <label for="llm_model">{{ t('model_selection') }}</label>
           <select id="llm_model" name="llm_model">
             {% set selected_model = default_model %}
             {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
-            {% set is_custom = selected_model not in known_models %}
+            {% set is_custom = selected_provider == 'other' or selected_model not in known_models %}
             <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
             <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
             <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -224,9 +238,11 @@
       (function () {
         var fileInput = document.getElementById("files");
         var zipInput = document.getElementById("zip_file");
+        var providerSelect = document.getElementById("llm_provider");
         var modelSelect = document.getElementById("llm_model");
         var customModel = document.getElementById("custom_llm_model");
         var customWrap = document.getElementById("custom_model_wrap");
+        var rubricProvider = document.getElementById("rubric_provider");
         var rubricModel = document.getElementById("rubric_model");
         var rubricCustomWrap = document.getElementById("rubric_custom_wrap");
         var filesDrop = document.getElementById("files-drop");
@@ -289,7 +305,7 @@
           return option.dataset.supportsImages !== "false";
         }
         function requiresImages() {
-          if (modelSelect && modelSelect.value === "other") {
+          if (providerSelect && providerSelect.value === "other") {
             return false;
           }
           if (zipInput.files && zipInput.files.length) {
@@ -312,9 +328,19 @@
           return false;
         }
         function updateModelOptions() {
+          if (providerSelect && modelSelect) {
+            if (providerSelect.value === "other") {
+              modelSelect.value = "other";
+            }
+          }
+          if (rubricProvider && rubricModel) {
+            if (rubricProvider.value === "other") {
+              rubricModel.value = "other";
+            }
+          }
           toggleCustomModel(modelSelect, customWrap);
           toggleCustomModel(rubricModel, rubricCustomWrap);
-          if (modelSelect && modelSelect.value === "other") {
+          if (providerSelect && providerSelect.value === "other") {
             for (var i = 0; i < modelSelect.options.length; i++) {
               modelSelect.options[i].disabled = false;
             }
@@ -342,9 +368,15 @@
         }
         fileInput.addEventListener("change", updateModelOptions);
         zipInput.addEventListener("change", updateModelOptions);
+        if (providerSelect) {
+          providerSelect.addEventListener("change", updateModelOptions);
+        }
         modelSelect.addEventListener("change", updateModelOptions);
         if (rubricModel) {
           rubricModel.addEventListener("change", updateModelOptions);
+        }
+        if (rubricProvider) {
+          rubricProvider.addEventListener("change", updateModelOptions);
         }
         updateModelOptions();
       })();
@@ -397,6 +429,7 @@
             <th>{{ t('created') }}</th>
             <th>{{ t('submission_number') }}</th>
             <th>{{ t('student') }}</th>
+            <th>{{ t('provider') }}</th>
             <th>{{ t('model') }}</th>
             <th>{{ t('duration_s') }}</th>
             <th>{{ t('price') }}</th>
@@ -410,6 +443,7 @@
               <td>{{ job.created_at.strftime('%b %d, %Y %H:%M') }}</td>
               <td>{{ job.submission_id }}</td>
               <td>{{ job.submission.student_identifier if job.submission else 'unknown' }}</td>
+              <td>{{ job.provider_display }}</td>
               <td>{{ job.llm_model or 'unknown' }}</td>
               <td>
                 {% if job.status == 'RUNNING' and job.started_at %}

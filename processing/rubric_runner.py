@@ -15,6 +15,22 @@ def _utcnow():
     return datetime.now(timezone.utc)
 
 
+def _provider_config(provider_key):
+    if provider_key == "other":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_NAME or "Other",
+            "api_key": Config.CUSTOM_LLM_API_KEY,
+            "base_url": Config.CUSTOM_LLM_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_MODEL or Config.LLM_MODEL,
+        }
+    return {
+        "name": "OpenAI",
+        "api_key": Config.LLM_API_KEY,
+        "base_url": Config.LLM_API_BASE_URL,
+        "default_model": Config.LLM_MODEL,
+    }
+
+
 def _normalize_text(value, field_name):
     if value is None:
         return ""
@@ -46,14 +62,16 @@ def process_rubric_generation(rubric_id):
         db.session.commit()
         return
 
-    model = rubric.llm_model or Config.LLM_MODEL
+    provider_key = rubric.llm_provider or Config.LLM_PROVIDER
+    provider_cfg = _provider_config(provider_key)
+    model = rubric.llm_model or provider_cfg["default_model"]
     raw_text = ""
     try:
         data, usage, raw_text, meta = generate_rubric_draft(
             assignment.assignment_text,
             model,
-            Config.LLM_API_BASE_URL,
-            Config.LLM_API_KEY,
+            provider_cfg["base_url"],
+            provider_cfg["api_key"],
             json_mode=Config.LLM_USE_JSON_MODE,
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,
@@ -94,8 +112,9 @@ def process_rubric_generation(rubric_id):
         rubric.finished_at = _utcnow()
         db.session.commit()
         logger.info(
-            "Grading guide %s generated with model %s (prompt_tokens=%s completion_tokens=%s)",
+            "Grading guide %s generated with %s/%s (prompt_tokens=%s completion_tokens=%s)",
             rubric_id,
+            provider_cfg["name"],
             model,
             usage.get("prompt_tokens"),
             usage.get("completion_tokens"),

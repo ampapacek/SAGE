@@ -31,6 +31,22 @@ def _utcnow():
     return datetime.now(timezone.utc)
 
 
+def _provider_config(provider_key):
+    if provider_key == "other":
+        return {
+            "name": Config.CUSTOM_LLM_PROVIDER_NAME or "Other",
+            "api_key": Config.CUSTOM_LLM_API_KEY,
+            "base_url": Config.CUSTOM_LLM_API_BASE_URL,
+            "default_model": Config.CUSTOM_LLM_MODEL or Config.LLM_MODEL,
+        }
+    return {
+        "name": "OpenAI",
+        "api_key": Config.LLM_API_KEY,
+        "base_url": Config.LLM_API_BASE_URL,
+        "default_model": Config.LLM_MODEL,
+    }
+
+
 def _as_utc(value):
     if value is None:
         return None
@@ -148,8 +164,10 @@ def process_submission_job(job_id):
 
     summary_lines = []
     job.status = JobStatus.RUNNING
+    provider_key = job.llm_provider or Config.LLM_PROVIDER
+    provider_cfg = _provider_config(provider_key)
     if not job.llm_model:
-        job.llm_model = Config.LLM_MODEL
+        job.llm_model = provider_cfg["default_model"]
     job.started_at = _utcnow()
     job.message = ""
     db.session.commit()
@@ -166,7 +184,8 @@ def process_submission_job(job_id):
         if not assignment or not submission:
             raise ValueError("Assignment or submission missing for job.")
 
-        summary_lines.append(f"Model: {job.llm_model or Config.LLM_MODEL}")
+        summary_lines.append(f"Provider: {provider_cfg['name']}")
+        summary_lines.append(f"Model: {job.llm_model or provider_cfg['default_model']}")
         json_mode_label = "on" if Config.LLM_USE_JSON_MODE else "off"
         summary_lines.append(f"JSON mode: {json_mode_label}")
         logger.info(
@@ -299,7 +318,7 @@ def process_submission_job(job_id):
             _finalize_cancelled(job_id, summary_lines)
             return
 
-        llm_model = job.llm_model or Config.LLM_MODEL
+        llm_model = job.llm_model or provider_cfg["default_model"]
         llm_data, raw_response, usage, meta = grade_submission_and_raw(
             assignment.assignment_text,
             rubric.rubric_text,
@@ -307,8 +326,8 @@ def process_submission_job(job_id):
             student_text,
             image_paths,
             llm_model,
-            Config.LLM_API_BASE_URL,
-            Config.LLM_API_KEY,
+            provider_cfg["base_url"],
+            provider_cfg["api_key"],
             json_mode=Config.LLM_USE_JSON_MODE,
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,
