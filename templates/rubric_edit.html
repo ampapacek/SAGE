@@ -18,15 +18,14 @@
     <form method="post">
       {% if rubric_edit_data %}
         <input type="hidden" name="structured_editor" value="1" />
-        <label for="total_points">{{ t('total_points') }}</label>
-        <input
-          type="number"
-          step="0.01"
-          id="total_points"
-          name="total_points"
-          value="{% if rubric_edit_data.total_points is not none %}{{ rubric_edit_data.total_points }}{% endif %}"
-          class="settings-input"
-        />
+        <label>{{ t('total_points') }}</label>
+        <div id="total-points-display" class="dropzone-hint" style="margin-bottom: 12px;">
+          {% if rubric_edit_data.computed_total is not none %}
+            {{ rubric_edit_data.computed_total }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
         <div id="parts-editor">
           {% for part in rubric_edit_data.parts %}
             <div class="guide-part-editor">
@@ -40,7 +39,7 @@
               <label>{{ t('max_points') }}</label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 name="part_max_points"
                 value="{% if part.max_points is not none %}{{ part.max_points }}{% endif %}"
                 class="settings-input"
@@ -66,7 +65,7 @@
       <label>{{ t('part_label') }}</label>
       <input type="text" name="part_id" class="settings-input" />
       <label>{{ t('max_points') }}</label>
-      <input type="number" step="0.01" name="part_max_points" class="settings-input" />
+      <input type="number" step="1" name="part_max_points" class="settings-input" />
       <label>{{ t('criteria_one_per_line') }}</label>
       <textarea name="part_criteria"></textarea>
     </div>
@@ -75,15 +74,39 @@
         var addBtn = document.getElementById("add-part");
         var container = document.getElementById("parts-editor");
         var template = document.getElementById("part-template");
+        var totalDisplay = document.getElementById("total-points-display");
         if (!addBtn || !container || !template) {
           return;
+        }
+        function updateTotal() {
+          if (!totalDisplay) {
+            return;
+          }
+          var inputs = container.querySelectorAll('input[name="part_max_points"]');
+          var total = 0;
+          var hasValue = false;
+          inputs.forEach(function (input) {
+            var value = parseFloat(input.value);
+            if (!isNaN(value)) {
+              total += value;
+              hasValue = true;
+            }
+          });
+          totalDisplay.textContent = hasValue ? total : "--";
         }
         addBtn.addEventListener("click", function () {
           var clone = template.cloneNode(true);
           clone.classList.remove("hidden");
           clone.removeAttribute("id");
           container.appendChild(clone);
+          updateTotal();
         });
+        container.addEventListener("input", function (event) {
+          if (event.target && event.target.name === "part_max_points") {
+            updateTotal();
+          }
+        });
+        updateTotal();
       })();
     </script>
   {% endif %}

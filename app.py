@@ -986,6 +986,8 @@ def _build_rubric_edit_data(rubric_text):
         return None
     parts_raw = structured.get("parts")
     parts = []
+    computed_total = 0.0
+    has_total = False
     if isinstance(parts_raw, dict):
         items = list(parts_raw.items())
     elif isinstance(parts_raw, list):
@@ -1015,8 +1017,15 @@ def _build_rubric_edit_data(rubric_text):
                 "criteria": criteria,
             }
         )
+        if max_points is not None:
+            try:
+                computed_total += float(max_points)
+                has_total = True
+            except (TypeError, ValueError):
+                pass
     return {
         "total_points": structured.get("total_points"),
+        "computed_total": computed_total if has_total else None,
         "parts": parts,
     }
 
@@ -1715,16 +1724,11 @@ def create_app():
             ).strip()
             structured_editor = request.form.get("structured_editor") == "1"
             if structured_editor:
-                total_points, total_error = _parse_float_field(
-                    request.form.get("total_points"), "Total points"
-                )
                 part_ids = request.form.getlist("part_id")
                 part_points = request.form.getlist("part_max_points")
                 part_criteria = request.form.getlist("part_criteria")
                 parts = []
                 errors = []
-                if total_error:
-                    errors.append(total_error)
                 total_count = max(
                     len(part_ids), len(part_points), len(part_criteria)
                 )
@@ -1765,8 +1769,19 @@ def create_app():
                     flash(" ".join(errors))
                     return redirect(url_for("edit_rubric", rubric_id=rubric.id))
 
+                total_points = 0.0
+                has_total = False
+                for part in parts:
+                    value = part.get("max_points")
+                    if value is None:
+                        continue
+                    try:
+                        total_points += float(value)
+                        has_total = True
+                    except (TypeError, ValueError):
+                        pass
                 rubric_structured = {"parts": parts}
-                if total_points is not None:
+                if has_total:
                     rubric_structured["total_points"] = total_points
                 rubric_text = json.dumps(rubric_structured, ensure_ascii=True, indent=2)
             else:
