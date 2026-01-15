@@ -165,4 +165,14 @@ def collect_submission_text(submission):
             except OSError:
                 logger.exception("Failed reading text file %s", file_record.file_path)
 
+    processed_dir = submission_processed_dir(submission.assignment_id, submission.id)
+    if processed_dir.exists():
+        for text_path in sorted(processed_dir.glob("**/text.txt")):
+            try:
+                text = text_path.read_text(errors="ignore")
+                if text:
+                    parts.append(text)
+            except OSError:
+                logger.exception("Failed reading extracted PDF text %s", text_path)
+
     return "\n\n".join([p for p in parts if p])

@@ -36,3 +36,5 @@ class Config:
 
     REDIS_URL = os.environ.get("REDIS_URL", "")
     PDF_DPI = int(os.environ.get("PDF_DPI", 300))
+    PDF_TEXT_MIN_CHARS = int(os.environ.get("PDF_TEXT_MIN_CHARS", "80"))
+    PDF_TEXT_MIN_RATIO = float(os.environ.get("PDF_TEXT_MIN_RATIO", "0.9"))

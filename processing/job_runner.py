@@ -22,6 +22,7 @@ from processing.file_ingest import (
     resolve_data_path,
 )
 from processing.pdf_render import render_pdf_to_images
+from processing.pdf_text import extract_pdf_text
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,8 @@ def _collect_text_with_stats(submission):
     submitted_chars = len(submitted_text)
     text_file_count = 0
     text_file_chars = 0
+    pdf_text_files = 0
+    pdf_text_chars = 0
     parts = []
 
     if submitted_text:
@@ -80,8 +83,20 @@ def _collect_text_with_stats(submission):
         except OSError:
             logger.exception("Failed reading text file %s", file_record.file_path)
 
+    processed_dir = submission_processed_dir(submission.assignment_id, submission.id)
+    if processed_dir.exists():
+        for text_path in sorted(processed_dir.glob("**/text.txt")):
+            try:
+                content = text_path.read_text(errors="ignore")
+                pdf_text_files += 1
+                pdf_text_chars += len(content)
+                if content:
+                    parts.append(content)
+            except OSError:
+                logger.exception("Failed reading extracted PDF text %s", text_path)
+
     combined = "\n\n".join([p for p in parts if p])
-    return combined, submitted_chars, text_file_count, text_file_chars
+    return combined, submitted_chars, text_file_count, text_file_chars, pdf_text_files, pdf_text_chars
 
 
 def _estimate_price(prompt_tokens, completion_tokens, model):
@@ -176,24 +191,56 @@ def process_submission_job(job_id):
 
         pdf_files = [f for f in submission.files if f.file_type == "pdf"]
         if pdf_files:
-            summary_lines.append("PDF rendering:")
+            summary_lines.append("PDF processing:")
         else:
-            summary_lines.append("PDF rendering: none")
+            summary_lines.append("PDF processing: none")
 
         pdf_errors = []
+        min_chars = max(Config.PDF_TEXT_MIN_CHARS, 1)
+        min_ratio = max(min(Config.PDF_TEXT_MIN_RATIO, 1.0), 0.0)
         for file_record in pdf_files:
             pdf_path = resolve_data_path(file_record.file_path)
             base_dir = submission_processed_dir(submission.assignment_id, submission.id)
             out_dir = base_dir / f"pdf_{file_record.id}"
-            existing = sorted(out_dir.glob("page_*.png"))
             try:
+                text, stats = extract_pdf_text(pdf_path, out_dir)
+                pages = stats["pages"] or 0
+                pages_with_text = stats["pages_with_text"] or 0
+                page_ratio = (pages_with_text / pages) if pages else 0.0
+                has_images = stats.get("image_count", 0) > 0
+                cached = "cached" if stats["cached"] else "extracted"
+                summary_lines.append(
+                    f"- {file_record.original_filename}: text {cached} "
+                    f"({pages_with_text}/{pages} pages, {stats['total_chars']} chars, "
+                    f"images={stats.get('image_count', 0)})"
+                )
+                if has_images:
+                    summary_lines.append(
+                        f"  -> images detected, rendering pages"
+                    )
+                elif page_ratio >= min_ratio and stats["total_chars"] >= min_chars:
+                    summary_lines.append(
+                        f"  -> text sufficient (ratio {page_ratio:.2f}), skipping image render"
+                    )
+                    continue
+                else:
+                    summary_lines.append(
+                        f"  -> text ratio {page_ratio:.2f} below {min_ratio:.2f}, rendering images"
+                    )
+            except Exception as exc:
+                error_text = str(exc).splitlines()[0] if str(exc) else "unknown error"
+                summary_lines.append(
+                    f"- {file_record.original_filename}: text extraction failed ({error_text}), rendering images"
+                )
+            try:
+                existing = sorted(out_dir.glob("page_*.png"))
                 rendered_paths = render_pdf_to_images(
                     pdf_path, out_dir, dpi=Config.PDF_DPI
                 )
                 page_count = len(rendered_paths)
                 cached = "cached" if existing else "rendered"
                 summary_lines.append(
-                    f"- {file_record.original_filename}: {page_count} page(s) {cached}"
+                    f"  -> {page_count} page(s) {cached}"
                 )
             except Exception as exc:
                 error_text = str(exc).splitlines()[0] if str(exc) else "unknown error"
@@ -218,14 +265,23 @@ def process_submission_job(job_id):
             "Images: uploaded=%s, rendered=%s, total=%s"
             % (uploaded_image_count, rendered_image_count, uploaded_image_count + rendered_image_count)
         )
-        summary_lines.append("OCR: not performed; grading uses images + submitted text only.")
+        summary_lines.append(
+            "OCR: not performed; grading uses extracted PDF text + submitted text + images."
+        )
 
-        student_text, submitted_chars, text_file_count, text_file_chars = (
+        student_text, submitted_chars, text_file_count, text_file_chars, pdf_text_files, pdf_text_chars = (
             _collect_text_with_stats(submission)
         )
         summary_lines.append(
-            "Text: submitted_chars=%s, text_files=%s, text_file_chars=%s, total_chars=%s"
-            % (submitted_chars, text_file_count, text_file_chars, len(student_text))
+            "Text: submitted_chars=%s, text_files=%s, text_file_chars=%s, pdf_text_files=%s, pdf_text_chars=%s, total_chars=%s"
+            % (
+                submitted_chars,
+                text_file_count,
+                text_file_chars,
+                pdf_text_files,
+                pdf_text_chars,
+                len(student_text),
+            )
         )
 
         image_paths = collect_submission_images(submission)
