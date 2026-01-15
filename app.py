@@ -884,6 +884,80 @@ def _render_markdown(text):
     return cleaned
 
 
+def _build_guide_preview(rubric_text, max_parts=1, max_words=12):
+    preview = {
+        "total_points": None,
+        "parts": None,
+        "truncated": False,
+        "text": None,
+    }
+    if not rubric_text:
+        return preview
+    structured, _error = safe_json_loads(rubric_text)
+    if isinstance(structured, dict):
+        parts = structured.get("parts")
+        if parts:
+            preview_parts = []
+            if isinstance(parts, dict):
+                items = list(parts.items())
+                total_parts = len(items)
+                for part_id, part in items[:max_parts]:
+                    preview_parts.append(
+                        _extract_preview_part(str(part_id), part)
+                    )
+            elif isinstance(parts, list):
+                total_parts = len(parts)
+                for index, part in enumerate(parts[:max_parts], start=1):
+                    part_id = None
+                    if isinstance(part, dict):
+                        part_id = part.get("part_id")
+                    preview_parts.append(
+                        _extract_preview_part(str(part_id or index), part)
+                    )
+            else:
+                total_parts = 0
+            if preview_parts:
+                preview["total_points"] = structured.get("total_points")
+                preview["parts"] = preview_parts
+                preview["truncated"] = total_parts > max_parts
+                return preview
+    raw_text = rubric_text.strip()
+    if raw_text.startswith("{") or raw_text.startswith("["):
+        return preview
+    words = raw_text.split()
+    if words:
+        snippet = " ".join(words[:max_words])
+        if len(words) > max_words:
+            snippet += "..."
+        preview["text"] = snippet
+    return preview
+
+
+def _extract_preview_part(part_id, part):
+    max_points = None
+    criteria = None
+    if isinstance(part, dict):
+        max_points = part.get("max_points")
+        if max_points is None:
+            max_points = part.get("points_possible")
+        if max_points is None:
+            max_points = part.get("points")
+        criteria = part.get("criteria")
+        if isinstance(criteria, list):
+            criteria = criteria[0] if criteria else None
+        elif criteria is not None and not isinstance(criteria, str):
+            criteria = str(criteria)
+    else:
+        criteria = part
+        if criteria is not None and not isinstance(criteria, str):
+            criteria = str(criteria)
+    return {
+        "part_id": part_id,
+        "max_points": max_points,
+        "criteria": criteria,
+    }
+
+
 def _model_supports_images(model_name):
     if not model_name:
         return True
@@ -1212,6 +1286,11 @@ def create_app():
                 )
             else:
                 rubric.provider_display = "manual"
+            preview = _build_guide_preview(rubric.rubric_text)
+            rubric.preview_total_points = preview["total_points"]
+            rubric.preview_parts = preview["parts"]
+            rubric.preview_truncated = preview["truncated"]
+            rubric.preview_text = preview["text"]
             if rubric.finished_at:
                 finished_at = _as_utc(rubric.finished_at)
                 created_at = _as_utc(rubric.created_at)

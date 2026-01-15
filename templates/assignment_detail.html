@@ -85,9 +85,25 @@
                 {% endif %}
               </td>
               <td>
-                {% set words = rubric.rubric_text.split() %}
-                {% if words %}
-                  {{ words[:5]|join(' ') }}{% if words|length > 5 %}...{% endif %}
+                {% if rubric.preview_parts %}
+                  {% if rubric.preview_total_points is not none %}
+                    <div><strong>{{ t('total_points') }}:</strong> {{ rubric.preview_total_points }}</div>
+                  {% endif %}
+                  <ul class="guide-list">
+                    {% for part in rubric.preview_parts %}
+                      <li>
+                        <strong>{{ part.part_id }}</strong>
+                        {% if part.max_points is not none %}
+                          ({{ part.max_points }})
+                        {% endif %}
+                        {% if part.criteria %}
+                          : {{ part.criteria }}
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% elif rubric.preview_text %}
+                  {{ rubric.preview_text }}
                 {% else %}
                   --
                 {% endif %}
