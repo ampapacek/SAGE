@@ -161,34 +161,36 @@
     {% endif %}
     <form method="post" action="{{ url_for('upload_submission', assignment_id=assignment.id) }}" enctype="multipart/form-data">
       <fieldset {% if not approved_rubric %}disabled{% endif %}>
-      <label for="student_identifier">{{ t('student_identifier') }}</label>
-      <input type="text" id="student_identifier" name="student_identifier" />
-      <label for="llm_model">{{ t('model_optional') }}</label>
-      <select id="llm_model" name="llm_model">
-        {% set selected_model = default_model %}
-        <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
-        <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
-        <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
-        <option value="gpt-4.1" data-supports-images="true" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
-        <option value="gpt-4.1-mini" data-supports-images="true" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
-        <option value="o4-mini" data-supports-images="true" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
-        <option value="o3-mini" data-supports-images="false" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
-        <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
-        <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
-      </select>
-      <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
-      <textarea id="submitted_text" name="submitted_text"></textarea>
-      <div class="dropzone" id="files-drop">
-        <label for="files">{{ t('files_label') }}</label>
-        <input type="file" id="files" name="files" multiple class="file-input" />
-        <div class="dropzone-hint">{{ t('drop_files_hint') }}</div>
-      </div>
-      <div class="dropzone" id="zip-drop">
-        <label for="zip_file">{{ t('zip_label') }}</label>
-        <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
-        <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
-      </div>
-      <button type="submit">{{ t('upload') }}</button>
+        <div class="upload-form-inner">
+          <label for="student_identifier">{{ t('student_identifier') }}</label>
+          <input type="text" id="student_identifier" name="student_identifier" />
+          <label for="llm_model">{{ t('model_selection') }}</label>
+          <select id="llm_model" name="llm_model">
+            {% set selected_model = default_model %}
+            <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
+            <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
+            <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
+            <option value="gpt-4.1" data-supports-images="true" {% if selected_model == 'gpt-4.1' %}selected{% endif %}>gpt-4.1</option>
+            <option value="gpt-4.1-mini" data-supports-images="true" {% if selected_model == 'gpt-4.1-mini' %}selected{% endif %}>gpt-4.1-mini</option>
+            <option value="o4-mini" data-supports-images="true" {% if selected_model == 'o4-mini' %}selected{% endif %}>o4-mini</option>
+            <option value="o3-mini" data-supports-images="false" {% if selected_model == 'o3-mini' %}selected{% endif %}>o3-mini</option>
+            <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
+            <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
+          </select>
+          <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
+          <textarea id="submitted_text" name="submitted_text"></textarea>
+          <div class="dropzone" id="files-drop">
+            <label for="files">{{ t('files_label') }}</label>
+            <input type="file" id="files" name="files" multiple class="file-input" />
+            <div class="dropzone-hint">{{ t('drop_files_hint') }}</div>
+          </div>
+          <div class="dropzone" id="zip-drop">
+            <label for="zip_file">{{ t('zip_label') }}</label>
+            <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
+            <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
+          </div>
+          <button type="submit">{{ t('upload') }}</button>
+        </div>
       </fieldset>
     </form>
     </div>
