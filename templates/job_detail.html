@@ -45,10 +45,7 @@
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
       <label for="llm_provider">{{ t('provider_label') }}</label>
       <select id="llm_provider" name="llm_provider" class="compact-select">
-        {% set selected_provider = job.llm_provider or default_provider %}
-        {% if selected_provider == "other" %}
-          {% set selected_provider = "custom1" %}
-        {% endif %}
+        {% set selected_provider = rerun_provider %}
         {% for option in provider_options %}
           <option value="{{ option.value }}" {% if selected_provider == option.value %}selected{% endif %}>{{ option.label }}</option>
         {% endfor %}

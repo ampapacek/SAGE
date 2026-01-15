@@ -1042,13 +1042,41 @@ def _normalize_provider_key(provider_key):
     return provider_key
 
 
-def _provider_option_items():
-    return [
-        {"value": "openai", "label": t("provider_openai")},
-        {"value": "custom1", "label": Config.CUSTOM_LLM_PROVIDER_1_NAME or "Other 1"},
-        {"value": "custom2", "label": Config.CUSTOM_LLM_PROVIDER_2_NAME or "Other 2"},
-        {"value": "custom3", "label": Config.CUSTOM_LLM_PROVIDER_3_NAME or "Other 3"},
-    ]
+def _provider_option_items(include_unconfigured=False):
+    options = [{"value": "openai", "label": t("provider_openai")}]
+
+    def add_custom(value, name, base_url, fallback):
+        if include_unconfigured or (base_url and base_url.strip()):
+            options.append({"value": value, "label": name or fallback})
+
+    add_custom(
+        "custom1",
+        Config.CUSTOM_LLM_PROVIDER_1_NAME,
+        Config.CUSTOM_LLM_PROVIDER_1_API_BASE_URL,
+        "Other 1",
+    )
+    add_custom(
+        "custom2",
+        Config.CUSTOM_LLM_PROVIDER_2_NAME,
+        Config.CUSTOM_LLM_PROVIDER_2_API_BASE_URL,
+        "Other 2",
+    )
+    add_custom(
+        "custom3",
+        Config.CUSTOM_LLM_PROVIDER_3_NAME,
+        Config.CUSTOM_LLM_PROVIDER_3_API_BASE_URL,
+        "Other 3",
+    )
+    return options
+
+
+def _resolve_default_provider(preferred, provider_options):
+    values = [option["value"] for option in provider_options]
+    if preferred in values:
+        return preferred
+    if "openai" in values:
+        return "openai"
+    return values[0] if values else "openai"
 
 
 def _parse_model_options(raw, fallback):
@@ -1377,8 +1405,11 @@ def create_app():
         if not has_price_estimate:
             total_price_estimate = None
 
-        default_provider_cfg = _provider_config(Config.LLM_PROVIDER)
-        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
+        provider_options = _provider_option_items()
+        default_provider = _resolve_default_provider(
+            _normalize_provider_key(Config.LLM_PROVIDER), provider_options
+        )
+        default_provider_cfg = _provider_config(default_provider)
         return render_template(
             "assignment_detail.html",
             assignment=assignment,
@@ -1391,7 +1422,7 @@ def create_app():
             approved_rubric=approved_rubric,
             default_model=default_provider_cfg["default_model"],
             total_price_estimate=total_price_estimate,
-            provider_options=_provider_option_items(),
+            provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
         )
@@ -1930,8 +1961,14 @@ def create_app():
             started_at = _as_utc(job.started_at)
             if started_at:
                 duration_seconds = (_utcnow() - started_at).total_seconds()
-        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
+        provider_options = _provider_option_items()
+        default_provider = _resolve_default_provider(
+            _normalize_provider_key(Config.LLM_PROVIDER), provider_options
+        )
         default_provider_cfg = _provider_config(default_provider)
+        rerun_provider = _resolve_default_provider(
+            _normalize_provider_key(job.llm_provider or default_provider), provider_options
+        )
         return render_template(
             "job_detail.html",
             job=job,
@@ -1941,10 +1978,11 @@ def create_app():
             default_model=default_provider_cfg["default_model"],
             submission_requires_images=submission_requires_images,
             job_price_display=job_price_display,
-            provider_options=_provider_option_items(),
+            provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
             job_provider_display=job_provider_display,
+            rerun_provider=rerun_provider,
         )
 
     @app.route("/jobs/<int:job_id>/status.json")
@@ -2046,12 +2084,15 @@ def create_app():
             field["key"]: _current_setting_value(app, field["key"])
             for field in _SETTINGS_FIELDS
         }
-        default_provider = _normalize_provider_key(Config.LLM_PROVIDER)
+        provider_options = _provider_option_items(include_unconfigured=True)
+        default_provider = _resolve_default_provider(
+            _normalize_provider_key(Config.LLM_PROVIDER), provider_options
+        )
         return render_template(
             "settings.html",
             fields=_SETTINGS_FIELDS,
             values=field_values,
-            provider_options=_provider_option_items(),
+            provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
             default_provider=default_provider,
         )
