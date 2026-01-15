@@ -8,7 +8,7 @@
 
   <div class="card">
     <form method="post">
-      {% for field in fields %}
+      {% for field in base_fields %}
         <div style="margin-bottom: 16px;">
           <label for="{{ field.key }}">{{ field.label }}</label>
           {% if field.type == "select" and field.key == "LLM_MODEL" %}
@@ -70,6 +70,54 @@
           {% if field.restart %}
             <div class="dropzone-hint">{{ t('restart_required') }}</div>
           {% endif %}
+        </div>
+      {% endfor %}
+      {% for group in provider_groups %}
+        <div style="margin-bottom: 8px;">
+          <button
+            type="button"
+            class="secondary"
+            data-toggle-target="provider-group-{{ group.id }}"
+            data-show-label="{{ t('show_settings') }}"
+            data-hide-label="{{ t('hide_settings') }}"
+            data-name="{{ group.label }}"
+          >
+            {% if group.has_info %}
+              {{ t('hide_settings') }} {{ group.label }}
+            {% else %}
+              {{ t('show_settings') }} {{ group.label }}
+            {% endif %}
+          </button>
+        </div>
+        <div id="provider-group-{{ group.id }}" {% if not group.has_info %}class="hidden"{% endif %}>
+          {% for field in group.fields %}
+            <div style="margin-bottom: 16px;">
+              <label for="{{ field.key }}">{{ field.label }}</label>
+              {% if field.type == "select" %}
+                <select id="{{ field.key }}" name="{{ field.key }}" class="settings-input">
+                  {% for option in field.options %}
+                    <option value="{{ option }}" {% if values[field.key] == option %}selected{% endif %}>{{ option }}</option>
+                  {% endfor %}
+                </select>
+              {% elif field.type == "checkbox" %}
+                <input type="checkbox" id="{{ field.key }}" name="{{ field.key }}" value="1" {% if values[field.key] in ["1", "true", "yes", "on"] %}checked{% endif %} />
+              {% else %}
+                <input
+                  type="{{ field.type }}"
+                  id="{{ field.key }}"
+                  name="{{ field.key }}"
+                  value="{{ values[field.key] }}"
+                  class="settings-input"
+                />
+              {% endif %}
+              {% if field.help %}
+                <div class="dropzone-hint">{{ field.help }}</div>
+              {% endif %}
+              {% if field.restart %}
+                <div class="dropzone-hint">{{ t('restart_required') }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
       {% endfor %}
       <button type="submit">{{ t('save_settings') }}</button>
@@ -140,6 +188,27 @@
       }
       modelSelect.addEventListener("change", toggleCustom);
       refreshModels();
+
+      var toggles = document.querySelectorAll("[data-toggle-target]");
+      toggles.forEach(function (button) {
+        var targetId = button.getAttribute("data-toggle-target");
+        var target = document.getElementById(targetId);
+        var name = button.getAttribute("data-name") || "";
+        function syncLabel() {
+          var showLabel = button.getAttribute("data-show-label") || "Show settings for";
+          var hideLabel = button.getAttribute("data-hide-label") || "Hide settings for";
+          var hidden = target && target.classList.contains("hidden");
+          button.textContent = (hidden ? showLabel : hideLabel) + " " + name;
+        }
+        if (!target) {
+          return;
+        }
+        button.addEventListener("click", function () {
+          target.classList.toggle("hidden");
+          syncLabel();
+        });
+        syncLabel();
+      });
     })();
   </script>
 {% endblock %}

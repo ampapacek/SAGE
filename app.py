@@ -121,6 +121,8 @@ TRANSLATIONS = {
         "upload_submissions": "Upload Submissions",
         "toggle_uploads": "Toggle Uploads",
         "approve_guide_enable": "Approve a grading guide to enable submissions.",
+        "show_settings": "Show settings for",
+        "hide_settings": "Hide settings for",
         "student_identifier": "Student Identifier (single upload)",
         "model_optional": "Model (optional)",
         "model_selection": "Model selection",
@@ -325,6 +327,8 @@ TRANSLATIONS = {
         "upload_submissions": "Nahrát řešení",
         "toggle_uploads": "Zobrazit/skrýt nahrávání",
         "approve_guide_enable": "Schvalte průvodce pro povolení nahrávání.",
+        "show_settings": "Zobrazit nastavení pro",
+        "hide_settings": "Skrýt nastavení pro",
         "student_identifier": "Identifikátor studenta (jednotlivě)",
         "model_optional": "Model (volitelný)",
         "model_selection": "Výběr modelu",
@@ -2088,9 +2092,53 @@ def create_app():
         default_provider = _resolve_default_provider(
             _normalize_provider_key(Config.LLM_PROVIDER), provider_options
         )
+        base_fields = []
+        provider_field_map = {"1": [], "2": [], "3": []}
+        for field in _SETTINGS_FIELDS:
+            key = field["key"]
+            if key.startswith("CUSTOM_LLM_PROVIDER_1_"):
+                provider_field_map["1"].append(field)
+            elif key.startswith("CUSTOM_LLM_PROVIDER_2_"):
+                provider_field_map["2"].append(field)
+            elif key.startswith("CUSTOM_LLM_PROVIDER_3_"):
+                provider_field_map["3"].append(field)
+            else:
+                base_fields.append(field)
+
+        def clean_value(value):
+            return (value or "").strip().strip('"')
+
+        def has_provider_info(index):
+            default_name = f"Other {index}"
+            name_key = f"CUSTOM_LLM_PROVIDER_{index}_NAME"
+            api_key_key = f"CUSTOM_LLM_PROVIDER_{index}_API_KEY"
+            base_url_key = f"CUSTOM_LLM_PROVIDER_{index}_API_BASE_URL"
+            model_key = f"CUSTOM_LLM_PROVIDER_{index}_DEFAULT_MODEL"
+            models_key = f"CUSTOM_LLM_PROVIDER_{index}_MODELS"
+            name = clean_value(field_values.get(name_key))
+            if name and name != default_name:
+                return True
+            return any(
+                clean_value(field_values.get(key))
+                for key in [api_key_key, base_url_key, model_key, models_key]
+            )
+
+        provider_groups = []
+        for index in ["1", "2", "3"]:
+            name = clean_value(field_values.get(f"CUSTOM_LLM_PROVIDER_{index}_NAME"))
+            label = name or f"Other {index}"
+            provider_groups.append(
+                {
+                    "id": index,
+                    "label": label,
+                    "fields": provider_field_map[index],
+                    "has_info": has_provider_info(index),
+                }
+            )
         return render_template(
             "settings.html",
-            fields=_SETTINGS_FIELDS,
+            base_fields=base_fields,
+            provider_groups=provider_groups,
             values=field_values,
             provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
