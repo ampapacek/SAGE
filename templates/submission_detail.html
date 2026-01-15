@@ -1,6 +1,81 @@
 {% extends "base.html" %}
 
 {% block content %}
+  <style>
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .lightbox-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-btn:hover { background: rgba(255, 255, 255, 0.25); }
+    .lightbox-prev { left: -60px; }
+    .lightbox-next { right: -60px; }
+    .lightbox-close {
+      position: absolute;
+      top: -50px;
+      right: 0;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .thumb button {
+      border: none;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .thumb button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+    @media (max-width: 760px) {
+      .lightbox-prev { left: 8px; }
+      .lightbox-next { right: 8px; }
+      .lightbox-close { top: 8px; }
+    }
+  </style>
+
   <div class="card">
     <h2>{{ t('submission') }} {{ submission.id }} - {{ submission.student_identifier }}</h2>
     <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
@@ -35,7 +110,9 @@
       <div class="grid">
         {% for path in images %}
           <div class="thumb">
-            <img src="{{ url_for('data_file', filepath=path) }}" alt="page" />
+            <button type="button" class="image-thumb" data-index="{{ loop.index0 }}">
+              <img src="{{ url_for('data_file', filepath=path) }}" alt="page {{ loop.index }}" />
+            </button>
           </div>
         {% endfor %}
       </div>
@@ -43,6 +120,96 @@
       <p>{{ t('no_images') }}</p>
     {% endif %}
   </div>
+
+  {% if images %}
+    <div class="lightbox" id="lightbox" aria-hidden="true">
+      <div class="lightbox-inner">
+        <button class="lightbox-btn lightbox-prev" type="button" aria-label="{{ t('previous_image') }}">&lsaquo;</button>
+        <img id="lightbox-image" src="" alt="" />
+        <button class="lightbox-btn lightbox-next" type="button" aria-label="{{ t('next_image') }}">&rsaquo;</button>
+        <button class="lightbox-close" type="button" aria-label="{{ t('close') }}">×</button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var images = [
+          {% for path in images %}
+            "{{ url_for('data_file', filepath=path) }}"{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ];
+        var lightbox = document.getElementById("lightbox");
+        var imageEl = document.getElementById("lightbox-image");
+        var prevBtn = lightbox.querySelector(".lightbox-prev");
+        var nextBtn = lightbox.querySelector(".lightbox-next");
+        var closeBtn = lightbox.querySelector(".lightbox-close");
+        var currentIndex = 0;
+        var startX = 0;
+        var endX = 0;
+
+        function show(index) {
+          if (!images.length) {
+            return;
+          }
+          currentIndex = (index + images.length) % images.length;
+          imageEl.src = images[currentIndex];
+          lightbox.classList.add("active");
+          lightbox.setAttribute("aria-hidden", "false");
+        }
+        function hide() {
+          lightbox.classList.remove("active");
+          lightbox.setAttribute("aria-hidden", "true");
+        }
+        function showNext() { show(currentIndex + 1); }
+        function showPrev() { show(currentIndex - 1); }
+
+        document.querySelectorAll(".image-thumb").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var index = parseInt(button.getAttribute("data-index"), 10) || 0;
+            show(index);
+          });
+        });
+
+        prevBtn.addEventListener("click", function (event) {
+          event.stopPropagation();
+          showPrev();
+        });
+        nextBtn.addEventListener("click", function (event) {
+          event.stopPropagation();
+          showNext();
+        });
+        closeBtn.addEventListener("click", function (event) {
+          event.stopPropagation();
+          hide();
+        });
+        lightbox.addEventListener("click", hide);
+        lightbox.addEventListener("touchstart", function (event) {
+          startX = event.changedTouches[0].screenX;
+        });
+        lightbox.addEventListener("touchend", function (event) {
+          endX = event.changedTouches[0].screenX;
+          if (Math.abs(endX - startX) > 40) {
+            if (endX < startX) {
+              showNext();
+            } else {
+              showPrev();
+            }
+          }
+        });
+        document.addEventListener("keydown", function (event) {
+          if (!lightbox.classList.contains("active")) {
+            return;
+          }
+          if (event.key === "Escape") {
+            hide();
+          } else if (event.key === "ArrowRight") {
+            showNext();
+          } else if (event.key === "ArrowLeft") {
+            showPrev();
+          }
+        });
+      })();
+    </script>
+  {% endif %}
 
   <div class="card">
     <h3>{{ t('grade_result') }}</h3>
