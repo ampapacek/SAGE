@@ -90,7 +90,7 @@
                 {% endif %}
               </td>
               <td>
-                <a href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">View</a>
+                <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">View</a>
                 {% if rubric.status == 'DRAFT' %}
                   <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
                     <button type="submit" class="secondary">Approve Guide</button>
@@ -312,7 +312,7 @@
               <td>
                 {{ submission.grade_display }}
               </td>
-              <td><a href="{{ url_for('submission_detail', submission_id=submission.id) }}">Open</a></td>
+              <td><a class="action-link" href="{{ url_for('submission_detail', submission_id=submission.id) }}">Open</a></td>
             </tr>
           {% endfor %}
         </tbody>
@@ -368,7 +368,7 @@
                 {% endif %}
               </td>
               <td>
-                <a href="{{ url_for('job_detail', job_id=job.id) }}">View</a>
+                <a class="action-link" href="{{ url_for('job_detail', job_id=job.id) }}">View</a>
                 {% if job.status in ['QUEUED', 'RUNNING'] %}
                   <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
                     <button type="submit" class="secondary">Terminate</button>
