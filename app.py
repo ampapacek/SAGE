@@ -202,6 +202,8 @@ TRANSLATIONS = {
         "previous_image": "Previous image",
         "next_image": "Next image",
         "close": "Close",
+        "custom_model_label": "Custom model name",
+        "custom_model_placeholder": "Enter provider model name",
         "show_guide": "Show grading guide",
         "hide_guide": "Hide grading guide",
         "show_reference_solution": "Show reference solution",
@@ -398,6 +400,8 @@ TRANSLATIONS = {
         "previous_image": "Předchozí obrázek",
         "next_image": "Další obrázek",
         "close": "Zavřít",
+        "custom_model_label": "Vlastní název modelu",
+        "custom_model_placeholder": "Zadejte název modelu poskytovatele",
         "show_guide": "Zobrazit hodnoticího průvodce",
         "hide_guide": "Skrýt hodnoticího průvodce",
         "show_reference_solution": "Zobrazit referenční řešení",
@@ -749,6 +753,16 @@ def _model_supports_images(model_name):
         if name == model or name.startswith(f"{model}-"):
             return True
     return False
+
+
+def _resolve_model_from_form(form, default_model):
+    custom_model = (form.get("custom_llm_model") or "").strip()
+    if custom_model:
+        return custom_model, True
+    selected_model = (form.get("llm_model") or "").strip()
+    if not selected_model:
+        selected_model = default_model
+    return selected_model, False
 
 
 def _submission_requires_images(submission):
@@ -1120,9 +1134,9 @@ def create_app():
     @app.route("/assignments/<int:assignment_id>/rubrics/generate_draft", methods=["POST"])
     def generate_rubric(assignment_id):
         assignment = Assignment.query.get_or_404(assignment_id)
-        selected_model = request.form.get("llm_model", "").strip()
-        if not selected_model:
-            selected_model = app.config.get("LLM_MODEL")
+        selected_model, _custom_used = _resolve_model_from_form(
+            request.form, app.config.get("LLM_MODEL")
+        )
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
@@ -1255,9 +1269,9 @@ def create_app():
             flash("Approve a grading guide before uploading submissions.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
         zip_file = request.files.get("zip_file")
-        selected_model = request.form.get("llm_model", "").strip()
-        if not selected_model:
-            selected_model = app.config.get("LLM_MODEL")
+        selected_model, custom_used = _resolve_model_from_form(
+            request.form, app.config.get("LLM_MODEL")
+        )
 
         submissions = []
         if zip_file and zip_file.filename:
@@ -1290,7 +1304,7 @@ def create_app():
         requires_images = any(
             _submission_requires_images(submission) for submission in submissions
         )
-        if requires_images and not _model_supports_images(selected_model):
+        if requires_images and not custom_used and not _model_supports_images(selected_model):
             flash("Selected model does not support images. Choose an image-capable model.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
@@ -1646,9 +1660,9 @@ def create_app():
             flash("Approved grading guide required to rerun job.")
             return redirect(url_for("job_detail", job_id=job.id))
 
-        selected_model = request.form.get("llm_model", "").strip()
-        if not selected_model:
-            selected_model = app.config.get("LLM_MODEL")
+        selected_model, _custom_used = _resolve_model_from_form(
+            request.form, app.config.get("LLM_MODEL")
+        )
 
         grade_result = GradeResult(
             submission_id=job.submission_id,

@@ -135,6 +135,7 @@
         <label for="rubric_model">{{ t('choose_model_generation') }}</label>
         <select id="rubric_model" name="llm_model">
           {% set selected_model = default_model %}
+          {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
           <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
           <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
           <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -145,6 +146,14 @@
           <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
           <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
         </select>
+        <label for="rubric_custom_model">{{ t('custom_model_label') }}</label>
+        <input
+          type="text"
+          id="rubric_custom_model"
+          name="custom_llm_model"
+          value="{% if selected_model not in known_models %}{{ selected_model }}{% endif %}"
+          placeholder="{{ t('custom_model_placeholder') }}"
+        />
         <button type="submit">{{ t('generate_draft_llm') }}</button>
       </form>
     </div>
@@ -167,6 +176,7 @@
           <label for="llm_model">{{ t('model_selection') }}</label>
           <select id="llm_model" name="llm_model">
             {% set selected_model = default_model %}
+            {% set known_models = ['gpt-4o-mini','gpt-5-mini','gpt-4o','gpt-4.1','gpt-4.1-mini','o4-mini','o3-mini','gpt-5','gpt-5-nano'] %}
             <option value="gpt-4o-mini" data-supports-images="true" {% if selected_model == 'gpt-4o-mini' %}selected{% endif %}>gpt-4o-mini</option>
             <option value="gpt-5-mini" data-supports-images="true" {% if selected_model == 'gpt-5-mini' %}selected{% endif %}>gpt-5-mini</option>
             <option value="gpt-4o" data-supports-images="true" {% if selected_model == 'gpt-4o' %}selected{% endif %}>gpt-4o</option>
@@ -177,6 +187,14 @@
             <option value="gpt-5" data-supports-images="true" {% if selected_model == 'gpt-5' %}selected{% endif %}>gpt-5</option>
             <option value="gpt-5-nano" data-supports-images="true" {% if selected_model == 'gpt-5-nano' %}selected{% endif %}>gpt-5-nano</option>
           </select>
+          <label for="custom_llm_model">{{ t('custom_model_label') }}</label>
+          <input
+            type="text"
+            id="custom_llm_model"
+            name="custom_llm_model"
+            value="{% if selected_model not in known_models %}{{ selected_model }}{% endif %}"
+            placeholder="{{ t('custom_model_placeholder') }}"
+          />
           <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
           <textarea id="submitted_text" name="submitted_text"></textarea>
           <div class="dropzone" id="files-drop">
@@ -199,6 +217,7 @@
         var fileInput = document.getElementById("files");
         var zipInput = document.getElementById("zip_file");
         var modelSelect = document.getElementById("llm_model");
+        var customModel = document.getElementById("custom_llm_model");
         var filesDrop = document.getElementById("files-drop");
         var zipDrop = document.getElementById("zip-drop");
         if (!fileInput || !zipInput || !modelSelect) {
@@ -252,6 +271,9 @@
           return option.dataset.supportsImages !== "false";
         }
         function requiresImages() {
+          if (customModel && customModel.value.trim()) {
+            return false;
+          }
           if (zipInput.files && zipInput.files.length) {
             return true;
           }
@@ -272,6 +294,12 @@
           return false;
         }
         function updateModelOptions() {
+          if (customModel && customModel.value.trim()) {
+            for (var i = 0; i < modelSelect.options.length; i++) {
+              modelSelect.options[i].disabled = false;
+            }
+            return;
+          }
           var needsImages = requiresImages();
           var options = modelSelect.options;
           var firstEnabled = null;
@@ -294,6 +322,9 @@
         }
         fileInput.addEventListener("change", updateModelOptions);
         zipInput.addEventListener("change", updateModelOptions);
+        if (customModel) {
+          customModel.addEventListener("input", updateModelOptions);
+        }
       })();
     </script>
   </div>
