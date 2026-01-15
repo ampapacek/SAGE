@@ -55,7 +55,28 @@
         <textarea id="rubric_text" name="rubric_text" required>{{ rubric.rubric_text }}</textarea>
       {% endif %}
       <label for="reference_solution_text">{{ t('reference_solution') }}</label>
-      <textarea id="reference_solution_text" name="reference_solution_text" required>{{ rubric.reference_solution_text }}</textarea>
+      {% if reference_edit_data %}
+        <input type="hidden" name="reference_structured" value="1" />
+        <div class="dropzone-hint" style="margin-bottom: 10px;">{{ t('reference_line_hint') }}</div>
+        <div id="reference-editor">
+          {% for part in reference_edit_data.parts %}
+            <div class="guide-part-editor">
+              <label>{{ t('part_label') }}</label>
+              <input
+                type="text"
+                name="reference_part_id"
+                value="{{ part.part_id }}"
+                class="settings-input"
+              />
+              <label>{{ t('reference_solution') }}</label>
+              <textarea name="reference_content">{% for line in part.content_lines %}{{ line }}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="secondary" id="add-reference-part">{{ t('add_reference_part') }}</button>
+      {% else %}
+        <textarea id="reference_solution_text" name="reference_solution_text" required>{{ rubric.reference_solution_text }}</textarea>
+      {% endif %}
       <button type="submit">{{ t('save_changes') }}</button>
       <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">{{ t('cancel') }}</a>
     </form>
@@ -107,6 +128,30 @@
           }
         });
         updateTotal();
+      })();
+    </script>
+  {% endif %}
+  {% if reference_edit_data %}
+    <div id="reference-template" class="guide-part-editor hidden">
+      <label>{{ t('part_label') }}</label>
+      <input type="text" name="reference_part_id" class="settings-input" />
+      <label>{{ t('reference_solution') }}</label>
+      <textarea name="reference_content"></textarea>
+    </div>
+    <script>
+      (function () {
+        var addBtn = document.getElementById("add-reference-part");
+        var container = document.getElementById("reference-editor");
+        var template = document.getElementById("reference-template");
+        if (!addBtn || !container || !template) {
+          return;
+        }
+        addBtn.addEventListener("click", function () {
+          var clone = template.cloneNode(true);
+          clone.classList.remove("hidden");
+          clone.removeAttribute("id");
+          container.appendChild(clone);
+        });
       })();
     </script>
   {% endif %}

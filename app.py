@@ -110,6 +110,8 @@ TRANSLATIONS = {
         "delete_guide": "Delete Guide",
         "criteria_one_per_line": "Criteria (one per line)",
         "add_part": "Add part",
+        "reference_line_hint": "One item per line. Use 'key: value' for labeled steps.",
+        "add_reference_part": "Add reference part",
         "no_guides": "No grading guides yet.",
         "guide_creation": "Grading Guide Creation",
         "toggle_guide_form": "Toggle Guide Form",
@@ -318,6 +320,8 @@ TRANSLATIONS = {
         "delete_guide": "Smazat průvodce",
         "criteria_one_per_line": "Kritéria (jedno na řádek)",
         "add_part": "Přidat část",
+        "reference_line_hint": "Jedna položka na řádek. Použijte 'klíč: hodnota' pro popisky.",
+        "add_reference_part": "Přidat část řešení",
         "no_guides": "Zatím žádné průvodce.",
         "guide_creation": "Vytvoření průvodce",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
@@ -1030,6 +1034,73 @@ def _build_rubric_edit_data(rubric_text):
     }
 
 
+def _build_reference_edit_data(reference_text):
+    if not reference_text:
+        return None
+    structured, _error = safe_json_loads(reference_text)
+    if not isinstance(structured, dict):
+        return None
+    parts = []
+    for part_id, part in structured.items():
+        lines = []
+        if isinstance(part, dict):
+            for key, value in part.items():
+                if isinstance(value, list):
+                    value_text = ", ".join(str(item) for item in value)
+                else:
+                    value_text = str(value)
+                lines.append(f"{key}: {value_text}")
+        elif isinstance(part, list):
+            lines = [str(item) for item in part]
+        else:
+            lines = [str(part)]
+        parts.append({"part_id": str(part_id), "content_lines": lines})
+    return {"parts": parts}
+
+
+def _parse_reference_editor(form):
+    part_ids = form.getlist("reference_part_id")
+    contents = form.getlist("reference_content")
+    total_count = max(len(part_ids), len(contents))
+    parts = {}
+    errors = []
+    for index in range(total_count):
+        part_id = part_ids[index].strip() if index < len(part_ids) else ""
+        content_raw = contents[index] if index < len(contents) else ""
+        if not part_id and not content_raw.strip():
+            continue
+        if not part_id:
+            errors.append("Reference solution part id is required.")
+            part_id = str(index + 1)
+        lines = [line.strip() for line in content_raw.splitlines() if line.strip()]
+        if not lines:
+            parts[part_id] = ""
+            continue
+        has_keyed = any(":" in line for line in lines)
+        if has_keyed:
+            part_obj = {}
+            notes = []
+            for line in lines:
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if value.startswith("- "):
+                        value = value[2:].strip()
+                    if key:
+                        part_obj[key] = value
+                else:
+                    notes.append(line)
+            if notes:
+                part_obj["notes"] = notes if len(notes) > 1 else notes[0]
+            parts[part_id] = part_obj
+        else:
+            parts[part_id] = lines[0] if len(lines) == 1 else lines
+    if errors:
+        return None, errors
+    return parts, None
+
+
 def _model_supports_images(model_name):
     if not model_name:
         return True
@@ -1719,10 +1790,8 @@ def create_app():
 
         if request.method == "POST":
             rubric_text = ""
-            reference_solution_text = request.form.get(
-                "reference_solution_text", ""
-            ).strip()
             structured_editor = request.form.get("structured_editor") == "1"
+            reference_structured = request.form.get("reference_structured") == "1"
             if structured_editor:
                 part_ids = request.form.getlist("part_id")
                 part_points = request.form.getlist("part_max_points")
@@ -1787,6 +1856,19 @@ def create_app():
             else:
                 rubric_text = request.form.get("rubric_text", "").strip()
 
+            if reference_structured:
+                reference_parts, ref_errors = _parse_reference_editor(request.form)
+                if ref_errors:
+                    flash(" ".join(ref_errors))
+                    return redirect(url_for("edit_rubric", rubric_id=rubric.id))
+                reference_solution_text = json.dumps(
+                    reference_parts, ensure_ascii=True, indent=2
+                )
+            else:
+                reference_solution_text = request.form.get(
+                    "reference_solution_text", ""
+                ).strip()
+
             if not rubric_text or not reference_solution_text:
                 flash("Grading guide text and reference solution are required.")
                 return redirect(url_for("edit_rubric", rubric_id=rubric.id))
@@ -1798,10 +1880,14 @@ def create_app():
             return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
         edit_data = _build_rubric_edit_data(rubric.rubric_text)
+        reference_edit_data = _build_reference_edit_data(
+            rubric.reference_solution_text
+        )
         return render_template(
             "rubric_edit.html",
             rubric=rubric,
             rubric_edit_data=edit_data,
+            reference_edit_data=reference_edit_data,
         )
 
     @app.route("/assignments/<int:assignment_id>/submissions/upload", methods=["POST"])
