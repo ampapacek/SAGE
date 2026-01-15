@@ -105,6 +105,7 @@ TRANSLATIONS = {
         "actions": "Actions",
         "view": "View",
         "approve_guide": "Approve Guide",
+        "activate_guide": "Activate Guide",
         "cancel": "Cancel",
         "delete_guide": "Delete Guide",
         "no_guides": "No grading guides yet.",
@@ -308,6 +309,7 @@ TRANSLATIONS = {
         "actions": "Akce",
         "view": "Zobrazit",
         "approve_guide": "Schválit průvodce",
+        "activate_guide": "Aktivovat průvodce",
         "cancel": "Zrušit",
         "delete_guide": "Smazat průvodce",
         "no_guides": "Zatím žádné průvodce.",
@@ -1521,18 +1523,19 @@ def create_app():
     @app.route("/rubrics/<int:rubric_id>/approve", methods=["POST"])
     def approve_rubric(rubric_id):
         rubric = RubricVersion.query.get_or_404(rubric_id)
-        if rubric.status != RubricStatus.DRAFT:
-            flash("Only DRAFT guides can be approved.")
+        if rubric.status not in {RubricStatus.DRAFT, RubricStatus.ARCHIVED}:
+            flash("Only DRAFT or ARCHIVED guides can be activated.")
             return redirect(url_for("assignment_detail", assignment_id=rubric.assignment_id))
 
         RubricVersion.query.filter(
             RubricVersion.assignment_id == rubric.assignment_id,
             RubricVersion.id != rubric_id,
+            RubricVersion.status == RubricStatus.APPROVED,
         ).update({"status": RubricStatus.ARCHIVED})
 
         rubric.status = RubricStatus.APPROVED
         db.session.commit()
-        flash("Grading guide approved.")
+        flash("Grading guide activated.")
         return redirect(url_for("assignment_detail", assignment_id=rubric.assignment_id))
 
     @app.route("/rubrics/<int:rubric_id>/cancel", methods=["POST"])

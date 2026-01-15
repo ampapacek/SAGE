@@ -117,6 +117,10 @@
                   <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
                     <button type="submit" class="secondary">{{ t('approve_guide') }}</button>
                   </form>
+                {% elif rubric.status == 'ARCHIVED' %}
+                  <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
+                    <button type="submit" class="secondary">{{ t('activate_guide') }}</button>
+                  </form>
                 {% elif rubric.status == 'GENERATING' %}
                   <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
                     <button type="submit" class="secondary">{{ t('cancel') }}</button>
