@@ -6,7 +6,12 @@
     <button type="button" class="secondary" onclick="document.getElementById('assignment-form').classList.toggle('hidden')">
       {{ t('assignments_toggle_create') }}
     </button>
-    <div id="assignment-form" class="hidden">
+    {% if not assignments %}
+      <div class="dropzone-hint" style="margin-top: 10px;">
+        {{ t('assignments_empty_hint') }}
+      </div>
+    {% endif %}
+    <div id="assignment-form" {% if assignments %}class="hidden"{% endif %}>
       <form method="post">
         <label for="title">{{ t('title') }}</label>
         <input type="text" id="title" name="title" required />
@@ -46,6 +51,7 @@
       </table>
     {% else %}
       <p>{{ t('no_assignments') }}</p>
+      <p class="dropzone-hint" style="margin-top: 8px;">{{ t('assignments_empty_steps') }}</p>
     {% endif %}
   </div>
 {% endblock %}
