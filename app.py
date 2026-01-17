@@ -442,7 +442,7 @@ TRANSLATIONS = {
         "guide_not_ready": "Kritéria nejsou připravena ke schválení.",
         "cancel_generation": "Zrušit generování",
         "open_assignments": "Spravovat úkoly",
-        "quick_start": "Návod jak začít",
+        "quick_start": "Rychlý přehled",
         "why_sage": "Proč SAGE",
         "quick_start_walkthrough": "Návod krok za krokem",
         "quick_start_cta_title": "Pojďme začít s aplikací!",
