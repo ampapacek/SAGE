@@ -26,3 +26,24 @@ def test_assignments_route():
     client = app.test_client()
     response = client.get("/assignments")
     assert response.status_code == 200
+
+
+def test_settings_route():
+    app = create_app()
+    app.config["TESTING"] = True
+    client = app.test_client()
+    response = client.get("/settings")
+    assert response.status_code == 200
+
+
+def test_create_assignment_persists():
+    app = create_app()
+    app.config["TESTING"] = True
+    client = app.test_client()
+    response = client.post(
+        "/assignments",
+        data={"title": "Test Assignment", "assignment_text": "Example text"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Test Assignment" in response.data
