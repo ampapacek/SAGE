@@ -146,6 +146,13 @@ Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app fall
 - LLM responses must be strict JSON; invalid responses are stored as errors.
 - Multiple providers can be configured; select provider + model per grading guide and job in the UI.
 
+## Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## License
 
 Apache-2.0. See `LICENSE`.
