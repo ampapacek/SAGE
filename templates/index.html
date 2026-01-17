@@ -438,6 +438,15 @@
       </div>
       <div class="step-item">
         <div>
+          <h3>{{ t('walk_step1a_title') }}</h3>
+          <p>{{ t('walk_step1a_desc') }}</p>
+        </div>
+        <button type="button" class="zoom-trigger" data-zoom-src="{{ url_for('static', filename='images/quickstart-1.png') }}" aria-label="{{ t('walk_alt_step1a') }}">
+          <img src="{{ url_for('static', filename='images/quickstart-1a.png') }}" alt="{{ t('walk_alt_step1a') }}" />
+        </button>
+      </div>
+      <div class="step-item">
+        <div>
           <h3>{{ t('walk_step2_title') }}</h3>
           <p>{{ t('walk_step2_desc') }}</p>
         </div>
