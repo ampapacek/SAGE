@@ -4,6 +4,16 @@
 
 A minimal grading app. Upload an assignment, create or generate a grading guide, then upload student submissions (PDF/images/text). The system renders PDFs to images, grades automatically in the background, and stores results for review and export.
 
+## Quick Start (Makefile)
+
+```bash
+make run
+```
+
+This will create a virtual environment, install dependencies, copy `.env.example` to `.env` if missing, and run the app. It assumes macOS/Linux. Poppler is still required for PDF rendering (see Setup).
+
+To stop the app, press `Ctrl+C` in the terminal where it is running. To apply changes, run `make run` again (or restart after editing `.env` or settings).
+
 ## Setup
 
 1) Create and activate a virtual environment
