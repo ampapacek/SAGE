@@ -20,6 +20,26 @@ Optional port:
 make run PORT=8000
 ```
 
+## Windows (PowerShell)
+
+```powershell
+.\scripts\dev.ps1
+```
+
+Optional port:
+
+```powershell
+.\scripts\dev.ps1 -Port 8000
+```
+
+If Poppler is missing, install it with Chocolatey or Scoop:
+
+```powershell
+choco install poppler
+# or
+scoop install poppler
+```
+
 ## Setup
 
 1) Create and activate a virtual environment
