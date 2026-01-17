@@ -61,7 +61,7 @@ def _normalize_text(value, field_name):
 
 def process_rubric_generation(rubric_id):
     # "rubric" here means grading guide generation.
-    rubric = RubricVersion.query.get(rubric_id)
+    rubric = db.session.get(RubricVersion, rubric_id)
     if not rubric:
         logger.error("Grading guide %s not found", rubric_id)
         return
@@ -69,7 +69,7 @@ def process_rubric_generation(rubric_id):
     if rubric.status == RubricStatus.CANCELLED:
         return
 
-    assignment = Assignment.query.get(rubric.assignment_id)
+    assignment = db.session.get(Assignment, rubric.assignment_id)
     if not assignment:
         rubric.status = RubricStatus.ERROR
         rubric.error_message = "Assignment missing for grading guide generation."

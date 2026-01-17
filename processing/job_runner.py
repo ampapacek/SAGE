@@ -167,7 +167,7 @@ def _get_or_create_grade_result(submission_id, rubric_version_id):
 
 
 def process_submission_job(job_id):
-    job = GradingJob.query.get(job_id)
+    job = db.session.get(GradingJob, job_id)
     if not job:
         logger.error("Job %s not found", job_id)
         return
@@ -189,12 +189,12 @@ def process_submission_job(job_id):
     raw_response = ""
     try:
         # "rubric" here refers to the grading guide for the assignment.
-        rubric = RubricVersion.query.get(job.rubric_version_id)
+        rubric = db.session.get(RubricVersion, job.rubric_version_id)
         if not rubric or rubric.status != RubricStatus.APPROVED:
             raise ValueError("Approved grading guide not found for this job.")
 
-        assignment = Assignment.query.get(job.assignment_id)
-        submission = Submission.query.get(job.submission_id)
+        assignment = db.session.get(Assignment, job.assignment_id)
+        submission = db.session.get(Submission, job.submission_id)
         if not assignment or not submission:
             raise ValueError("Assignment or submission missing for job.")
 

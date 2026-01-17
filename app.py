@@ -2021,7 +2021,7 @@ def create_app():
     @app.route("/submissions/<int:submission_id>")
     def submission_detail(submission_id):
         submission = Submission.query.get_or_404(submission_id)
-        assignment = Assignment.query.get(submission.assignment_id)
+        assignment = db.session.get(Assignment, submission.assignment_id)
         grade_result = (
             GradeResult.query.filter_by(submission_id=submission.id)
             .order_by(GradeResult.created_at.desc())
@@ -2424,7 +2424,7 @@ def create_app():
     @app.route("/jobs/<int:job_id>/rerun", methods=["POST"])
     def rerun_job(job_id):
         job = GradingJob.query.get_or_404(job_id)
-        rubric = RubricVersion.query.get(job.rubric_version_id)
+        rubric = db.session.get(RubricVersion, job.rubric_version_id)
         if not rubric or rubric.status != RubricStatus.APPROVED:
             flash("Approved grading guide required to rerun job.")
             return redirect(url_for("job_detail", job_id=job.id))
