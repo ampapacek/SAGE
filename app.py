@@ -312,6 +312,7 @@ TRANSLATIONS = {
             "for use. Student data is private and should be handled accordingly."
         ),
         "license_notice": "Licensed under Apache 2.0.",
+        "ideas_note": "Have ideas for improvement? Email ales.papacek@seznam.cz or open an issue on GitHub.",
     },
     "cs": {
         "nav_back": "Zpět",
@@ -544,6 +545,7 @@ TRANSLATIONS = {
             "povolený k použití. Studentská data jsou soukromá a je nutné s nimi tak zacházet."
         ),
         "license_notice": "Licencováno pod Apache 2.0.",
+        "ideas_note": "Máte nápad na zlepšení? Napište na ales.papacek@seznam.cz nebo založte issue na GitHubu.",
     },
 }
 _SETTINGS_FIELDS = [

@@ -113,3 +113,7 @@ Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app fall
 ## License
 
 Apache-2.0. See `LICENSE`.
+
+## Contributing
+
+Ideas and improvements are welcome. Please open a GitHub issue or email ales.papacek@seznam.cz.
