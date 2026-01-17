@@ -14,6 +14,12 @@ This will create a virtual environment, install dependencies, copy `.env.example
 
 To stop the app, press `Ctrl+C` in the terminal where it is running. To apply changes, run `make run` again (or restart after editing `.env` or settings).
 
+Optional port:
+
+```bash
+make run PORT=8000
+```
+
 ## Setup
 
 1) Create and activate a virtual environment

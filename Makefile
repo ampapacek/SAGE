@@ -5,6 +5,7 @@ PYTHON ?= python3
 VENV := .venv
 PIP := $(VENV)/bin/pip
 FLASK := $(VENV)/bin/flask
+PORT ?= 5000
 
 .PHONY: help run setup venv install env check-poppler
 
@@ -34,5 +35,5 @@ check-poppler:
 setup: env install check-poppler
 
 run: setup
-	@echo "Starting SAGE at http://127.0.0.1:5000"
-	@$(FLASK) --app app run --debug
+	@echo "Starting SAGE at http://127.0.0.1:$(PORT)"
+	@$(FLASK) --app app run --debug --port $(PORT)
