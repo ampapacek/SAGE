@@ -14,11 +14,11 @@ help:
 	@echo "make setup  - create venv, install deps, and prepare .env"
 
 venv:
-	echo "Creating virtual environment $(VENV)"; \
+	@echo "Creating virtual environment $(VENV)"
 	@$(PYTHON) -m venv $(VENV)
 
 install: venv
-	echo "Installing requirements..."; \
+	@echo "Installing requirements..."
 	@$(PIP) install -r requirements.txt
 
 env:
