@@ -274,6 +274,7 @@
         var filesDrop = document.getElementById("files-drop");
         var zipDrop = document.getElementById("zip-drop");
         var providerModelOptions = {{ provider_model_options | tojson }};
+        var providerDefaultModels = {{ provider_default_models | tojson }};
         var otherLabel = "{{ t('other_model_option') }}";
         if (!fileInput || !zipInput || !modelSelect) {
           return;
@@ -361,6 +362,14 @@
           }
           return selectEl.value || "";
         }
+        function preferredModel(selectEl, customInput, providerKey) {
+          var current = selectedModelValue(selectEl, customInput);
+          var lastProvider = selectEl.dataset.lastProvider || providerKey;
+          if (lastProvider !== providerKey) {
+            return providerDefaultModels[providerKey] || "";
+          }
+          return current;
+        }
         function rebuildModelOptions(selectEl, providerKey, customInput, selectedValue) {
           if (!selectEl) {
             return;
@@ -385,6 +394,8 @@
           });
           if (selectedValue && hasMatch) {
             selectEl.value = selectedValue;
+          } else if (!selectedValue && options.length) {
+            selectEl.value = options[0].value;
           } else {
             selectEl.value = "other";
           }
@@ -422,22 +433,26 @@
         }
         function refreshModelSelects() {
           if (providerSelect && modelSelect) {
+            var providerKey = providerSelect.value || "openai";
             rebuildModelOptions(
               modelSelect,
-              providerSelect.value,
+              providerKey,
               customModel,
-              selectedModelValue(modelSelect, customModel)
+              preferredModel(modelSelect, customModel, providerKey)
             );
+            modelSelect.dataset.lastProvider = providerKey;
             toggleCustomModel(modelSelect, customWrap);
             applyImageConstraints(modelSelect);
           }
           if (rubricProvider && rubricModel) {
+            var rubricProviderKey = rubricProvider.value || "openai";
             rebuildModelOptions(
               rubricModel,
-              rubricProvider.value,
+              rubricProviderKey,
               rubricCustomModel,
-              selectedModelValue(rubricModel, rubricCustomModel)
+              preferredModel(rubricModel, rubricCustomModel, rubricProviderKey)
             );
+            rubricModel.dataset.lastProvider = rubricProviderKey;
             toggleCustomModel(rubricModel, rubricCustomWrap);
           }
         }

@@ -130,6 +130,7 @@
       var customWrap = document.getElementById("settings-custom-model");
       var customInput = document.getElementById("LLM_MODEL_CUSTOM");
       var providerModelOptions = {{ provider_model_options | tojson }};
+      var providerDefaultModels = {{ provider_default_models | tojson }};
       var otherLabel = "{{ t('other_model_option') }}";
       if (!modelSelect || !customWrap) {
         return;
@@ -143,8 +144,15 @@
         }
         return modelSelect.value || "";
       }
-      function rebuildOptions(selectedValue) {
-        var providerKey = providerSelect ? providerSelect.value : "openai";
+      function preferredModel(providerKey) {
+        var current = selectedModelValue();
+        var lastProvider = modelSelect.dataset.lastProvider || providerKey;
+        if (lastProvider !== providerKey) {
+          return providerDefaultModels[providerKey] || "";
+        }
+        return current;
+      }
+      function rebuildOptions(providerKey, selectedValue) {
         if (providerKey === "other") {
           providerKey = "custom1";
         }
@@ -168,6 +176,8 @@
         });
         if (selectedValue && hasMatch) {
           modelSelect.value = selectedValue;
+        } else if (!selectedValue && options.length) {
+          modelSelect.value = options[0].value;
         } else {
           modelSelect.value = "other";
         }
@@ -180,7 +190,12 @@
         }
       }
       function refreshModels() {
-        rebuildOptions(selectedModelValue());
+        var providerKey = providerSelect ? providerSelect.value : "openai";
+        if (providerKey === "other") {
+          providerKey = "custom1";
+        }
+        rebuildOptions(providerKey, preferredModel(providerKey));
+        modelSelect.dataset.lastProvider = providerKey;
         toggleCustom();
       }
       if (providerSelect) {

@@ -1218,6 +1218,15 @@ def _provider_config(provider_key):
     }
 
 
+def _provider_default_models():
+    return {
+        "openai": _provider_config("openai")["default_model"],
+        "custom1": _provider_config("custom1")["default_model"],
+        "custom2": _provider_config("custom2")["default_model"],
+        "custom3": _provider_config("custom3")["default_model"],
+    }
+
+
 def _provider_display(provider_key):
     provider_key = _normalize_provider_key(provider_key)
     if provider_key == "custom1":
@@ -1619,6 +1628,7 @@ def create_app():
             total_price_estimate=total_price_estimate,
             provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
+            provider_default_models=_provider_default_models(),
             default_provider=default_provider,
         )
 
@@ -2260,6 +2270,7 @@ def create_app():
             job_price_display=job_price_display,
             provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
+            provider_default_models=_provider_default_models(),
             default_provider=default_provider,
             job_provider_display=job_provider_display,
             rerun_provider=rerun_provider,
@@ -2418,6 +2429,7 @@ def create_app():
             values=field_values,
             provider_options=provider_options,
             provider_model_options=_provider_model_option_items(),
+            provider_default_models=_provider_default_models(),
             default_provider=default_provider,
         )
 
