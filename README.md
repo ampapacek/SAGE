@@ -82,6 +82,8 @@ Copy `.env.example` to `.env` and edit as needed:
 cp .env.example .env
 ```
 
+The example `.env.example` includes an OpenRouter key and free-model presets so you can try the app quickly. The included key is limited to a few smaller free models and only a few requests a day. It was created as an empty account (no credits) for this purpose. Stealing the key is possible but it has no value. Create your own OpenRouter account for free to use the free models with your own key: https://openrouter.ai
+
 You can edit settings directly in `.env` or in the web UI (**Settings** in the top bar). Some changes require a restart.
 
 Key variables:
