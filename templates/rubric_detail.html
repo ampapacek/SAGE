@@ -149,6 +149,10 @@
       <form method="post" action="{{ url_for('cancel_rubric', rubric_id=rubric.id) }}">
         <button type="submit" class="secondary">{{ t('cancel_generation') }}</button>
       </form>
+    {% elif rubric.status == 'ERROR' %}
+      <form method="post" action="{{ url_for('rerun_rubric', rubric_id=rubric.id) }}">
+        <button type="submit" class="secondary">{{ t('rerun_guide') }}</button>
+      </form>
     {% elif rubric.status == 'APPROVED' %}
       <p>{{ t('approved_guide_in_use') }}</p>
     {% else %}

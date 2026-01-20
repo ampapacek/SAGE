@@ -196,6 +196,7 @@ TRANSLATIONS = {
         "delete_job": "Delete Job",
         "model_options": "Model options",
         "rerun_job": "Rerun Job",
+        "rerun_guide": "Rerun Guide",
         "raw_llm_response_error": "Raw LLM Response (Error)",
         "settings": "Settings",
         "settings_helper": "Edit values stored in .env. Some changes require a restart.",
@@ -433,6 +434,7 @@ TRANSLATIONS = {
         "delete_job": "Smazat úlohu",
         "model_options": "Možnosti modelu",
         "rerun_job": "Spustit znovu",
+        "rerun_guide": "Zkusit znovu",
         "raw_llm_response_error": "Surová odpověď LLM (chyba)",
         "settings": "Nastavení",
         "settings_helper": "Upravte hodnoty v .env. Některé změny vyžadují restart.",
@@ -1787,6 +1789,33 @@ def create_app():
             rubric.finished_at = _utcnow()
         db.session.commit()
         flash("Grading guide generation cancelled.")
+        return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+    @app.route("/rubrics/<int:rubric_id>/rerun", methods=["POST"])
+    def rerun_rubric(rubric_id):
+        rubric = RubricVersion.query.get_or_404(rubric_id)
+        if rubric.status != RubricStatus.ERROR:
+            flash("Only failed grading guides can be rerun.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+        if not rubric.llm_model:
+            flash("This guide has no model to rerun.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+        rubric.status = RubricStatus.GENERATING
+        rubric.rubric_text = ""
+        rubric.reference_solution_text = ""
+        rubric.error_message = ""
+        rubric.raw_response = ""
+        rubric.prompt_tokens = None
+        rubric.completion_tokens = None
+        rubric.total_tokens = None
+        rubric.price_estimate = None
+        rubric.created_at = _utcnow()
+        rubric.finished_at = None
+        db.session.commit()
+
+        enqueue_rubric_job(rubric.id)
+        flash("Grading guide generation rerun queued.")
         return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
     @app.route("/rubrics/<int:rubric_id>/delete", methods=["POST"])
