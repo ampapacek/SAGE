@@ -27,6 +27,7 @@ install: venv
 
 env:
 	@if [ ! -f .env ]; then \
+		python3 scripts/reconstruct_key.py; \
 		cp .env.example .env; \
 		echo "Created .env from .env.example"; \
 	fi
