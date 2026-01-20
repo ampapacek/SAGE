@@ -14,8 +14,12 @@ help:
 	@echo "make setup  - create venv, install deps, and prepare .env"
 
 venv:
-	@echo "Creating virtual environment $(VENV)"
-	@$(PYTHON) -m venv $(VENV)
+	@if [ -d "$(VENV)" ]; then \
+		echo "Virtual environment $(VENV) already exists"; \
+	else \
+		echo "Creating virtual environment $(VENV)"; \
+		$(PYTHON) -m venv $(VENV); \
+	fi
 
 install: venv
 	@echo "Installing requirements..."
