@@ -97,7 +97,10 @@ TRANSLATIONS = {
         "assignments_empty_hint": "Start by creating your first assignment below.",
         "assignments_empty_steps": "To create an assignment, use the form above.",
         "assignment_title_placeholder": "Example: Week 1 homework",
-        "assignment_text_placeholder": "Paste the problem statement here. You can include Markdown or LaTeX.",
+        "assignment_text_placeholder": (
+            "Paste the problem statement here. You can include Markdown or LaTeX. "
+            "Example: How many seconds are there in a year?"
+        ),
         "guide_text_placeholder": (
             "Draft a grading guide: parts, points, and criteria.\n"
             "Or choose provider and model to generate the draft and reference solution by LLM."
@@ -335,7 +338,10 @@ TRANSLATIONS = {
         "assignments_empty_hint": "Začněte vytvořením prvního úkolu níže.",
         "assignments_empty_steps": "Pro vytvoření úkolu použijte formulář výše.",
         "assignment_title_placeholder": "Příklad: Úkol 1",
-        "assignment_text_placeholder": "Sem vložte text úkolu. Můžete použít Markdown nebo LaTeX.",
+        "assignment_text_placeholder": (
+            "Sem vložte text úkolu. Můžete použít Markdown nebo LaTeX. "
+            "Příklad: Kolik sekund je v roce?"
+        ),
         "guide_text_placeholder": (
             "Sepište kritéria hodnocení: části, body a kritéria.\n"
             "Nebo vyberte poskytovatele a model pro generování konceptu a řešení přes LLM."
