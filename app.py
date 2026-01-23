@@ -93,6 +93,9 @@ TRANSLATIONS = {
         "folder_new": "New folder",
         "folder_new_placeholder": "e.g., Calculus",
         "folder_unassigned": "Unsorted",
+        "move": "Move",
+        "drag_to_move": "Drag to move",
+        "move_failed": "Unable to move assignment.",
         "title": "Title",
         "create": "Create",
         "created": "Created",
@@ -339,6 +342,9 @@ TRANSLATIONS = {
         "folder_new": "Nová složka",
         "folder_new_placeholder": "např. Matematika",
         "folder_unassigned": "Nezařazené",
+        "move": "Přesunout",
+        "drag_to_move": "Přetáhněte pro přesun",
+        "move_failed": "Přesun se nezdařil.",
         "title": "Název",
         "create": "Vytvořit",
         "created": "Vytvořeno",
@@ -1569,11 +1575,15 @@ def create_app():
                 continue
             key = folder_name.lower()
             if key not in folder_map:
-                folder_map[key] = {"name": folder_name, "assignments": []}
+                folder_map[key] = {
+                    "name": folder_name,
+                    "value": folder_name,
+                    "assignments": [],
+                }
             folder_map[key]["assignments"].append(assignment)
-        if unassigned:
+        if assignments:
             foldered_assignments.append(
-                {"name": t("folder_unassigned"), "assignments": unassigned}
+                {"name": t("folder_unassigned"), "value": "", "assignments": unassigned}
             )
         for folder in folder_options:
             group = folder_map.get(folder.lower())
@@ -1817,6 +1827,18 @@ def create_app():
                 "has_pending_rubrics": has_pending_rubrics,
             }
         )
+
+    @app.route("/assignments/<int:assignment_id>/move", methods=["POST"])
+    def move_assignment(assignment_id):
+        assignment = Assignment.query.get_or_404(assignment_id)
+        data = request.get_json(silent=True) or {}
+        folder_name = data.get("folder_name")
+        if folder_name is None:
+            folder_name = request.form.get("folder_name", "")
+        folder_name = _normalize_folder_name(folder_name)
+        assignment.folder_name = folder_name or None
+        db.session.commit()
+        return jsonify({"ok": True, "folder_name": assignment.folder_name or ""})
 
     @app.route("/assignments/<int:assignment_id>/rubrics/create", methods=["POST"])
     def create_rubric(assignment_id):

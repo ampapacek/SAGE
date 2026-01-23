@@ -43,36 +43,46 @@
     <h2>{{ t('assignments_title') }}</h2>
     {% if assignments %}
       {% for folder in foldered_assignments %}
-        <div class="folder-header">
-          <h3>{{ folder.name }}</h3>
-          <span class="folder-count">{{ folder.assignments | length }}</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>{{ t('title') }}</th>
-              <th>{{ t('created') }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for assignment in folder.assignments %}
+        <div class="folder-group" data-folder-value="{{ folder.value }}">
+          <div class="folder-header">
+            <h3>{{ folder.name }}</h3>
+            <span class="folder-count">{{ folder.assignments | length }}</span>
+          </div>
+          <table>
+            <thead>
               <tr>
-                <td>{{ assignment.title }}</td>
-                <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                <td>
-                  <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                  <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                    <button type="submit" class="danger">{{ t('delete') }}</button>
-                  </form>
-                </td>
+                <th class="drag-cell">{{ t('move') }}</th>
+                <th>{{ t('title') }}</th>
+                <th>{{ t('created') }}</th>
+                <th></th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% if not loop.last %}
-          <div class="section-divider"></div>
-        {% endif %}
+            </thead>
+            <tbody>
+              {% for assignment in folder.assignments %}
+                <tr
+                  data-assignment-id="{{ assignment.id }}"
+                  data-folder-value="{{ folder.value }}"
+                  data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
+                >
+                  <td class="drag-cell">
+                    <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}">drag</span>
+                  </td>
+                  <td>{{ assignment.title }}</td>
+                  <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                  <td>
+                    <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                    <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+                      <button type="submit" class="danger">{{ t('delete') }}</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% if not loop.last %}
+            <div class="section-divider"></div>
+          {% endif %}
+        </div>
       {% endfor %}
     {% else %}
       <p>{{ t('no_assignments') }}</p>
@@ -96,6 +106,100 @@
       }
       select.addEventListener("change", toggleCustom);
       toggleCustom();
+    })();
+  </script>
+  <script>
+    (function () {
+      var groups = document.querySelectorAll(".folder-group");
+      var handles = document.querySelectorAll(".drag-handle");
+      var errorMessage = "{{ t('move_failed') }}";
+      if (!groups.length || !handles.length) {
+        return;
+      }
+      function updateCounts() {
+        groups.forEach(function (group) {
+          var countEl = group.querySelector(".folder-count");
+          var rows = group.querySelectorAll("tbody tr");
+          if (countEl) {
+            countEl.textContent = rows.length;
+          }
+        });
+      }
+      handles.forEach(function (handle) {
+        handle.addEventListener("dragstart", function (event) {
+          var row = handle.closest("tr");
+          if (!row) {
+            return;
+          }
+          event.dataTransfer.setData("text/plain", row.getAttribute("data-assignment-id") || "");
+          event.dataTransfer.effectAllowed = "move";
+          row.classList.add("dragging");
+        });
+        handle.addEventListener("dragend", function () {
+          var row = handle.closest("tr");
+          if (row) {
+            row.classList.remove("dragging");
+          }
+          groups.forEach(function (group) {
+            group.classList.remove("drag-over");
+          });
+        });
+      });
+      groups.forEach(function (group) {
+        group.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          group.classList.add("drag-over");
+        });
+        group.addEventListener("dragleave", function (event) {
+          if (event.relatedTarget && group.contains(event.relatedTarget)) {
+            return;
+          }
+          group.classList.remove("drag-over");
+        });
+        group.addEventListener("drop", function (event) {
+          event.preventDefault();
+          group.classList.remove("drag-over");
+          var assignmentId = event.dataTransfer.getData("text/plain");
+          if (!assignmentId) {
+            return;
+          }
+          var row = document.querySelector('tr[data-assignment-id="' + assignmentId + '"]');
+          if (!row) {
+            return;
+          }
+          var targetFolder = group.getAttribute("data-folder-value") || "";
+          var currentFolder = row.getAttribute("data-folder-value") || "";
+          if (targetFolder === currentFolder) {
+            return;
+          }
+          var moveUrl = row.getAttribute("data-move-url");
+          if (!moveUrl) {
+            return;
+          }
+          fetch(moveUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder_name: targetFolder })
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error("Move failed");
+              }
+              return response.json();
+            })
+            .then(function () {
+              var tbody = group.querySelector("tbody");
+              if (tbody) {
+                tbody.appendChild(row);
+              }
+              row.setAttribute("data-folder-value", targetFolder);
+              updateCounts();
+            })
+            .catch(function () {
+              alert(errorMessage);
+            });
+        });
+      });
     })();
   </script>
 {% endblock %}
