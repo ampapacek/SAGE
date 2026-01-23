@@ -90,40 +90,44 @@
             </div>
           {% endif %}
           <div id="folder-table-{{ loop.index }}">
-            <table>
-            <thead>
-              <tr>
-                <th class="drag-cell">{{ t('move') }}</th>
-                <th>{{ t('title') }}</th>
-                <th>{{ t('created') }}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for assignment in folder.assignments %}
-                <tr
-                  data-assignment-id="{{ assignment.id }}"
-                  data-folder-value="{{ folder.value }}"
-                  data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
-                >
-                  <td class="drag-cell">
-                    <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}" aria-label="{{ t('drag_to_move') }}">
-                      <span class="drag-icon" aria-hidden="true">&#x270B;</span>
-                      <span class="sr-only">{{ t('move') }}</span>
-                    </span>
-                  </td>
-                  <td>{{ assignment.title }}</td>
-                  <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                  <td>
-                    <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                    <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                      <button type="submit" class="danger">{{ t('delete') }}</button>
-                    </form>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-            </table>
+            {% if folder.assignments %}
+              <table>
+                <thead>
+                  <tr>
+                    <th class="drag-cell">{{ t('move') }}</th>
+                    <th>{{ t('title') }}</th>
+                    <th>{{ t('created') }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in folder.assignments %}
+                    <tr
+                      data-assignment-id="{{ assignment.id }}"
+                      data-folder-value="{{ folder.value }}"
+                      data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
+                    >
+                      <td class="drag-cell">
+                        <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}" aria-label="{{ t('drag_to_move') }}">
+                          <span class="drag-icon" aria-hidden="true">&#x270B;</span>
+                          <span class="sr-only">{{ t('move') }}</span>
+                        </span>
+                      </td>
+                      <td>{{ assignment.title }}</td>
+                      <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                      <td>
+                        <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+                          <button type="submit" class="danger">{{ t('delete') }}</button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="folder-empty">{{ t('folder_empty_hint') }}</p>
+            {% endif %}
           </div>
           {% if not loop.last %}
             <div class="section-divider"></div>

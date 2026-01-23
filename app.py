@@ -101,6 +101,9 @@ TRANSLATIONS = {
         "drag_hint": "Drag the hand icon to move assignments between folders.",
         "rename_folder": "Rename folder",
         "rename": "Rename",
+        "folder_empty_hint": (
+            "Folder is empty. Drag an assignment here, or create a new one with this folder selected."
+        ),
         "title": "Title",
         "create": "Create",
         "created": "Created",
@@ -355,6 +358,9 @@ TRANSLATIONS = {
         "drag_hint": "Přetáhněte ikonu ruky pro přesun mezi složkami.",
         "rename_folder": "Přejmenovat složku",
         "rename": "Přejmenovat",
+        "folder_empty_hint": (
+            "Složka je prázdná. Přetáhněte sem úkol, nebo vytvořte nový s touto složkou."
+        ),
         "title": "Název",
         "create": "Vytvořit",
         "created": "Vytvořeno",
