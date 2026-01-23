@@ -116,9 +116,6 @@
               </td>
               <td>
                 <a class="action-link" href="{{ url_for('rubric_detail', rubric_id=rubric.id) }}">{{ t('view') }}</a>
-                {% if rubric.status in ['DRAFT', 'APPROVED'] %}
-                  <a class="action-link" href="{{ url_for('edit_rubric', rubric_id=rubric.id) }}">{{ t('edit') }}</a>
-                {% endif %}
                 {% if rubric.status == 'DRAFT' %}
                   <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
                     <button type="submit" class="secondary">{{ t('approve_guide') }}</button>
