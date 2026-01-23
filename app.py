@@ -9,7 +9,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import text
+from sqlalchemy import func, text
 import bleach
 import markdown
 from flask import (
@@ -99,6 +99,8 @@ TRANSLATIONS = {
         "show_folder": "Show folder",
         "hide_folder": "Hide folder",
         "drag_hint": "Drag the hand icon to move assignments between folders.",
+        "rename_folder": "Rename folder",
+        "rename": "Rename",
         "title": "Title",
         "create": "Create",
         "created": "Created",
@@ -351,6 +353,8 @@ TRANSLATIONS = {
         "show_folder": "Zobrazit složku",
         "hide_folder": "Skrýt složku",
         "drag_hint": "Přetáhněte ikonu ruky pro přesun mezi složkami.",
+        "rename_folder": "Přejmenovat složku",
+        "rename": "Přejmenovat",
         "title": "Název",
         "create": "Vytvořit",
         "created": "Vytvořeno",
@@ -1845,6 +1849,23 @@ def create_app():
         assignment.folder_name = folder_name or None
         db.session.commit()
         return jsonify({"ok": True, "folder_name": assignment.folder_name or ""})
+
+    @app.route("/folders/rename", methods=["POST"])
+    def rename_folder():
+        current_name = _normalize_folder_name(
+            request.form.get("current_folder_name", "")
+        )
+        new_name = _normalize_folder_name(request.form.get("new_folder_name", ""))
+        if not current_name or not new_name:
+            flash("Folder name is required.")
+            return redirect(url_for("list_assignments"))
+
+        db.session.query(Assignment).filter(
+            Assignment.folder_name.isnot(None),
+            func.lower(Assignment.folder_name) == current_name.lower(),
+        ).update({Assignment.folder_name: new_name}, synchronize_session=False)
+        db.session.commit()
+        return redirect(url_for("list_assignments"))
 
     @app.route("/assignments/<int:assignment_id>/rubrics/create", methods=["POST"])
     def create_rubric(assignment_id):
