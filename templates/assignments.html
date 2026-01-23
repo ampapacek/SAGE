@@ -17,6 +17,23 @@
         <input type="text" id="title" name="title" required {% if not assignments %}placeholder="{{ t('assignment_title_placeholder') }}"{% endif %} />
         <label for="assignment_text">{{ t('assignment_text') }}</label>
         <textarea id="assignment_text" name="assignment_text" required {% if not assignments %}placeholder="{{ t('assignment_text_placeholder') }}"{% endif %}></textarea>
+        <label for="folder_select">{{ t('folder') }}</label>
+        <select id="folder_select" name="folder_select">
+          <option value="">{{ t('folder_none') }}</option>
+          {% for folder in folder_options %}
+            <option value="{{ folder }}">{{ folder }}</option>
+          {% endfor %}
+          <option value="__new__">{{ t('folder_new') }}</option>
+        </select>
+        <div id="folder_custom_wrap" class="hidden" style="margin-top: 10px;">
+          <label for="folder_custom">{{ t('folder_new') }}</label>
+          <input
+            type="text"
+            id="folder_custom"
+            name="folder_custom"
+            placeholder="{{ t('folder_new_placeholder') }}"
+          />
+        </div>
         <button type="submit">{{ t('create') }}</button>
       </form>
     </div>
@@ -25,32 +42,60 @@
   <div class="card">
     <h2>{{ t('assignments_title') }}</h2>
     {% if assignments %}
-      <table>
-        <thead>
-          <tr>
-            <th>{{ t('title') }}</th>
-            <th>{{ t('created') }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for assignment in assignments %}
+      {% for folder in foldered_assignments %}
+        <div class="folder-header">
+          <h3>{{ folder.name }}</h3>
+          <span class="folder-count">{{ folder.assignments | length }}</span>
+        </div>
+        <table>
+          <thead>
             <tr>
-              <td>{{ assignment.title }}</td>
-              <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-              <td>
-                <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                  <button type="submit" class="danger">{{ t('delete') }}</button>
-                </form>
-              </td>
+              <th>{{ t('title') }}</th>
+              <th>{{ t('created') }}</th>
+              <th></th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for assignment in folder.assignments %}
+              <tr>
+                <td>{{ assignment.title }}</td>
+                <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                <td>
+                  <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                  <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+                    <button type="submit" class="danger">{{ t('delete') }}</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if not loop.last %}
+          <div class="section-divider"></div>
+        {% endif %}
+      {% endfor %}
     {% else %}
       <p>{{ t('no_assignments') }}</p>
       <p class="dropzone-hint" style="margin-top: 8px;">{{ t('assignments_empty_steps') }}</p>
     {% endif %}
   </div>
+  <script>
+    (function () {
+      var select = document.getElementById("folder_select");
+      var wrap = document.getElementById("folder_custom_wrap");
+      var input = document.getElementById("folder_custom");
+      if (!select || !wrap) {
+        return;
+      }
+      function toggleCustom() {
+        var isCustom = select.value === "__new__";
+        wrap.classList.toggle("hidden", !isCustom);
+        if (input) {
+          input.required = isCustom;
+        }
+      }
+      select.addEventListener("change", toggleCustom);
+      toggleCustom();
+    })();
+  </script>
 {% endblock %}

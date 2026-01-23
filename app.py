@@ -88,6 +88,11 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Toggle Create Assignment",
         "assignments_title": "Assignments",
         "assignment_text": "Assignment Text",
+        "folder": "Folder",
+        "folder_none": "No folder",
+        "folder_new": "New folder",
+        "folder_new_placeholder": "e.g., Calculus",
+        "folder_unassigned": "Unsorted",
         "title": "Title",
         "create": "Create",
         "created": "Created",
@@ -329,6 +334,11 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Zobrazit/skrýt formulář",
         "assignments_title": "Úkoly",
         "assignment_text": "Text úkolu",
+        "folder": "Složka",
+        "folder_none": "Bez složky",
+        "folder_new": "Nová složka",
+        "folder_new_placeholder": "např. Matematika",
+        "folder_unassigned": "Nezařazené",
         "title": "Název",
         "create": "Vytvořit",
         "created": "Vytvořeno",
@@ -927,6 +937,26 @@ def _format_points(value):
     return f"{numeric:.2f}".rstrip("0").rstrip(".")
 
 
+def _normalize_folder_name(value):
+    return (value or "").strip()
+
+
+def _folder_options():
+    rows = db.session.query(Assignment.folder_name).distinct().all()
+    options = []
+    seen = set()
+    for row in rows:
+        folder = _normalize_folder_name(row[0])
+        if not folder:
+            continue
+        key = folder.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        options.append(folder)
+    return sorted(options, key=str.lower)
+
+
 def _extract_math_blocks(text):
     placeholders = {}
     if not text:
@@ -1356,6 +1386,14 @@ def _ensure_schema_updates():
     if db.engine.dialect.name != "sqlite":
         return
     try:
+        result = db.session.execute(text("PRAGMA table_info(assignment)"))
+        assignment_columns = {row[1] for row in result.fetchall()}
+        if "folder_name" not in assignment_columns:
+            db.session.execute(
+                text("ALTER TABLE assignment ADD COLUMN folder_name VARCHAR(255)")
+            )
+            db.session.commit()
+            logger.info("Added folder_name column to assignment table")
         result = db.session.execute(text("PRAGMA table_info(grading_job)"))
         columns = {row[1] for row in result.fetchall()}
         if "llm_model" not in columns:
@@ -1498,17 +1536,55 @@ def create_app():
         if request.method == "POST":
             title = request.form.get("title", "").strip()
             assignment_text = request.form.get("assignment_text", "").strip()
+            folder_choice = request.form.get("folder_select", "").strip()
+            folder_custom = request.form.get("folder_custom", "").strip()
             if not title or not assignment_text:
                 flash("Title and assignment text are required.")
                 return redirect(url_for("list_assignments"))
+            if folder_choice == "__new__" and not folder_custom:
+                flash("Folder name is required when selecting New folder.")
+                return redirect(url_for("list_assignments"))
 
-            assignment = Assignment(title=title, assignment_text=assignment_text)
+            folder_name = folder_custom if folder_choice == "__new__" else folder_choice
+            folder_name = _normalize_folder_name(folder_name)
+
+            assignment = Assignment(
+                title=title,
+                assignment_text=assignment_text,
+                folder_name=folder_name or None,
+            )
             db.session.add(assignment)
             db.session.commit()
             return redirect(url_for("assignment_detail", assignment_id=assignment.id))
 
         assignments = Assignment.query.order_by(Assignment.created_at.desc()).all()
-        return render_template("assignments.html", assignments=assignments)
+        folder_options = _folder_options()
+        foldered_assignments = []
+        folder_map = {}
+        unassigned = []
+        for assignment in assignments:
+            folder_name = _normalize_folder_name(assignment.folder_name)
+            if not folder_name:
+                unassigned.append(assignment)
+                continue
+            key = folder_name.lower()
+            if key not in folder_map:
+                folder_map[key] = {"name": folder_name, "assignments": []}
+            folder_map[key]["assignments"].append(assignment)
+        if unassigned:
+            foldered_assignments.append(
+                {"name": t("folder_unassigned"), "assignments": unassigned}
+            )
+        for folder in folder_options:
+            group = folder_map.get(folder.lower())
+            if group:
+                foldered_assignments.append(group)
+        return render_template(
+            "assignments.html",
+            assignments=assignments,
+            folder_options=folder_options,
+            foldered_assignments=foldered_assignments,
+        )
 
     @app.route("/assignments/<int:assignment_id>")
     def assignment_detail(assignment_id):
@@ -1657,17 +1733,30 @@ def create_app():
         if request.method == "POST":
             title = request.form.get("title", "").strip()
             assignment_text = request.form.get("assignment_text", "").strip()
+            folder_choice = request.form.get("folder_select", "").strip()
+            folder_custom = request.form.get("folder_custom", "").strip()
             if not title or not assignment_text:
                 flash("Title and assignment text are required.")
                 return redirect(url_for("edit_assignment", assignment_id=assignment_id))
+            if folder_choice == "__new__" and not folder_custom:
+                flash("Folder name is required when selecting New folder.")
+                return redirect(url_for("edit_assignment", assignment_id=assignment_id))
 
+            folder_name = folder_custom if folder_choice == "__new__" else folder_choice
+            folder_name = _normalize_folder_name(folder_name)
             assignment.title = title
             assignment.assignment_text = assignment_text
+            assignment.folder_name = folder_name or None
             db.session.commit()
             flash("Assignment updated.")
             return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
-        return render_template("assignment_edit.html", assignment=assignment)
+        folder_options = _folder_options()
+        return render_template(
+            "assignment_edit.html",
+            assignment=assignment,
+            folder_options=folder_options,
+        )
 
     @app.route("/assignments/<int:assignment_id>/delete", methods=["POST"])
     def delete_assignment(assignment_id):

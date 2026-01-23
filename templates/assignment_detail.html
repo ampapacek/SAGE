@@ -21,6 +21,9 @@
   {% endif %}
   <div class="card">
     <h2>{{ assignment.title }}</h2>
+    {% if assignment.folder_name %}
+      <p class="helper-text">{{ t('folder') }}: {{ assignment.folder_name }}</p>
+    {% endif %}
     <div class="markdown assignment-text">{{ assignment_html | safe }}</div>
     <div class="section-divider"></div>
     {% if show_costs %}

@@ -6,10 +6,50 @@
     <form method="post">
       <label for="title">{{ t('title') }}</label>
       <input type="text" id="title" name="title" value="{{ assignment.title }}" required />
+      <label for="folder_select">{{ t('folder') }}</label>
+      {% set current_folder = assignment.folder_name or "" %}
+      {% set folder_values = folder_options or [] %}
+      {% set is_custom_folder = current_folder and current_folder not in folder_values %}
+      <select id="folder_select" name="folder_select">
+        <option value="" {% if not current_folder %}selected{% endif %}>{{ t('folder_none') }}</option>
+        {% for folder in folder_values %}
+          <option value="{{ folder }}" {% if current_folder == folder %}selected{% endif %}>{{ folder }}</option>
+        {% endfor %}
+        <option value="__new__" {% if is_custom_folder %}selected{% endif %}>{{ t('folder_new') }}</option>
+      </select>
+      <div id="folder_custom_wrap" {% if not is_custom_folder %}class="hidden"{% endif %} style="margin-top: 10px;">
+        <label for="folder_custom">{{ t('folder_new') }}</label>
+        <input
+          type="text"
+          id="folder_custom"
+          name="folder_custom"
+          value="{% if is_custom_folder %}{{ current_folder }}{% endif %}"
+          placeholder="{{ t('folder_new_placeholder') }}"
+        />
+      </div>
       <label for="assignment_text">{{ t('assignment_text') }}</label>
       <textarea id="assignment_text" name="assignment_text" required>{{ assignment.assignment_text }}</textarea>
       <button type="submit">{{ t('save_changes') }}</button>
       <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('cancel') }}</a>
     </form>
   </div>
+  <script>
+    (function () {
+      var select = document.getElementById("folder_select");
+      var wrap = document.getElementById("folder_custom_wrap");
+      var input = document.getElementById("folder_custom");
+      if (!select || !wrap) {
+        return;
+      }
+      function toggleCustom() {
+        var isCustom = select.value === "__new__";
+        wrap.classList.toggle("hidden", !isCustom);
+        if (input) {
+          input.required = isCustom;
+        }
+      }
+      select.addEventListener("change", toggleCustom);
+      toggleCustom();
+    })();
+  </script>
 {% endblock %}
