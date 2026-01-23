@@ -28,6 +28,7 @@ class Assignment(db.Model):
     title = db.Column(db.String(255), nullable=False)
     assignment_text = db.Column(db.Text, nullable=False)
     folder_name = db.Column(db.String(255))
+    archived_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     rubrics = db.relationship("RubricVersion", backref="assignment", lazy=True)

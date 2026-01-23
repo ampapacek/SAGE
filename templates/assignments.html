@@ -41,12 +41,12 @@
 
   <div class="card">
     <h2>{{ t('assignments_title') }}</h2>
-    {% if assignments %}
+    {% if foldered_assignments %}
       <p class="helper-text">{{ t('drag_hint') }}</p>
     {% endif %}
     {% if assignments %}
       {% for folder in foldered_assignments %}
-        <div class="folder-group" data-folder-value="{{ folder.value }}">
+        <div class="folder-group" data-folder-value="{{ folder.value }}" data-drop-enabled="true">
           <div class="folder-header">
             <h3>{{ folder.name }}</h3>
             <div class="folder-actions">
@@ -55,17 +55,26 @@
                 <button
                   type="button"
                   class="secondary folder-rename-toggle"
-                  data-toggle-target="folder-rename-{{ loop.index }}"
+                  data-toggle-target="active-folder-rename-{{ loop.index }}"
                   data-show-label="{{ t('rename_folder') }}"
                   data-hide-label="{{ t('cancel') }}"
                 >
                   {{ t('rename_folder') }}
                 </button>
+                <button
+                  type="button"
+                  class="secondary folder-delete-toggle"
+                  data-toggle-target="active-folder-delete-{{ loop.index }}"
+                  data-show-label="{{ t('delete_folder') }}"
+                  data-hide-label="{{ t('cancel') }}"
+                >
+                  {{ t('delete_folder') }}
+                </button>
               {% endif %}
               <button
                 type="button"
                 class="secondary folder-toggle"
-                data-toggle-target="folder-table-{{ loop.index }}"
+                data-toggle-target="active-folder-table-{{ loop.index }}"
                 data-show-label="{{ t('show_folder') }}"
                 data-hide-label="{{ t('hide_folder') }}"
               >
@@ -74,7 +83,7 @@
             </div>
           </div>
           {% if folder.value %}
-            <div id="folder-rename-{{ loop.index }}" class="hidden">
+            <div id="active-folder-rename-{{ loop.index }}" class="hidden">
               <form method="post" action="{{ url_for('rename_folder') }}" class="folder-rename-form">
                 <input type="hidden" name="current_folder_name" value="{{ folder.value }}" />
                 <label for="rename-folder-{{ loop.index }}">{{ t('rename_folder') }}</label>
@@ -88,8 +97,31 @@
                 <button type="submit">{{ t('rename') }}</button>
               </form>
             </div>
+            <div id="active-folder-delete-{{ loop.index }}" class="hidden">
+              <form
+                method="post"
+                action="{{ url_for('delete_folder') }}"
+                class="folder-delete-form"
+                data-count="{{ folder.assignments | length }}"
+              >
+                <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                <label>{{ t('delete_folder') }}</label>
+                <div class="folder-delete-options">
+                  <label>
+                    <input type="radio" name="delete_mode" value="archive" checked />
+                    {{ t('archive_folder') }}
+                  </label>
+                  <label>
+                    <input type="radio" name="delete_mode" value="hard" />
+                    {{ t('hard_delete_folder') }}
+                  </label>
+                </div>
+                <p class="helper-text">{{ t('delete_folder_hint') }}</p>
+                <button type="submit" class="danger">{{ t('delete_folder') }}</button>
+              </form>
+            </div>
           {% endif %}
-          <div id="folder-table-{{ loop.index }}">
+          <div id="active-folder-table-{{ loop.index }}">
             {% if folder.assignments %}
               <table>
                 <thead>
@@ -134,6 +166,128 @@
           {% endif %}
         </div>
       {% endfor %}
+      {% if archived_foldered_assignments %}
+        <div class="section-divider"></div>
+        <h3 class="archived-title">{{ t('archived_folders') }}</h3>
+        {% for folder in archived_foldered_assignments %}
+          <div class="folder-group archived" data-folder-value="{{ folder.value }}" data-drop-enabled="false">
+            <div class="folder-header">
+              <h3>{{ folder.name }}</h3>
+              <div class="folder-actions">
+                <span class="folder-count">{{ folder.assignments | length }}</span>
+                {% if folder.value %}
+                  <button
+                    type="button"
+                    class="secondary folder-rename-toggle"
+                    data-toggle-target="archived-folder-rename-{{ loop.index }}"
+                    data-show-label="{{ t('rename_folder') }}"
+                    data-hide-label="{{ t('cancel') }}"
+                  >
+                    {{ t('rename_folder') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary folder-delete-toggle"
+                    data-toggle-target="archived-folder-delete-{{ loop.index }}"
+                    data-show-label="{{ t('delete_folder') }}"
+                    data-hide-label="{{ t('cancel') }}"
+                  >
+                    {{ t('delete_folder') }}
+                  </button>
+                {% endif %}
+                <button
+                  type="button"
+                  class="secondary folder-toggle"
+                  data-toggle-target="archived-folder-table-{{ loop.index }}"
+                  data-show-label="{{ t('show_folder') }}"
+                  data-hide-label="{{ t('hide_folder') }}"
+                >
+                  {{ t('hide_folder') }}
+                </button>
+              </div>
+            </div>
+            {% if folder.value %}
+              <div id="archived-folder-rename-{{ loop.index }}" class="hidden">
+                <form method="post" action="{{ url_for('rename_folder') }}" class="folder-rename-form">
+                  <input type="hidden" name="current_folder_name" value="{{ folder.value }}" />
+                  <label for="archived-rename-folder-{{ loop.index }}">{{ t('rename_folder') }}</label>
+                  <input
+                    type="text"
+                    id="archived-rename-folder-{{ loop.index }}"
+                    name="new_folder_name"
+                    value="{{ folder.name }}"
+                    required
+                  />
+                  <button type="submit">{{ t('rename') }}</button>
+                </form>
+              </div>
+              <div id="archived-folder-delete-{{ loop.index }}" class="hidden">
+                <form
+                  method="post"
+                  action="{{ url_for('delete_folder') }}"
+                  class="folder-delete-form"
+                  data-count="{{ folder.assignments | length }}"
+                >
+                  <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                  <label>{{ t('delete_folder') }}</label>
+                  <div class="folder-delete-options">
+                    <label>
+                      <input type="radio" name="delete_mode" value="archive" checked />
+                      {{ t('archive_folder') }}
+                    </label>
+                    <label>
+                      <input type="radio" name="delete_mode" value="hard" />
+                      {{ t('hard_delete_folder') }}
+                    </label>
+                  </div>
+                  <p class="helper-text">{{ t('delete_folder_hint') }}</p>
+                  <button type="submit" class="danger">{{ t('delete_folder') }}</button>
+                </form>
+              </div>
+            {% endif %}
+            <div id="archived-folder-table-{{ loop.index }}">
+              {% if folder.assignments %}
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{{ t('title') }}</th>
+                      <th>{{ t('created') }}</th>
+                      <th>{{ t('archived_on') }}</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for assignment in folder.assignments %}
+                      <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                        <td>
+                          {% if assignment.archived_at %}
+                            {{ assignment.archived_at.strftime('%b %d, %Y %H:%M') }}
+                          {% else %}
+                            --
+                          {% endif %}
+                        </td>
+                        <td>
+                          <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                          <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
+                            <button type="submit" class="danger">{{ t('delete') }}</button>
+                          </form>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <p class="folder-empty">{{ t('folder_empty_hint') }}</p>
+              {% endif %}
+            </div>
+            {% if not loop.last %}
+              <div class="section-divider"></div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
     {% else %}
       <p>{{ t('no_assignments') }}</p>
       <p class="dropzone-hint" style="margin-top: 8px;">{{ t('assignments_empty_steps') }}</p>
@@ -161,17 +315,22 @@
   <script>
     (function () {
       var groups = document.querySelectorAll(".folder-group");
+      var dropGroups = document.querySelectorAll('.folder-group[data-drop-enabled="true"]');
       var handles = document.querySelectorAll(".drag-handle");
       var errorMessage = "{{ t('move_failed') }}";
-      if (!groups.length || !handles.length) {
+      if (!groups.length || !handles.length || !dropGroups.length) {
         return;
       }
       function updateCounts() {
         groups.forEach(function (group) {
           var countEl = group.querySelector(".folder-count");
           var rows = group.querySelectorAll("tbody tr");
+          var deleteForm = group.querySelector(".folder-delete-form");
           if (countEl) {
             countEl.textContent = rows.length;
+          }
+          if (deleteForm) {
+            deleteForm.dataset.count = rows.length;
           }
         });
       }
@@ -195,7 +354,7 @@
           });
         });
       });
-      groups.forEach(function (group) {
+      dropGroups.forEach(function (group) {
         group.addEventListener("dragover", function (event) {
           event.preventDefault();
           group.classList.add("drag-over");
@@ -288,6 +447,50 @@
           var isHidden = target.classList.contains("hidden");
           target.classList.toggle("hidden");
           button.textContent = isHidden ? button.dataset.hideLabel : button.dataset.showLabel;
+        });
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var toggles = document.querySelectorAll(".folder-delete-toggle");
+      if (!toggles.length) {
+        return;
+      }
+      toggles.forEach(function (button) {
+        var targetId = button.getAttribute("data-toggle-target");
+        var target = document.getElementById(targetId);
+        if (!target) {
+          return;
+        }
+        button.addEventListener("click", function () {
+          var isHidden = target.classList.contains("hidden");
+          target.classList.toggle("hidden");
+          button.textContent = isHidden ? button.dataset.hideLabel : button.dataset.showLabel;
+        });
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var forms = document.querySelectorAll(".folder-delete-form");
+      if (!forms.length) {
+        return;
+      }
+      var archiveMessage = "{{ t('archive_folder_confirm') }}";
+      var hardMessage = "{{ t('hard_delete_folder_confirm') }}";
+      forms.forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+          var mode = form.querySelector('input[name="delete_mode"]:checked');
+          var count = parseInt(form.dataset.count || "0", 10);
+          if (!count) {
+            return;
+          }
+          var message = mode && mode.value === "hard" ? hardMessage : archiveMessage;
+          message = message.replace("{count}", count);
+          if (!window.confirm(message)) {
+            event.preventDefault();
+          }
         });
       });
     })();

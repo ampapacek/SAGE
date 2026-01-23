@@ -101,6 +101,14 @@ TRANSLATIONS = {
         "drag_hint": "Drag the hand icon to move assignments between folders.",
         "rename_folder": "Rename folder",
         "rename": "Rename",
+        "delete_folder": "Delete folder",
+        "delete_folder_hint": "Choose archive to hide assignments, or hard delete to remove them.",
+        "archive_folder": "Archive assignments",
+        "hard_delete_folder": "Hard delete assignments",
+        "archive_folder_confirm": "Archive {count} assignments in this folder?",
+        "hard_delete_folder_confirm": "Permanently delete {count} assignments in this folder? This cannot be undone.",
+        "archived_folders": "Archived folders",
+        "archived_on": "Archived",
         "folder_empty_hint": (
             "Folder is empty. Drag an assignment here, or create a new one with this folder selected."
         ),
@@ -358,6 +366,14 @@ TRANSLATIONS = {
         "drag_hint": "Přetáhněte ikonu ruky pro přesun mezi složkami.",
         "rename_folder": "Přejmenovat složku",
         "rename": "Přejmenovat",
+        "delete_folder": "Smazat složku",
+        "delete_folder_hint": "Zvolte archivaci pro skrytí úkolů, nebo tvrdé smazání.",
+        "archive_folder": "Archivovat úkoly",
+        "hard_delete_folder": "Trvale smazat úkoly",
+        "archive_folder_confirm": "Archivovat {count} úkolů v této složce?",
+        "hard_delete_folder_confirm": "Trvale smazat {count} úkolů v této složce? Nelze vrátit zpět.",
+        "archived_folders": "Archivované složky",
+        "archived_on": "Archivováno",
         "folder_empty_hint": (
             "Složka je prázdná. Přetáhněte sem úkol, nebo vytvořte nový s touto složkou."
         ),
@@ -963,8 +979,14 @@ def _normalize_folder_name(value):
     return (value or "").strip()
 
 
-def _folder_options():
-    rows = db.session.query(Assignment.folder_name).distinct().all()
+def _folder_options(assignments=None, include_archived=False):
+    if assignments is None:
+        query = db.session.query(Assignment.folder_name)
+        if not include_archived:
+            query = query.filter(Assignment.archived_at.is_(None))
+        rows = query.distinct().all()
+    else:
+        rows = [(assignment.folder_name,) for assignment in assignments]
     options = []
     seen = set()
     for row in rows:
@@ -977,6 +999,41 @@ def _folder_options():
         seen.add(key)
         options.append(folder)
     return sorted(options, key=str.lower)
+
+
+def _build_folder_groups(assignments, include_unassigned, unassigned_label, archived=False):
+    foldered_assignments = []
+    folder_map = {}
+    unassigned = []
+    for assignment in assignments:
+        folder_name = _normalize_folder_name(assignment.folder_name)
+        if not folder_name:
+            unassigned.append(assignment)
+            continue
+        key = folder_name.lower()
+        if key not in folder_map:
+            folder_map[key] = {
+                "name": folder_name,
+                "value": folder_name,
+                "assignments": [],
+                "archived": archived,
+            }
+        folder_map[key]["assignments"].append(assignment)
+    folder_options = _folder_options(assignments=assignments)
+    for folder in folder_options:
+        group = folder_map.get(folder.lower())
+        if group:
+            foldered_assignments.append(group)
+    if include_unassigned or unassigned:
+        foldered_assignments.append(
+            {
+                "name": unassigned_label,
+                "value": "",
+                "assignments": unassigned,
+                "archived": archived,
+            }
+        )
+    return foldered_assignments
 
 
 def _extract_math_blocks(text):
@@ -1416,6 +1473,12 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added folder_name column to assignment table")
+        if "archived_at" not in assignment_columns:
+            db.session.execute(
+                text("ALTER TABLE assignment ADD COLUMN archived_at DATETIME")
+            )
+            db.session.commit()
+            logger.info("Added archived_at column to assignment table")
         result = db.session.execute(text("PRAGMA table_info(grading_job)"))
         columns = {row[1] for row in result.fetchall()}
         if "llm_model" not in columns:
@@ -1579,37 +1642,36 @@ def create_app():
             db.session.commit()
             return redirect(url_for("assignment_detail", assignment_id=assignment.id))
 
-        assignments = Assignment.query.order_by(Assignment.created_at.desc()).all()
-        folder_options = _folder_options()
-        foldered_assignments = []
-        folder_map = {}
-        unassigned = []
-        for assignment in assignments:
-            folder_name = _normalize_folder_name(assignment.folder_name)
-            if not folder_name:
-                unassigned.append(assignment)
-                continue
-            key = folder_name.lower()
-            if key not in folder_map:
-                folder_map[key] = {
-                    "name": folder_name,
-                    "value": folder_name,
-                    "assignments": [],
-                }
-            folder_map[key]["assignments"].append(assignment)
-        for folder in folder_options:
-            group = folder_map.get(folder.lower())
-            if group:
-                foldered_assignments.append(group)
-        if assignments:
-            foldered_assignments.append(
-                {"name": t("folder_unassigned"), "value": "", "assignments": unassigned}
-            )
+        active_assignments = (
+            Assignment.query.filter(Assignment.archived_at.is_(None))
+            .order_by(Assignment.created_at.desc())
+            .all()
+        )
+        archived_assignments = (
+            Assignment.query.filter(Assignment.archived_at.isnot(None))
+            .order_by(Assignment.archived_at.desc())
+            .all()
+        )
+        assignments = active_assignments + archived_assignments
+        folder_options = _folder_options(assignments=active_assignments)
+        foldered_assignments = _build_folder_groups(
+            active_assignments,
+            include_unassigned=bool(active_assignments),
+            unassigned_label=t("folder_unassigned"),
+            archived=False,
+        )
+        archived_foldered_assignments = _build_folder_groups(
+            archived_assignments,
+            include_unassigned=False,
+            unassigned_label=t("folder_unassigned"),
+            archived=True,
+        )
         return render_template(
             "assignments.html",
             assignments=assignments,
             folder_options=folder_options,
             foldered_assignments=foldered_assignments,
+            archived_foldered_assignments=archived_foldered_assignments,
         )
 
     @app.route("/assignments/<int:assignment_id>")
@@ -1871,6 +1933,84 @@ def create_app():
             func.lower(Assignment.folder_name) == current_name.lower(),
         ).update({Assignment.folder_name: new_name}, synchronize_session=False)
         db.session.commit()
+        return redirect(url_for("list_assignments"))
+
+    @app.route("/folders/delete", methods=["POST"])
+    def delete_folder():
+        folder_name = _normalize_folder_name(request.form.get("folder_name", ""))
+        delete_mode = request.form.get("delete_mode", "archive")
+        if not folder_name:
+            flash("Folder name is required.")
+            return redirect(url_for("list_assignments"))
+
+        assignments = (
+            Assignment.query.filter(
+                Assignment.folder_name.isnot(None),
+                func.lower(Assignment.folder_name) == folder_name.lower(),
+            )
+            .order_by(Assignment.created_at.desc())
+            .all()
+        )
+        if not assignments:
+            flash("Folder not found.")
+            return redirect(url_for("list_assignments"))
+
+        if delete_mode == "archive":
+            archived_at = _utcnow()
+            for assignment in assignments:
+                assignment.archived_at = archived_at
+            db.session.commit()
+            flash("Folder archived.")
+            return redirect(url_for("list_assignments"))
+
+        if delete_mode != "hard":
+            flash("Invalid delete option.")
+            return redirect(url_for("list_assignments"))
+
+        assignment_ids = [assignment.id for assignment in assignments]
+        has_active_jobs = (
+            GradingJob.query.filter(
+                GradingJob.assignment_id.in_(assignment_ids),
+                GradingJob.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+            ).first()
+            is not None
+        )
+        if has_active_jobs:
+            flash("Cancel running jobs before deleting the folder.")
+            return redirect(url_for("list_assignments"))
+
+        submissions = Submission.query.filter(
+            Submission.assignment_id.in_(assignment_ids)
+        ).all()
+        submission_ids = [submission.id for submission in submissions]
+
+        if submission_ids:
+            GradeResult.query.filter(
+                GradeResult.submission_id.in_(submission_ids)
+            ).delete(synchronize_session=False)
+            SubmissionFile.query.filter(
+                SubmissionFile.submission_id.in_(submission_ids)
+            ).delete(synchronize_session=False)
+            Submission.query.filter(
+                Submission.id.in_(submission_ids)
+            ).delete(synchronize_session=False)
+
+        GradingJob.query.filter(
+            GradingJob.assignment_id.in_(assignment_ids)
+        ).delete(synchronize_session=False)
+        RubricVersion.query.filter(
+            RubricVersion.assignment_id.in_(assignment_ids)
+        ).delete(synchronize_session=False)
+        Assignment.query.filter(
+            Assignment.id.in_(assignment_ids)
+        ).delete(synchronize_session=False)
+        db.session.commit()
+
+        for assignment_id in assignment_ids:
+            shutil.rmtree(UPLOAD_DIR / f"assignment_{assignment_id}", ignore_errors=True)
+            shutil.rmtree(PROCESSED_DIR / f"assignment_{assignment_id}", ignore_errors=True)
+
+        flash("Folder deleted.")
         return redirect(url_for("list_assignments"))
 
     @app.route("/assignments/<int:assignment_id>/rubrics/create", methods=["POST"])
