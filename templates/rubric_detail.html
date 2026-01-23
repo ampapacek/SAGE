@@ -4,6 +4,18 @@
   <div class="card">
     <h2>{{ t('guide') }} {{ rubric.id }}</h2>
     <p>{{ t('assignment') }}: <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ assignment.title }}</a></p>
+    <button
+      type="button"
+      class="secondary"
+      data-toggle-target="assignment-text"
+      data-show-label="{{ t('show_assignment_text') }}"
+      data-hide-label="{{ t('hide_assignment_text') }}"
+    >
+      {{ t('hide_assignment_text') }}
+    </button>
+    <div id="assignment-text" style="margin-top: 12px;">
+      <div class="markdown assignment-text">{{ assignment_html | safe }}</div>
+    </div>
     <p>{{ t('status') }}: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
     <p>{{ t('provider') }}: {{ provider_display }}</p>
     <p>{{ t('model') }}: {{ rubric.llm_model or 'manual' }}</p>
@@ -159,4 +171,18 @@
       <p>{{ t('guide_not_ready') }}</p>
     {% endif %}
   </div>
+  <script>
+    (function () {
+      var toggle = document.querySelector('[data-toggle-target="assignment-text"]');
+      var target = document.getElementById("assignment-text");
+      if (!toggle || !target) {
+        return;
+      }
+      toggle.addEventListener("click", function () {
+        var isHidden = target.classList.contains("hidden");
+        target.classList.toggle("hidden");
+        toggle.textContent = isHidden ? toggle.dataset.hideLabel : toggle.dataset.showLabel;
+      });
+    })();
+  </script>
 {% endblock %}

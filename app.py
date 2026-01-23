@@ -1846,6 +1846,7 @@ def create_app():
     def rubric_detail(rubric_id):
         rubric = RubricVersion.query.get_or_404(rubric_id)
         assignment = Assignment.query.get_or_404(rubric.assignment_id)
+        assignment_html = _render_markdown(assignment.assignment_text)
         duration_seconds = None
         if rubric.finished_at:
             finished_at = _as_utc(rubric.finished_at)
@@ -1874,6 +1875,7 @@ def create_app():
             "rubric_detail.html",
             rubric=rubric,
             assignment=assignment,
+            assignment_html=assignment_html,
             duration_seconds=duration_seconds,
             rubric_structured=rubric_structured,
             reference_structured=reference_structured,
