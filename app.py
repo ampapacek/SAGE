@@ -112,6 +112,8 @@ TRANSLATIONS = {
         "archived_on": "Archived",
         "folder_move_up": "Move folder up",
         "folder_move_down": "Move folder down",
+        "show_archived_folders": "Show archived folders",
+        "hide_archived_folders": "Hide archived folders",
         "folder_empty_hint": (
             "Folder is empty. Drag an assignment here, or create a new one with this folder selected."
         ),
@@ -379,6 +381,8 @@ TRANSLATIONS = {
         "archived_on": "Archivováno",
         "folder_move_up": "Posunout složku nahoru",
         "folder_move_down": "Posunout složku dolů",
+        "show_archived_folders": "Zobrazit archivované složky",
+        "hide_archived_folders": "Skrýt archivované složky",
         "folder_empty_hint": (
             "Složka je prázdná. Přetáhněte sem úkol, nebo vytvořte nový s touto složkou."
         ),

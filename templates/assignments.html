@@ -58,6 +58,16 @@
                   <button type="submit" name="direction" value="up" class="secondary folder-reorder" title="{{ t('folder_move_up') }}">^</button>
                   <button type="submit" name="direction" value="down" class="secondary folder-reorder" title="{{ t('folder_move_down') }}">v</button>
                 </form>
+                <form
+                  method="post"
+                  action="{{ url_for('delete_folder') }}"
+                  class="folder-archive-form"
+                  data-count="{{ folder.assignments | length }}"
+                >
+                  <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                  <input type="hidden" name="delete_mode" value="archive" />
+                  <button type="submit" class="secondary">{{ t('archive_folder') }}</button>
+                </form>
                 <button
                   type="button"
                   class="secondary folder-rename-toggle"
@@ -174,7 +184,19 @@
       {% endfor %}
       {% if archived_foldered_assignments %}
         <div class="section-divider"></div>
-        <h3 class="archived-title">{{ t('archived_folders') }}</h3>
+        <div class="archived-header">
+          <h3 class="archived-title">{{ t('archived_folders') }}</h3>
+          <button
+            type="button"
+            class="secondary"
+            id="archived-toggle"
+            data-show-label="{{ t('show_archived_folders') }}"
+            data-hide-label="{{ t('hide_archived_folders') }}"
+          >
+            {{ t('hide_archived_folders') }}
+          </button>
+        </div>
+        <div id="archived-folders">
         {% for folder in archived_foldered_assignments %}
           <div class="folder-group archived" data-folder-value="{{ folder.value }}" data-drop-enabled="false">
             <div class="folder-header">
@@ -299,6 +321,7 @@
             {% endif %}
           </div>
         {% endfor %}
+        </div>
       {% endif %}
     {% else %}
       <p>{{ t('no_assignments') }}</p>
@@ -338,11 +361,15 @@
           var countEl = group.querySelector(".folder-count");
           var rows = group.querySelectorAll("tbody tr");
           var deleteForm = group.querySelector(".folder-delete-form");
+          var archiveForm = group.querySelector(".folder-archive-form");
           if (countEl) {
             countEl.textContent = rows.length;
           }
           if (deleteForm) {
             deleteForm.dataset.count = rows.length;
+          }
+          if (archiveForm) {
+            archiveForm.dataset.count = rows.length;
           }
         });
       }
@@ -485,7 +512,7 @@
   </script>
   <script>
     (function () {
-      var forms = document.querySelectorAll(".folder-delete-form");
+      var forms = document.querySelectorAll(".folder-delete-form, .folder-archive-form");
       if (!forms.length) {
         return;
       }
@@ -493,17 +520,32 @@
       var hardMessage = "{{ t('hard_delete_folder_confirm') }}";
       forms.forEach(function (form) {
         form.addEventListener("submit", function (event) {
-          var mode = form.querySelector('input[name="delete_mode"]:checked');
+          var modeInput = form.querySelector('input[name="delete_mode"]:checked') || form.querySelector('input[name="delete_mode"]');
+          var mode = modeInput ? modeInput.value : "archive";
           var count = parseInt(form.dataset.count || "0", 10);
           if (!count) {
             return;
           }
-          var message = mode && mode.value === "hard" ? hardMessage : archiveMessage;
+          var message = mode === "hard" ? hardMessage : archiveMessage;
           message = message.replace("{count}", count);
           if (!window.confirm(message)) {
             event.preventDefault();
           }
         });
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var toggle = document.getElementById("archived-toggle");
+      var target = document.getElementById("archived-folders");
+      if (!toggle || !target) {
+        return;
+      }
+      toggle.addEventListener("click", function () {
+        var isHidden = target.classList.contains("hidden");
+        target.classList.toggle("hidden");
+        toggle.textContent = isHidden ? toggle.dataset.hideLabel : toggle.dataset.showLabel;
       });
     })();
   </script>
