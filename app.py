@@ -38,6 +38,7 @@ from models import (
     RubricVersion,
     SubmissionFile,
     Submission,
+    FolderOrder,
 )
 from processing.file_ingest import (
     collect_submission_images,
@@ -109,6 +110,8 @@ TRANSLATIONS = {
         "hard_delete_folder_confirm": "Permanently delete {count} assignments in this folder? This cannot be undone.",
         "archived_folders": "Archived folders",
         "archived_on": "Archived",
+        "folder_move_up": "Move folder up",
+        "folder_move_down": "Move folder down",
         "folder_empty_hint": (
             "Folder is empty. Drag an assignment here, or create a new one with this folder selected."
         ),
@@ -374,6 +377,8 @@ TRANSLATIONS = {
         "hard_delete_folder_confirm": "Trvale smazat {count} úkolů v této složce? Nelze vrátit zpět.",
         "archived_folders": "Archivované složky",
         "archived_on": "Archivováno",
+        "folder_move_up": "Posunout složku nahoru",
+        "folder_move_down": "Posunout složku dolů",
         "folder_empty_hint": (
             "Složka je prázdná. Přetáhněte sem úkol, nebo vytvořte nový s touto složkou."
         ),
@@ -979,26 +984,71 @@ def _normalize_folder_name(value):
     return (value or "").strip()
 
 
+def _folder_name_map(assignments=None, rows=None):
+    if rows is None and assignments is None:
+        return {}
+    if rows is None:
+        rows = [(assignment.folder_name,) for assignment in assignments]
+    names = {}
+    for row in rows:
+        folder = _normalize_folder_name(row[0])
+        if not folder:
+            continue
+        key = folder.lower()
+        if key not in names:
+            names[key] = folder
+    return names
+
+
+def _ordered_folder_names(names_map):
+    if not names_map:
+        return []
+    keys = list(names_map.keys())
+    rows = (
+        FolderOrder.query.filter(FolderOrder.sort_key.in_(keys))
+        .order_by(FolderOrder.position.asc())
+        .all()
+    )
+    ordered = []
+    used = set()
+    for row in rows:
+        if row.sort_key in names_map:
+            ordered.append(names_map[row.sort_key])
+            used.add(row.sort_key)
+    remaining = sorted((names_map[key] for key in keys if key not in used), key=str.lower)
+    ordered.extend(remaining)
+    return ordered
+
+
 def _folder_options(assignments=None, include_archived=False):
     if assignments is None:
         query = db.session.query(Assignment.folder_name)
         if not include_archived:
             query = query.filter(Assignment.archived_at.is_(None))
         rows = query.distinct().all()
+        names_map = _folder_name_map(rows=rows)
     else:
-        rows = [(assignment.folder_name,) for assignment in assignments]
-    options = []
-    seen = set()
-    for row in rows:
-        folder = _normalize_folder_name(row[0])
-        if not folder:
-            continue
-        key = folder.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        options.append(folder)
-    return sorted(options, key=str.lower)
+        names_map = _folder_name_map(assignments=assignments)
+    return _ordered_folder_names(names_map)
+
+
+def _save_folder_order(folder_names):
+    if not folder_names:
+        return
+    keys = [name.lower() for name in folder_names]
+    existing = FolderOrder.query.filter(FolderOrder.sort_key.in_(keys)).all()
+    existing_map = {row.sort_key: row for row in existing}
+    for index, name in enumerate(folder_names):
+        key = name.lower()
+        row = existing_map.get(key)
+        if row:
+            row.name = name
+            row.sort_key = key
+            row.position = index
+        else:
+            db.session.add(
+                FolderOrder(name=name, sort_key=key, position=index)
+            )
 
 
 def _build_folder_groups(assignments, include_unassigned, unassigned_label, archived=False):
@@ -1018,9 +1068,9 @@ def _build_folder_groups(assignments, include_unassigned, unassigned_label, arch
                 "assignments": [],
                 "archived": archived,
             }
-        folder_map[key]["assignments"].append(assignment)
-    folder_options = _folder_options(assignments=assignments)
-    for folder in folder_options:
+            folder_map[key]["assignments"].append(assignment)
+    folder_names = _ordered_folder_names(_folder_name_map(assignments=assignments))
+    for folder in folder_names:
         group = folder_map.get(folder.lower())
         if group:
             foldered_assignments.append(group)
@@ -1932,6 +1982,28 @@ def create_app():
             Assignment.folder_name.isnot(None),
             func.lower(Assignment.folder_name) == current_name.lower(),
         ).update({Assignment.folder_name: new_name}, synchronize_session=False)
+        existing_order = FolderOrder.query.filter(
+            FolderOrder.sort_key == current_name.lower()
+        ).first()
+        target_order = FolderOrder.query.filter(
+            FolderOrder.sort_key == new_name.lower()
+        ).first()
+        if existing_order:
+            if target_order and target_order.id != existing_order.id:
+                db.session.delete(existing_order)
+            else:
+                existing_order.name = new_name
+                existing_order.sort_key = new_name.lower()
+        elif not target_order:
+            max_position = db.session.query(func.max(FolderOrder.position)).scalar()
+            next_position = (max_position or 0) + 1
+            db.session.add(
+                FolderOrder(
+                    name=new_name,
+                    sort_key=new_name.lower(),
+                    position=next_position,
+                )
+            )
         db.session.commit()
         return redirect(url_for("list_assignments"))
 
@@ -2004,6 +2076,9 @@ def create_app():
         Assignment.query.filter(
             Assignment.id.in_(assignment_ids)
         ).delete(synchronize_session=False)
+        FolderOrder.query.filter(
+            FolderOrder.sort_key == folder_name.lower()
+        ).delete(synchronize_session=False)
         db.session.commit()
 
         for assignment_id in assignment_ids:
@@ -2011,6 +2086,52 @@ def create_app():
             shutil.rmtree(PROCESSED_DIR / f"assignment_{assignment_id}", ignore_errors=True)
 
         flash("Folder deleted.")
+        return redirect(url_for("list_assignments"))
+
+    @app.route("/folders/reorder", methods=["POST"])
+    def reorder_folder():
+        folder_name = _normalize_folder_name(request.form.get("folder_name", ""))
+        direction = request.form.get("direction", "")
+        archived_flag = request.form.get("archived", "0")
+        if not folder_name or direction not in {"up", "down"}:
+            flash("Invalid folder reorder request.")
+            return redirect(url_for("list_assignments"))
+
+        is_archived = archived_flag in {"1", "true", "yes", "on"}
+        if is_archived:
+            assignments = (
+                Assignment.query.filter(Assignment.archived_at.isnot(None))
+                .order_by(Assignment.archived_at.desc())
+                .all()
+            )
+        else:
+            assignments = (
+                Assignment.query.filter(Assignment.archived_at.is_(None))
+                .order_by(Assignment.created_at.desc())
+                .all()
+            )
+
+        names_map = _folder_name_map(assignments=assignments)
+        ordered_names = _ordered_folder_names(names_map)
+        if not ordered_names:
+            return redirect(url_for("list_assignments"))
+
+        key = folder_name.lower()
+        index_map = {name.lower(): idx for idx, name in enumerate(ordered_names)}
+        current_index = index_map.get(key)
+        if current_index is None:
+            return redirect(url_for("list_assignments"))
+
+        swap_index = current_index - 1 if direction == "up" else current_index + 1
+        if swap_index < 0 or swap_index >= len(ordered_names):
+            return redirect(url_for("list_assignments"))
+
+        ordered_names[current_index], ordered_names[swap_index] = (
+            ordered_names[swap_index],
+            ordered_names[current_index],
+        )
+        _save_folder_order(ordered_names)
+        db.session.commit()
         return redirect(url_for("list_assignments"))
 
     @app.route("/assignments/<int:assignment_id>/rubrics/create", methods=["POST"])

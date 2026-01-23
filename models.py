@@ -108,3 +108,10 @@ class GradeResult(db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     rubric_version = db.relationship("RubricVersion", backref="grade_results", lazy=True)
+
+
+class FolderOrder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, unique=True)
+    sort_key = db.Column(db.String(255), nullable=False, unique=True)
+    position = db.Column(db.Integer, nullable=False, default=0)

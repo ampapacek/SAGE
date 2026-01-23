@@ -52,6 +52,12 @@
             <div class="folder-actions">
               <span class="folder-count">{{ folder.assignments | length }}</span>
               {% if folder.value %}
+                <form method="post" action="{{ url_for('reorder_folder') }}" class="folder-reorder-form">
+                  <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                  <input type="hidden" name="archived" value="0" />
+                  <button type="submit" name="direction" value="up" class="secondary folder-reorder" title="{{ t('folder_move_up') }}">^</button>
+                  <button type="submit" name="direction" value="down" class="secondary folder-reorder" title="{{ t('folder_move_down') }}">v</button>
+                </form>
                 <button
                   type="button"
                   class="secondary folder-rename-toggle"
@@ -176,6 +182,12 @@
               <div class="folder-actions">
                 <span class="folder-count">{{ folder.assignments | length }}</span>
                 {% if folder.value %}
+                  <form method="post" action="{{ url_for('reorder_folder') }}" class="folder-reorder-form">
+                    <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                    <input type="hidden" name="archived" value="1" />
+                    <button type="submit" name="direction" value="up" class="secondary folder-reorder" title="{{ t('folder_move_up') }}">^</button>
+                    <button type="submit" name="direction" value="down" class="secondary folder-reorder" title="{{ t('folder_move_down') }}">v</button>
+                  </form>
                   <button
                     type="button"
                     class="secondary folder-rename-toggle"
