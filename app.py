@@ -1585,14 +1585,14 @@ def create_app():
                     "assignments": [],
                 }
             folder_map[key]["assignments"].append(assignment)
-        if assignments:
-            foldered_assignments.append(
-                {"name": t("folder_unassigned"), "value": "", "assignments": unassigned}
-            )
         for folder in folder_options:
             group = folder_map.get(folder.lower())
             if group:
                 foldered_assignments.append(group)
+        if assignments:
+            foldered_assignments.append(
+                {"name": t("folder_unassigned"), "value": "", "assignments": unassigned}
+            )
         return render_template(
             "assignments.html",
             assignments=assignments,
