@@ -46,9 +46,21 @@
         <div class="folder-group" data-folder-value="{{ folder.value }}">
           <div class="folder-header">
             <h3>{{ folder.name }}</h3>
-            <span class="folder-count">{{ folder.assignments | length }}</span>
+            <div class="folder-actions">
+              <span class="folder-count">{{ folder.assignments | length }}</span>
+              <button
+                type="button"
+                class="secondary folder-toggle"
+                data-toggle-target="folder-table-{{ loop.index }}"
+                data-show-label="{{ t('show_folder') }}"
+                data-hide-label="{{ t('hide_folder') }}"
+              >
+                {{ t('hide_folder') }}
+              </button>
+            </div>
           </div>
-          <table>
+          <div id="folder-table-{{ loop.index }}">
+            <table>
             <thead>
               <tr>
                 <th class="drag-cell">{{ t('move') }}</th>
@@ -78,7 +90,8 @@
                 </tr>
               {% endfor %}
             </tbody>
-          </table>
+            </table>
+          </div>
           {% if not loop.last %}
             <div class="section-divider"></div>
           {% endif %}
@@ -198,6 +211,26 @@
             .catch(function () {
               alert(errorMessage);
             });
+        });
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var toggles = document.querySelectorAll(".folder-toggle");
+      if (!toggles.length) {
+        return;
+      }
+      toggles.forEach(function (button) {
+        var targetId = button.getAttribute("data-toggle-target");
+        var target = document.getElementById(targetId);
+        if (!target) {
+          return;
+        }
+        button.addEventListener("click", function () {
+          var isHidden = target.classList.contains("hidden");
+          target.classList.toggle("hidden");
+          button.textContent = isHidden ? button.dataset.hideLabel : button.dataset.showLabel;
         });
       });
     })();
