@@ -49,6 +49,8 @@
     {% endif %}
     {% if foldered_assignments %}
       <p class="helper-text">{{ t('drag_hint') }}</p>
+      <p class="helper-text">{{ t('folder_count_hint') }}</p>
+      <p class="helper-text">{{ t('folder_move_hint') }}</p>
     {% endif %}
     {% if assignments %}
       {% for folder in foldered_assignments %}
