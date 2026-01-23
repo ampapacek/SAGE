@@ -114,6 +114,9 @@ TRANSLATIONS = {
         "folder_move_down": "Move folder down",
         "show_archived_folders": "Show archived folders",
         "hide_archived_folders": "Hide archived folders",
+        "open_folder": "Open folder",
+        "back_to_all_folders": "Back to all folders",
+        "viewing_folder": "Viewing folder",
         "folder_empty_hint": (
             "Folder is empty. Drag an assignment here, or create a new one with this folder selected."
         ),
@@ -383,6 +386,9 @@ TRANSLATIONS = {
         "folder_move_down": "Posunout složku dolů",
         "show_archived_folders": "Zobrazit archivované složky",
         "hide_archived_folders": "Skrýt archivované složky",
+        "open_folder": "Otevřít složku",
+        "back_to_all_folders": "Zpět na všechny složky",
+        "viewing_folder": "Zobrazená složka",
         "folder_empty_hint": (
             "Složka je prázdná. Přetáhněte sem úkol, nebo vytvořte nový s touto složkou."
         ),
@@ -1729,6 +1735,8 @@ def create_app():
             .all()
         )
         assignments = active_assignments + archived_assignments
+        folder_filter = (request.args.get("folder") or "").strip()
+        archived_filter = request.args.get("archived", "0") in {"1", "true", "yes", "on"}
         folder_options = _folder_options(assignments=active_assignments)
         foldered_assignments = _build_folder_groups(
             active_assignments,
@@ -1742,12 +1750,60 @@ def create_app():
             unassigned_label=t("folder_unassigned"),
             archived=True,
         )
+        viewing_folder = None
+        if folder_filter:
+            folder_key = (
+                FOLDER_UNSORTED_KEY
+                if folder_filter == FOLDER_UNSORTED_KEY
+                else _normalize_folder_name(folder_filter).lower()
+            )
+            if archived_filter:
+                source = archived_foldered_assignments
+                filtered = [f for f in source if f.get("order_key") == folder_key]
+                if not filtered and folder_key == FOLDER_UNSORTED_KEY:
+                    filtered = [
+                        {
+                            "name": t("folder_unassigned"),
+                            "value": "",
+                            "order_key": FOLDER_UNSORTED_KEY,
+                            "reorderable": True,
+                            "assignments": [],
+                            "archived": True,
+                        }
+                    ]
+                archived_foldered_assignments = filtered
+                foldered_assignments = []
+            else:
+                source = foldered_assignments
+                filtered = [f for f in source if f.get("order_key") == folder_key]
+                if not filtered and folder_key == FOLDER_UNSORTED_KEY:
+                    filtered = [
+                        {
+                            "name": t("folder_unassigned"),
+                            "value": "",
+                            "order_key": FOLDER_UNSORTED_KEY,
+                            "reorderable": True,
+                            "assignments": [],
+                            "archived": False,
+                        }
+                    ]
+                foldered_assignments = filtered
+                archived_foldered_assignments = []
+            if (foldered_assignments or archived_foldered_assignments) and folder_key:
+                group = (
+                    (foldered_assignments or archived_foldered_assignments)[0]
+                    if (foldered_assignments or archived_foldered_assignments)
+                    else None
+                )
+                if group:
+                    viewing_folder = group.get("name")
         return render_template(
             "assignments.html",
             assignments=assignments,
             folder_options=folder_options,
             foldered_assignments=foldered_assignments,
             archived_foldered_assignments=archived_foldered_assignments,
+            viewing_folder=viewing_folder,
         )
 
     @app.route("/assignments/<int:assignment_id>")

@@ -41,6 +41,12 @@
 
   <div class="card">
     <h2>{{ t('assignments_title') }}</h2>
+    {% if viewing_folder %}
+      <div class="folder-view-banner">
+        <p class="helper-text">{{ t('viewing_folder') }}: {{ viewing_folder }}</p>
+        <a class="action-link folder-open-link" href="{{ url_for('list_assignments') }}">{{ t('back_to_all_folders') }}</a>
+      </div>
+    {% endif %}
     {% if foldered_assignments %}
       <p class="helper-text">{{ t('drag_hint') }}</p>
     {% endif %}
@@ -59,6 +65,12 @@
                   <button type="submit" name="direction" value="down" class="secondary folder-reorder" title="{{ t('folder_move_down') }}">v</button>
                 </form>
               {% endif %}
+              <a
+                class="action-link folder-open-link"
+                href="{{ url_for('list_assignments', folder=folder.order_key, archived=0) }}"
+              >
+                {{ t('open_folder') }}
+              </a>
               {% if folder.value %}
                 <form
                   method="post"
@@ -213,6 +225,12 @@
                     <button type="submit" name="direction" value="down" class="secondary folder-reorder" title="{{ t('folder_move_down') }}">v</button>
                   </form>
                 {% endif %}
+                <a
+                  class="action-link folder-open-link"
+                  href="{{ url_for('list_assignments', folder=folder.order_key, archived=1) }}"
+                >
+                  {{ t('open_folder') }}
+                </a>
                 {% if folder.value %}
                   <button
                     type="button"
