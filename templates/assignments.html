@@ -77,7 +77,10 @@
                   data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
                 >
                   <td class="drag-cell">
-                    <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}">drag</span>
+                    <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}" aria-label="{{ t('drag_to_move') }}">
+                      <span class="drag-icon" aria-hidden="true">&#x270B;</span>
+                      <span class="sr-only">{{ t('move') }}</span>
+                    </span>
                   </td>
                   <td>{{ assignment.title }}</td>
                   <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
