@@ -23,7 +23,7 @@
     {% if duration_seconds is not none %}
       <p>{{ t('duration_s') }}: {{ "%.2f"|format(duration_seconds) }}</p>
     {% endif %}
-    {% if rubric.price_estimate is not none %}
+    {% if show_costs and rubric.price_estimate is not none %}
       <p>{{ t('price_estimate') }}: <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">${{ "%.4f"|format(rubric.price_estimate) }}</span></p>
     {% endif %}
     {% if rubric.error_message %}

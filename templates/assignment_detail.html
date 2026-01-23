@@ -23,16 +23,18 @@
     <h2>{{ assignment.title }}</h2>
     <div class="markdown assignment-text">{{ assignment_html | safe }}</div>
     <div class="section-divider"></div>
-    <p class="assignment-meta">
-      {{ t('total_price_estimate') }}
-      {% if total_price_estimate is not none %}
-        <span class="price-amount" data-usd="{{ "%.6f"|format(total_price_estimate) }}">
-          ${{ "%.4f"|format(total_price_estimate) }}
-        </span>
-      {% else %}
-        --
-      {% endif %}
-    </p>
+    {% if show_costs %}
+      <p class="assignment-meta">
+        {{ t('total_price_estimate') }}
+        {% if total_price_estimate is not none %}
+          <span class="price-amount" data-usd="{{ "%.6f"|format(total_price_estimate) }}">
+            ${{ "%.4f"|format(total_price_estimate) }}
+          </span>
+        {% else %}
+          --
+        {% endif %}
+      </p>
+    {% endif %}
     <a class="action-link" href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}">{{ t('edit_assignment') }}</a>
     <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
       <button type="submit" class="danger">{{ t('delete_assignment') }}</button>
@@ -57,7 +59,9 @@
             <th>{{ t('created') }}</th>
             <th>{{ t('model') }}</th>
             <th>{{ t('duration_s') }}</th>
-            <th>{{ t('price') }}</th>
+            {% if show_costs %}
+              <th>{{ t('price') }}</th>
+            {% endif %}
             <th>{{ t('preview') }}</th>
             <th>{{ t('actions') }}</th>
           </tr>
@@ -81,15 +85,17 @@
                   --
                 {% endif %}
               </td>
-              <td>
-                {% if rubric.price_estimate is not none %}
-                  <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">
-                    ${{ "%.4f"|format(rubric.price_estimate) }}
-                  </span>
-                {% else %}
-                  --
-                {% endif %}
-              </td>
+              {% if show_costs %}
+                <td>
+                  {% if rubric.price_estimate is not none %}
+                    <span class="price-amount" data-usd="{{ "%.6f"|format(rubric.price_estimate) }}">
+                      ${{ "%.4f"|format(rubric.price_estimate) }}
+                    </span>
+                  {% else %}
+                    --
+                  {% endif %}
+                </td>
+              {% endif %}
               <td>
                 {% if rubric.preview_parts %}
                   {% if rubric.preview_total_points is not none %}
@@ -530,7 +536,9 @@
             <th>{{ t('provider') }}</th>
             <th>{{ t('model') }}</th>
             <th>{{ t('duration_s') }}</th>
-            <th>{{ t('price') }}</th>
+            {% if show_costs %}
+              <th>{{ t('price') }}</th>
+            {% endif %}
             <th></th>
           </tr>
         </thead>
@@ -554,15 +562,17 @@
                   --
                 {% endif %}
               </td>
-              <td>
-                {% if job.price_estimate_display is not none %}
-                  <span class="price-amount" data-usd="{{ "%.6f"|format(job.price_estimate_display) }}">
-                    ${{ "%.4f"|format(job.price_estimate_display) }}
-                  </span>
-                {% else %}
-                  --
-                {% endif %}
-              </td>
+              {% if show_costs %}
+                <td>
+                  {% if job.price_estimate_display is not none %}
+                    <span class="price-amount" data-usd="{{ "%.6f"|format(job.price_estimate_display) }}">
+                      ${{ "%.4f"|format(job.price_estimate_display) }}
+                    </span>
+                  {% else %}
+                    --
+                  {% endif %}
+                </td>
+              {% endif %}
               <td>
                 <a class="action-link" href="{{ url_for('job_detail', job_id=job.id) }}">{{ t('view') }}</a>
                 {% if job.status in ['QUEUED', 'RUNNING'] %}

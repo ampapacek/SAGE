@@ -757,6 +757,13 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
+        "key": "SHOW_COSTS",
+        "label": "Show Cost Estimates",
+        "type": "checkbox",
+        "help": "Show price estimates across assignments, guides, and jobs.",
+        "restart": False,
+    },
+    {
         "key": "REDIS_URL",
         "label": "Redis URL",
         "type": "text",
@@ -1477,6 +1484,10 @@ def create_app():
     @app.before_request
     def set_locale():
         g.locale = _get_locale()
+
+    @app.context_processor
+    def inject_settings():
+        return {"show_costs": app.config.get("SHOW_COSTS", True)}
 
     @app.route("/")
     def index():
@@ -2386,7 +2397,7 @@ def create_app():
             for key, value in updates.items():
                 os.environ[key] = value
                 app.config[key] = value
-                if key in {"LLM_USE_JSON_MODE"}:
+                if key in {"LLM_USE_JSON_MODE", "SHOW_COSTS"}:
                     app.config[key] = value.lower() in {"1", "true", "yes", "on"}
                 if key in {
                     "LLM_MAX_OUTPUT_TOKENS",

@@ -70,6 +70,12 @@ class Config:
         "yes",
         "on",
     }
+    SHOW_COSTS = os.environ.get("SHOW_COSTS", "1").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
     REDIS_URL = os.environ.get("REDIS_URL", "")
     PDF_DPI = int(os.environ.get("PDF_DPI", 300))

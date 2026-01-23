@@ -22,7 +22,7 @@
     {% else %}
       <p>{{ t('duration_s') }}: <span id="job-duration">--</span></p>
     {% endif %}
-    {% if job_price_display is not none %}
+    {% if show_costs and job_price_display is not none %}
       <p>{{ t('price_estimate') }}: <span class="price-amount" data-usd="{{ "%.6f"|format(job_price_display) }}">${{ "%.4f"|format(job_price_display) }}</span></p>
     {% endif %}
     {% if job.message %}
