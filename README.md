@@ -103,6 +103,7 @@ Key variables:
 - `LLM_PRICE_INPUT_PER_1K`: fallback input token price per 1K tokens (used when model is unknown)
 - `LLM_PRICE_OUTPUT_PER_1K`: fallback output token price per 1K tokens (used when model is unknown)
 - `LLM_IMAGE_TOKENS_PER_IMAGE`: estimated token cost per image for pricing estimates
+- `SHOW_COSTS`: set to `0` to hide price estimates in the UI
 - `REDIS_URL`: optional; if missing, a local background thread processes jobs
 - `MAX_CONTENT_LENGTH`: upload size limit in bytes
 
@@ -133,6 +134,7 @@ Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app fall
 ## Using the App
 
 1) Create an assignment with title and assignment text.
+   - Optionally select or create a folder (subject) to organize assignments.
 2) Add a grading guide manually or generate a draft via the LLM. Approve the guide before grading.
 3) Upload submissions:
    - Single upload: provide `student_identifier`, optional text, and files.
@@ -140,6 +142,10 @@ Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app fall
 4) Jobs are queued automatically after upload (requires an approved guide).
 5) Review grading output on the submission detail page.
 6) Export grades via the **Export CSV** link on the assignment page.
+
+Folder organization (assignments page):
+- Drag assignments between folders, reorder folders with arrows, and open a folder to focus the view.
+- Archive folders to hide them, or hard delete to remove all assignments in the folder.
 
 ## Notes
 
