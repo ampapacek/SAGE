@@ -356,6 +356,8 @@ TRANSLATIONS = {
         ),
         "license_notice": "Licensed under Apache 2.0.",
         "ideas_note": "Have ideas for improvement? Email ales.papacek@seznam.cz or open an issue on GitHub.",
+        "github_issues_link": "https://github.com/ampapacek/SAGE/issues",
+        "github_issues_label": "GitHub",
     },
     "cs": {
         "nav_back": "Zpět",
@@ -631,6 +633,8 @@ TRANSLATIONS = {
         ),
         "license_notice": "Licencováno pod Apache 2.0.",
         "ideas_note": "Máte nápad na zlepšení? Napište na ales.papacek@seznam.cz nebo založte issue na GitHubu.",
+        "github_issues_link": "https://github.com/ampapacek/SAGE/issues",
+        "github_issues_label": "GitHubu",
     },
 }
 _SETTINGS_FIELDS = [

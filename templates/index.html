@@ -52,6 +52,27 @@
       width: 18px;
       height: 18px;
     }
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .github-link:hover {
+      background: var(--file-hover-bg);
+    }
+    .github-icon {
+      display: block;
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
     .btn-text {
       font-size: 12px;
       color: var(--muted);
@@ -339,6 +360,14 @@
           </a>
           <p class="btn-text">{{ t('hero_quickstart_desc') }}</p>
         </div>
+        <div class="hero-action">
+          <a class="github-link" href="https://github.com/ampapacek/SAGE" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.58 2 12.22c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.78.62-3.37-1.37-3.37-1.37-.46-1.2-1.12-1.52-1.12-1.52-.91-.64.07-.63.07-.63 1.01.07 1.54 1.05 1.54 1.05.9 1.58 2.36 1.12 2.94.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05.8-.23 1.65-.34 2.5-.35.85.01 1.7.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.06.36.32.68.95.68 1.92 0 1.38-.01 2.49-.01 2.83 0 .27.18.59.69.49 3.97-1.36 6.84-5.19 6.84-9.71C22 6.58 17.52 2 12 2z"/>
+            </svg>
+            <span class="sr-only">GitHub</span>
+          </a>
+        </div>
       </div>
       <div class="hero-chips">
         <span class="hero-chip">{{ t('hero_chip_llm') }}</span>
@@ -508,7 +537,9 @@
     <p class="feature-text">{{ t('responsible_use_p1') }}</p>
     <p class="feature-text" style="margin-top: 10px;">{{ t('responsible_use_p2') }}</p>
     <p class="helper-text" style="margin-top: 12px;">{{ t('license_notice') }}</p>
-    <p class="helper-text" style="margin-top: 8px;">{{ t('ideas_note') }}</p>
+    <p class="helper-text" style="margin-top: 8px;">
+      {{ t('ideas_note') | replace(t('github_issues_label'), '<a href=\"' ~ t('github_issues_link') ~ '\" target=\"_blank\" rel=\"noopener noreferrer\">' ~ t('github_issues_label') ~ '</a>') | safe }}
+    </p>
   </div>
 
   <div class="card cta-card">
