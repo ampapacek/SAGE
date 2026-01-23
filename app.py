@@ -988,6 +988,9 @@ def _normalize_folder_name(value):
     return (value or "").strip()
 
 
+FOLDER_UNSORTED_KEY = "__unsorted__"
+
+
 def _folder_name_map(assignments=None, rows=None):
     if rows is None and assignments is None:
         return {}
@@ -1004,24 +1007,34 @@ def _folder_name_map(assignments=None, rows=None):
     return names
 
 
-def _ordered_folder_names(names_map):
-    if not names_map:
+def _ordered_folder_keys(names_map, include_unsorted):
+    if not names_map and not include_unsorted:
         return []
     keys = list(names_map.keys())
+    order_keys = list(keys)
+    if include_unsorted:
+        order_keys.append(FOLDER_UNSORTED_KEY)
     rows = (
-        FolderOrder.query.filter(FolderOrder.sort_key.in_(keys))
+        FolderOrder.query.filter(FolderOrder.sort_key.in_(order_keys))
         .order_by(FolderOrder.position.asc())
         .all()
     )
     ordered = []
     used = set()
     for row in rows:
-        if row.sort_key in names_map:
-            ordered.append(names_map[row.sort_key])
+        if row.sort_key in order_keys and row.sort_key not in used:
+            ordered.append(row.sort_key)
             used.add(row.sort_key)
-    remaining = sorted((names_map[key] for key in keys if key not in used), key=str.lower)
+    remaining = sorted((key for key in keys if key not in used), key=str.lower)
     ordered.extend(remaining)
+    if include_unsorted and FOLDER_UNSORTED_KEY not in used:
+        ordered.append(FOLDER_UNSORTED_KEY)
     return ordered
+
+
+def _ordered_folder_names(names_map):
+    ordered_keys = _ordered_folder_keys(names_map, include_unsorted=False)
+    return [names_map[key] for key in ordered_keys if key in names_map]
 
 
 def _folder_options(assignments=None, include_archived=False):
@@ -1036,14 +1049,16 @@ def _folder_options(assignments=None, include_archived=False):
     return _ordered_folder_names(names_map)
 
 
-def _save_folder_order(folder_names):
-    if not folder_names:
+def _save_folder_order_keys(order_keys, names_map, unassigned_label):
+    if not order_keys:
         return
-    keys = [name.lower() for name in folder_names]
-    existing = FolderOrder.query.filter(FolderOrder.sort_key.in_(keys)).all()
+    existing = FolderOrder.query.filter(FolderOrder.sort_key.in_(order_keys)).all()
     existing_map = {row.sort_key: row for row in existing}
-    for index, name in enumerate(folder_names):
-        key = name.lower()
+    for index, key in enumerate(order_keys):
+        if key == FOLDER_UNSORTED_KEY:
+            name = unassigned_label
+        else:
+            name = names_map.get(key, key)
         row = existing_map.get(key)
         if row:
             row.name = name
@@ -1073,20 +1088,27 @@ def _build_folder_groups(assignments, include_unassigned, unassigned_label, arch
                 "archived": archived,
             }
             folder_map[key]["assignments"].append(assignment)
-    folder_names = _ordered_folder_names(_folder_name_map(assignments=assignments))
-    for folder in folder_names:
-        group = folder_map.get(folder.lower())
+    names_map = _folder_name_map(assignments=assignments)
+    include_unsorted = include_unassigned or bool(unassigned)
+    ordered_keys = _ordered_folder_keys(names_map, include_unsorted)
+    for key in ordered_keys:
+        if key == FOLDER_UNSORTED_KEY:
+            foldered_assignments.append(
+                {
+                    "name": unassigned_label,
+                    "value": "",
+                    "order_key": FOLDER_UNSORTED_KEY,
+                    "reorderable": True,
+                    "assignments": unassigned,
+                    "archived": archived,
+                }
+            )
+            continue
+        group = folder_map.get(key)
         if group:
+            group["order_key"] = key
+            group["reorderable"] = True
             foldered_assignments.append(group)
-    if include_unassigned or unassigned:
-        foldered_assignments.append(
-            {
-                "name": unassigned_label,
-                "value": "",
-                "assignments": unassigned,
-                "archived": archived,
-            }
-        )
     return foldered_assignments
 
 
@@ -2094,10 +2116,13 @@ def create_app():
 
     @app.route("/folders/reorder", methods=["POST"])
     def reorder_folder():
-        folder_name = _normalize_folder_name(request.form.get("folder_name", ""))
+        raw_key = request.form.get("folder_order_key", "") or request.form.get(
+            "folder_name", ""
+        )
+        folder_key = raw_key.strip()
         direction = request.form.get("direction", "")
         archived_flag = request.form.get("archived", "0")
-        if not folder_name or direction not in {"up", "down"}:
+        if not folder_key or direction not in {"up", "down"}:
             flash("Invalid folder reorder request.")
             return redirect(url_for("list_assignments"))
 
@@ -2116,25 +2141,30 @@ def create_app():
             )
 
         names_map = _folder_name_map(assignments=assignments)
-        ordered_names = _ordered_folder_names(names_map)
-        if not ordered_names:
+        unassigned_exists = any(
+            not _normalize_folder_name(assignment.folder_name)
+            for assignment in assignments
+        )
+        key = folder_key if folder_key == FOLDER_UNSORTED_KEY else folder_key.lower()
+        include_unsorted = unassigned_exists or key == FOLDER_UNSORTED_KEY
+        ordered_keys = _ordered_folder_keys(names_map, include_unsorted)
+        if not ordered_keys:
             return redirect(url_for("list_assignments"))
 
-        key = folder_name.lower()
-        index_map = {name.lower(): idx for idx, name in enumerate(ordered_names)}
+        index_map = {value: idx for idx, value in enumerate(ordered_keys)}
         current_index = index_map.get(key)
         if current_index is None:
             return redirect(url_for("list_assignments"))
 
         swap_index = current_index - 1 if direction == "up" else current_index + 1
-        if swap_index < 0 or swap_index >= len(ordered_names):
+        if swap_index < 0 or swap_index >= len(ordered_keys):
             return redirect(url_for("list_assignments"))
 
-        ordered_names[current_index], ordered_names[swap_index] = (
-            ordered_names[swap_index],
-            ordered_names[current_index],
+        ordered_keys[current_index], ordered_keys[swap_index] = (
+            ordered_keys[swap_index],
+            ordered_keys[current_index],
         )
-        _save_folder_order(ordered_names)
+        _save_folder_order_keys(ordered_keys, names_map, t("folder_unassigned"))
         db.session.commit()
         return redirect(url_for("list_assignments"))
 
