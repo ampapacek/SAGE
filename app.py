@@ -107,6 +107,7 @@ TRANSLATIONS = {
         "delete_folder": "Delete",
         "delete_folder_hint": "Choose archive to hide assignments, or hard delete to remove them.",
         "archive_folder": "Archive",
+        "unarchive_folder": "Unarchive",
         "hard_delete_folder": "Hard delete",
         "archive_folder_confirm": "Archive {count} assignments in this folder?",
         "hard_delete_folder_confirm": "Permanently delete {count} assignments in this folder? This cannot be undone.",
@@ -381,6 +382,7 @@ TRANSLATIONS = {
         "delete_folder": "Smazat",
         "delete_folder_hint": "Zvolte archivaci pro skrytí úkolů, nebo tvrdé smazání.",
         "archive_folder": "Archivovat",
+        "unarchive_folder": "Obnovit",
         "hard_delete_folder": "Trvale smazat",
         "archive_folder_confirm": "Archivovat {count} úkolů v této složce?",
         "hard_delete_folder_confirm": "Trvale smazat {count} úkolů v této složce? Nelze vrátit zpět.",
@@ -2172,6 +2174,31 @@ def create_app():
             shutil.rmtree(PROCESSED_DIR / f"assignment_{assignment_id}", ignore_errors=True)
 
         flash("Folder deleted.")
+        return redirect(url_for("list_assignments"))
+
+    @app.route("/folders/unarchive", methods=["POST"])
+    def unarchive_folder():
+        folder_name = _normalize_folder_name(request.form.get("folder_name", ""))
+        if not folder_name:
+            flash("Folder name is required.")
+            return redirect(url_for("list_assignments"))
+
+        assignments = (
+            Assignment.query.filter(
+                Assignment.folder_name.isnot(None),
+                func.lower(Assignment.folder_name) == folder_name.lower(),
+            )
+            .order_by(Assignment.created_at.desc())
+            .all()
+        )
+        if not assignments:
+            flash("Folder not found.")
+            return redirect(url_for("list_assignments"))
+
+        for assignment in assignments:
+            assignment.archived_at = None
+        db.session.commit()
+        flash("Folder restored.")
         return redirect(url_for("list_assignments"))
 
     @app.route("/folders/reorder", methods=["POST"])

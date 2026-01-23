@@ -234,6 +234,10 @@
                   {{ t('open_folder') }}
                 </a>
                 {% if folder.value %}
+                  <form method="post" action="{{ url_for('unarchive_folder') }}">
+                    <input type="hidden" name="folder_name" value="{{ folder.value }}" />
+                    <button type="submit" class="secondary">{{ t('unarchive_folder') }}</button>
+                  </form>
                   <button
                     type="button"
                     class="secondary folder-rename-toggle"
