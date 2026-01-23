@@ -1087,7 +1087,7 @@ def _build_folder_groups(assignments, include_unassigned, unassigned_label, arch
                 "assignments": [],
                 "archived": archived,
             }
-            folder_map[key]["assignments"].append(assignment)
+        folder_map[key]["assignments"].append(assignment)
     names_map = _folder_name_map(assignments=assignments)
     include_unsorted = include_unassigned or bool(unassigned)
     ordered_keys = _ordered_folder_keys(names_map, include_unsorted)
