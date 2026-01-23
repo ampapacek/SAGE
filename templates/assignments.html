@@ -42,6 +42,9 @@
   <div class="card">
     <h2>{{ t('assignments_title') }}</h2>
     {% if assignments %}
+      <p class="helper-text">{{ t('drag_hint') }}</p>
+    {% endif %}
+    {% if assignments %}
       {% for folder in foldered_assignments %}
         <div class="folder-group" data-folder-value="{{ folder.value }}">
           <div class="folder-header">
