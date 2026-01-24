@@ -19,7 +19,7 @@
     <p>{{ t('status') }}: <span class="status {{ rubric.status }}">{{ rubric.status }}</span></p>
     <p>{{ t('provider') }}: {{ provider_display }}</p>
     <p>{{ t('model') }}: {{ rubric.llm_model or 'manual' }}</p>
-    <p>{{ t('created') }}: {{ rubric.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p>{{ t('created') }}: {{ rubric.created_at.strftime('%b %d, %Y %H:%M') }}</p>
     {% if duration_seconds is not none %}
       <p>{{ t('duration_s') }}: {{ "%.2f"|format(duration_seconds) }}</p>
     {% endif %}
