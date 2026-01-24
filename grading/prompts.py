@@ -124,7 +124,9 @@ def build_assignment_draft_prompt(
 Create an assignment based on the topic or instructions.
 Return JSON only with keys title and assignment_text.
 Use the same language as the topic or instructions.
-Make assignment_text clear, self-contained, and ready for students.{format_rule}
+Make assignment_text clear, self-contained, and ready for students.
+Dont add additional information about submission or any hints if not rquested in instructions.
+{format_rule}
 {extra_block}
 
 Topic or instructions:
