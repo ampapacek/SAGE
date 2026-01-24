@@ -36,12 +36,12 @@
 
   <div class="card">
     <h3>{{ t('guide_text') }}</h3>
-    {% if rubric_structured %}
+    {% if rubric_structured_rendered %}
       <div class="guide-structured">
-        {% if rubric_structured.total_points is not none %}
-          <p><strong>{{ t('total_points') }}:</strong> {{ rubric_structured.total_points }}</p>
+        {% if rubric_structured_rendered.total_points is not none %}
+          <p><strong>{{ t('total_points') }}:</strong> {{ rubric_structured_rendered.total_points }}</p>
         {% endif %}
-        {% set parts = rubric_structured.get('parts') %}
+        {% set parts = rubric_structured_rendered.get('parts') %}
         {% if parts %}
           <table class="guide-table">
             <thead>
@@ -60,13 +60,17 @@
                     <td>
                       {% set criteria = part.criteria %}
                       {% if criteria is sequence and criteria is not string %}
+                        {% if criteria %}
                         <ul class="guide-list">
                           {% for item in criteria %}
-                            <li>{{ item }}</li>
+                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
                           {% endfor %}
                         </ul>
-                      {% elif criteria %}
-                        {{ criteria }}
+                        {% else %}
+                          --
+                        {% endif %}
+                      {% elif criteria is not none %}
+                        <div class="markdown markdown-inline">{{ criteria | safe }}</div>
                       {% else %}
                         --
                       {% endif %}
@@ -81,13 +85,17 @@
                     <td>
                       {% set criteria = part.criteria %}
                       {% if criteria is sequence and criteria is not string %}
+                        {% if criteria %}
                         <ul class="guide-list">
                           {% for item in criteria %}
-                            <li>{{ item }}</li>
+                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
                           {% endfor %}
                         </ul>
-                      {% elif criteria %}
-                        {{ criteria }}
+                        {% else %}
+                          --
+                        {% endif %}
+                      {% elif criteria is not none %}
+                        <div class="markdown markdown-inline">{{ criteria | safe }}</div>
                       {% else %}
                         --
                       {% endif %}
@@ -106,9 +114,9 @@
 
   <div class="card">
     <h3>{{ t('reference_solution') }}</h3>
-    {% if reference_structured %}
+    {% if reference_structured_rendered %}
       <div class="guide-structured">
-        {% for part_id, part in reference_structured.items() %}
+        {% for part_id, part in reference_structured_rendered.items() %}
           <div class="guide-part">
             <h4 style="margin: 0 0 6px;">{{ t('part_label') }} {{ part_id }}</h4>
             {% if part is mapping %}
@@ -117,9 +125,19 @@
                   <li>
                     <strong>{{ key|replace('_', ' ')|title }}:</strong>
                     {% if value is sequence and value is not string %}
-                      {{ value|join(', ') }}
+                      {% if value %}
+                        <ul class="guide-list">
+                          {% for item in value %}
+                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
+                          {% endfor %}
+                        </ul>
+                      {% else %}
+                        --
+                      {% endif %}
+                    {% elif value is not none %}
+                      <div class="markdown markdown-inline">{{ value | safe }}</div>
                     {% else %}
-                      {{ value }}
+                      --
                     {% endif %}
                   </li>
                 {% endfor %}
@@ -127,11 +145,11 @@
             {% elif part is sequence and part is not string %}
               <ul class="guide-list">
                 {% for item in part %}
-                  <li>{{ item }}</li>
+                  <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
                 {% endfor %}
               </ul>
             {% else %}
-              <p style="margin: 0;">{{ part }}</p>
+              <div class="markdown markdown-inline">{{ part | safe }}</div>
             {% endif %}
           </div>
         {% endfor %}
@@ -162,8 +180,21 @@
         <button type="submit" class="secondary">{{ t('cancel_generation') }}</button>
       </form>
     {% elif rubric.status == 'ERROR' %}
+      {% set formatted_checked = rubric.formatted_output if rubric.formatted_output is not none else formatted_output_default %}
       <form method="post" action="{{ url_for('rerun_rubric', rubric_id=rubric.id) }}">
-        <button type="submit" class="secondary">{{ t('rerun_guide') }}</button>
+        <div class="form-actions">
+          <input type="hidden" name="formatted_output" value="0" />
+          <label class="form-toggle">
+            <input
+              type="checkbox"
+              name="formatted_output"
+              value="1"
+              {% if formatted_checked %}checked{% endif %}
+            />
+            {{ t('formatted_output_label') }}
+          </label>
+          <button type="submit" class="secondary">{{ t('rerun_guide') }}</button>
+        </div>
       </form>
     {% elif rubric.status == 'APPROVED' %}
       <p>{{ t('approved_guide_in_use') }}</p>

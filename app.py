@@ -1177,6 +1177,79 @@ def _render_markdown(text):
     return cleaned
 
 
+def _render_markdown_fragment(value):
+    if value is None:
+        return ""
+    return _render_markdown(str(value))
+
+
+def _render_rubric_structured_markdown(structured):
+    if not isinstance(structured, dict):
+        return structured
+    parts = structured.get("parts")
+    if not parts:
+        return structured
+
+    def render_criteria(criteria):
+        if isinstance(criteria, list):
+            return [
+                _render_markdown_fragment(item) if isinstance(item, str) else item
+                for item in criteria
+            ]
+        if isinstance(criteria, str):
+            return _render_markdown_fragment(criteria)
+        return criteria
+
+    rendered = dict(structured)
+    if isinstance(parts, dict):
+        parts_rendered = {}
+        for part_id, part in parts.items():
+            if isinstance(part, dict):
+                part_copy = dict(part)
+                part_copy["criteria"] = render_criteria(part_copy.get("criteria"))
+                parts_rendered[part_id] = part_copy
+            else:
+                parts_rendered[part_id] = part
+        rendered["parts"] = parts_rendered
+    elif isinstance(parts, list):
+        parts_rendered = []
+        for part in parts:
+            if isinstance(part, dict):
+                part_copy = dict(part)
+                part_copy["criteria"] = render_criteria(part_copy.get("criteria"))
+                parts_rendered.append(part_copy)
+            else:
+                parts_rendered.append(part)
+        rendered["parts"] = parts_rendered
+    return rendered
+
+
+def _render_reference_structured_markdown(structured):
+    if not isinstance(structured, dict):
+        return structured
+
+    def render_value(value):
+        if isinstance(value, list):
+            return [
+                _render_markdown_fragment(item) if isinstance(item, str) else item
+                for item in value
+            ]
+        if isinstance(value, str):
+            return _render_markdown_fragment(value)
+        return value
+
+    rendered = {}
+    for part_id, part in structured.items():
+        if isinstance(part, dict):
+            part_copy = {}
+            for key, value in part.items():
+                part_copy[key] = render_value(value)
+            rendered[part_id] = part_copy
+        else:
+            rendered[part_id] = render_value(part)
+    return rendered
+
+
 def _build_guide_preview(rubric_text, max_parts=1, max_words=12):
     preview = {
         "total_points": None,
@@ -2448,11 +2521,21 @@ def create_app():
             structured, _error = safe_json_loads(rubric.rubric_text)
             if isinstance(structured, dict) and structured.get("parts"):
                 rubric_structured = structured
+        rubric_structured_rendered = None
+        if rubric_structured:
+            rubric_structured_rendered = _render_rubric_structured_markdown(
+                rubric_structured
+            )
         reference_structured = None
         if rubric.reference_solution_text:
             structured, _error = safe_json_loads(rubric.reference_solution_text)
             if isinstance(structured, dict):
                 reference_structured = structured
+        reference_structured_rendered = None
+        if reference_structured:
+            reference_structured_rendered = _render_reference_structured_markdown(
+                reference_structured
+            )
 
         provider_display = "manual"
         if rubric.llm_model:
@@ -2463,8 +2546,8 @@ def create_app():
             assignment=assignment,
             assignment_html=assignment_html,
             duration_seconds=duration_seconds,
-            rubric_structured=rubric_structured,
-            reference_structured=reference_structured,
+            rubric_structured_rendered=rubric_structured_rendered,
+            reference_structured_rendered=reference_structured_rendered,
             provider_display=provider_display,
         )
 
