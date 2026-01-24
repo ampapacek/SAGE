@@ -61,11 +61,11 @@
                       {% set criteria = part.criteria %}
                       {% if criteria is sequence and criteria is not string %}
                         {% if criteria %}
-                        <ul class="guide-list">
-                          {% for item in criteria %}
-                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
-                          {% endfor %}
-                        </ul>
+                          <div class="guide-lines">
+                            {% for item in criteria %}
+                              <div class="markdown markdown-inline guide-line">{{ item | safe }}</div>
+                            {% endfor %}
+                          </div>
                         {% else %}
                           --
                         {% endif %}
@@ -86,11 +86,11 @@
                       {% set criteria = part.criteria %}
                       {% if criteria is sequence and criteria is not string %}
                         {% if criteria %}
-                        <ul class="guide-list">
-                          {% for item in criteria %}
-                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
-                          {% endfor %}
-                        </ul>
+                          <div class="guide-lines">
+                            {% for item in criteria %}
+                              <div class="markdown markdown-inline guide-line">{{ item | safe }}</div>
+                            {% endfor %}
+                          </div>
                         {% else %}
                           --
                         {% endif %}
@@ -120,17 +120,17 @@
           <div class="guide-part">
             <h4 style="margin: 0 0 6px;">{{ t('part_label') }} {{ part_id }}</h4>
             {% if part is mapping %}
-              <ul class="guide-list">
+              <div class="guide-lines">
                 {% for key, value in part.items() %}
-                  <li>
+                  <div class="guide-line">
                     <strong>{{ key|replace('_', ' ')|title }}:</strong>
                     {% if value is sequence and value is not string %}
                       {% if value %}
-                        <ul class="guide-list">
+                        <div class="guide-lines">
                           {% for item in value %}
-                            <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
+                            <div class="markdown markdown-inline guide-line">{{ item | safe }}</div>
                           {% endfor %}
-                        </ul>
+                        </div>
                       {% else %}
                         --
                       {% endif %}
@@ -139,15 +139,15 @@
                     {% else %}
                       --
                     {% endif %}
-                  </li>
+                  </div>
                 {% endfor %}
-              </ul>
+              </div>
             {% elif part is sequence and part is not string %}
-              <ul class="guide-list">
+              <div class="guide-lines">
                 {% for item in part %}
-                  <li><div class="markdown markdown-inline">{{ item | safe }}</div></li>
+                  <div class="markdown markdown-inline guide-line">{{ item | safe }}</div>
                 {% endfor %}
-              </ul>
+              </div>
             {% else %}
               <div class="markdown markdown-inline">{{ part | safe }}</div>
             {% endif %}
