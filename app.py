@@ -95,6 +95,7 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Toggle Create Assignment",
         "assignments_generate_title": "Generate Assignment",
         "assignments_title": "Assignments",
+        "create_folder": "Create folder",
         "assignment_generation_status": "Assignment generation",
         "assignment_generation_running": "Running",
         "assignment_generation_done": "Finished",
@@ -392,6 +393,7 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Zobrazit/skrýt formulář",
         "assignments_generate_title": "Vygenerovat úkol",
         "assignments_title": "Úkoly",
+        "create_folder": "Vytvořit složku",
         "assignment_generation_status": "Generování úkolu",
         "assignment_generation_running": "Probíhá",
         "assignment_generation_done": "Dokončeno",
@@ -1098,6 +1100,18 @@ def _folder_name_map(assignments=None, rows=None):
     return names
 
 
+def _folder_order_name_map(include_unsorted):
+    names = {}
+    rows = FolderOrder.query.all()
+    for row in rows:
+        if not row.sort_key or not row.name:
+            continue
+        if row.sort_key == FOLDER_UNSORTED_KEY and not include_unsorted:
+            continue
+        names[row.sort_key] = row.name
+    return names
+
+
 def _ordered_folder_keys(names_map, include_unsorted):
     if not names_map and not include_unsorted:
         return []
@@ -1137,6 +1151,9 @@ def _folder_options(assignments=None, include_archived=False):
         names_map = _folder_name_map(rows=rows)
     else:
         names_map = _folder_name_map(assignments=assignments)
+    order_map = _folder_order_name_map(include_unsorted=False)
+    for key, name in order_map.items():
+        names_map.setdefault(key, name)
     return _ordered_folder_names(names_map)
 
 
@@ -1180,6 +1197,10 @@ def _build_folder_groups(assignments, include_unassigned, unassigned_label, arch
             }
         folder_map[key]["assignments"].append(assignment)
     names_map = _folder_name_map(assignments=assignments)
+    if not archived:
+        order_map = _folder_order_name_map(include_unsorted=include_unassigned)
+        for key, name in order_map.items():
+            names_map.setdefault(key, name)
     include_unsorted = include_unassigned or bool(unassigned)
     ordered_keys = _ordered_folder_keys(names_map, include_unsorted)
     for key in ordered_keys:
@@ -1200,6 +1221,19 @@ def _build_folder_groups(assignments, include_unassigned, unassigned_label, arch
             group["order_key"] = key
             group["reorderable"] = True
             foldered_assignments.append(group)
+        else:
+            display_name = names_map.get(key)
+            if display_name:
+                foldered_assignments.append(
+                    {
+                        "name": display_name,
+                        "value": display_name,
+                        "order_key": key,
+                        "reorderable": True,
+                        "assignments": [],
+                        "archived": archived,
+                    }
+                )
     return foldered_assignments
 
 
@@ -2343,6 +2377,28 @@ def create_app():
         db.session.commit()
         return jsonify({"ok": True, "folder_name": assignment.folder_name or ""})
 
+    @app.route("/folders/create", methods=["POST"])
+    def create_folder():
+        folder_name = _normalize_folder_name(request.form.get("folder_name", ""))
+        if not folder_name:
+            flash("Folder name is required.")
+            return redirect(url_for("list_assignments"))
+
+        sort_key = folder_name.lower()
+        existing_order = FolderOrder.query.filter(FolderOrder.sort_key == sort_key).first()
+        if existing_order:
+            existing_order.name = folder_name
+            db.session.commit()
+            return redirect(url_for("list_assignments"))
+
+        max_position = db.session.query(func.max(FolderOrder.position)).scalar()
+        next_position = (max_position or 0) + 1
+        db.session.add(
+            FolderOrder(name=folder_name, sort_key=sort_key, position=next_position)
+        )
+        db.session.commit()
+        return redirect(url_for("list_assignments"))
+
     @app.route("/folders/rename", methods=["POST"])
     def rename_folder():
         current_name = _normalize_folder_name(
@@ -2515,6 +2571,9 @@ def create_app():
             )
 
         names_map = _folder_name_map(assignments=assignments)
+        order_map = _folder_order_name_map(include_unsorted=True)
+        for map_key, name in order_map.items():
+            names_map.setdefault(map_key, name)
         unassigned_exists = any(
             not _normalize_folder_name(assignment.folder_name)
             for assignment in assignments

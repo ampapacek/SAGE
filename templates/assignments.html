@@ -127,6 +127,17 @@
 
   <div class="card">
     <h2>{{ t('assignments_title') }}</h2>
+    <form method="post" action="{{ url_for('create_folder') }}" class="folder-create-form">
+      <label for="create-folder-name">{{ t('create_folder') }}</label>
+      <input
+        type="text"
+        id="create-folder-name"
+        name="folder_name"
+        placeholder="{{ t('folder_new_placeholder') }}"
+        required
+      />
+      <button type="submit">{{ t('create') }}</button>
+    </form>
     {% if viewing_folder %}
       <div class="folder-view-banner">
         <p class="helper-text">{{ t('viewing_folder') }}: {{ viewing_folder }}</p>
