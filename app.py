@@ -174,6 +174,8 @@ TRANSLATIONS = {
         "choose_model_generation": "Choose model for generation",
         "generate_draft_llm": "Generate Draft via LLM",
         "formatted_output_label": "Formatted output (Markdown)",
+        "additional_instructions_label": "Additional instructions",
+        "additional_instructions_hint": "Optional: appended to the prompt for this run.",
         "guide_empty_hint": "Start here -> Create a grading guide below.",
         "guide_empty_note": "After the grading guide is ready, you can upload submissions.",
         "upload_submissions": "Upload Submissions",
@@ -458,6 +460,8 @@ TRANSLATIONS = {
         "choose_model_generation": "Vyberte model pro generování",
         "generate_draft_llm": "Vygenerovat koncept přes LLM",
         "formatted_output_label": "Formátovaný výstup (Markdown)",
+        "additional_instructions_label": "Doplňující instrukce",
+        "additional_instructions_hint": "Volitelné: přidá se do promptu pro tento běh.",
         "guide_empty_hint": "Začněte zde → Vytvořte kritéria hodnocení níže.",
         "guide_empty_note": "Po dokončení kritérií hodnocení můžete nahrát řešení.",
         "upload_submissions": "Nahrát řešení",
@@ -814,6 +818,20 @@ _SETTINGS_FIELDS = [
         "label": "Formatted Feedback (Markdown)",
         "type": "checkbox",
         "help": "Ask models to format feedback text with Markdown.",
+        "restart": False,
+    },
+    {
+        "key": "PROMPT_GRADING_ADDITIONAL",
+        "label": "Grading Prompt (Additional Instructions)",
+        "type": "textarea",
+        "help": "Additional instructions added to prompt for the LLM.",
+        "restart": False,
+    },
+    {
+        "key": "PROMPT_RUBRIC_ADDITIONAL",
+        "label": "Guide Prompt (Additional Instructions)",
+        "type": "textarea",
+        "help": "Additional instructions added to prompt for the LLM.",
         "restart": False,
     },
     {
@@ -1507,6 +1525,10 @@ def _resolve_formatted_output(form, default_value):
     return values[-1].lower() in {"1", "true", "yes", "on"}
 
 
+def _resolve_extra_instructions(form):
+    return (form.get("extra_instructions") or "").strip()
+
+
 def _provider_config(provider_key):
     provider_key = _normalize_provider_key(provider_key)
     if provider_key == "custom1":
@@ -1717,6 +1739,14 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added formatted_output column to grading_job table")
+        if "extra_instructions" not in columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE grading_job ADD COLUMN extra_instructions TEXT DEFAULT ''"
+                )
+            )
+            db.session.commit()
+            logger.info("Added extra_instructions column to grading_job table")
         result = db.session.execute(text("PRAGMA table_info(rubric_version)"))
         rubric_columns = {row[1] for row in result.fetchall()}
         if "llm_model" not in rubric_columns:
@@ -1739,6 +1769,14 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added formatted_output column to rubric_version table")
+        if "extra_instructions" not in rubric_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE rubric_version ADD COLUMN extra_instructions TEXT DEFAULT ''"
+                )
+            )
+            db.session.commit()
+            logger.info("Added extra_instructions column to rubric_version table")
         if "error_message" not in rubric_columns:
             db.session.execute(
                 text("ALTER TABLE rubric_version ADD COLUMN error_message TEXT DEFAULT ''")
@@ -2423,12 +2461,7 @@ def create_app():
         formatted_output = _resolve_formatted_output(
             request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
         )
-        formatted_output = _resolve_formatted_output(
-            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
-        )
-        formatted_output = _resolve_formatted_output(
-            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
-        )
+        extra_instructions = _resolve_extra_instructions(request.form)
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
@@ -2437,6 +2470,7 @@ def create_app():
             llm_provider=provider_key,
             llm_model=selected_model,
             formatted_output=formatted_output,
+            extra_instructions=extra_instructions,
             error_message="",
             raw_response="",
         )
@@ -2493,10 +2527,12 @@ def create_app():
         formatted_output = _resolve_formatted_output(
             request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
         )
+        extra_instructions = _resolve_extra_instructions(request.form)
         rubric.status = RubricStatus.GENERATING
         rubric.rubric_text = ""
         rubric.reference_solution_text = ""
         rubric.formatted_output = formatted_output
+        rubric.extra_instructions = extra_instructions
         rubric.error_message = ""
         rubric.raw_response = ""
         rubric.prompt_tokens = None
@@ -2706,6 +2742,7 @@ def create_app():
         formatted_output = _resolve_formatted_output(
             request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
         )
+        extra_instructions = _resolve_extra_instructions(request.form)
 
         submissions = []
         if zip_file and zip_file.filename:
@@ -2756,6 +2793,7 @@ def create_app():
                 llm_provider=provider_key,
                 llm_model=selected_model,
                 formatted_output=formatted_output,
+                extra_instructions=extra_instructions,
             )
             db.session.add(job)
             db.session.commit()
@@ -3190,6 +3228,10 @@ def create_app():
         selected_model, _custom_used = _resolve_model_from_form(
             request.form, provider_cfg["default_model"]
         )
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
+        extra_instructions = _resolve_extra_instructions(request.form)
 
         grade_result = GradeResult(
             submission_id=job.submission_id,
@@ -3211,6 +3253,7 @@ def create_app():
             llm_provider=provider_key,
             llm_model=selected_model,
             formatted_output=formatted_output,
+            extra_instructions=extra_instructions,
         )
         db.session.add(new_job)
         db.session.commit()

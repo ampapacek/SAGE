@@ -295,6 +295,7 @@ def grade_submission_and_raw(
     endpoint,
     api_key,
     formatted_output=False,
+    additional_instructions="",
     json_mode=True,
     max_tokens=800,
     timeout=120,
@@ -305,6 +306,7 @@ def grade_submission_and_raw(
         reference_solution_text,
         student_text,
         formatted_output=formatted_output,
+        additional_instructions=additional_instructions,
     )
     use_responses = _use_responses_api(model)
     responses_messages = _build_messages(prompt, image_paths, True)
@@ -373,6 +375,7 @@ def grade_submission(
     endpoint,
     api_key,
     formatted_output=False,
+    additional_instructions="",
 ):
     data, _raw, _usage, _meta = grade_submission_and_raw(
         assignment_text,
@@ -384,6 +387,7 @@ def grade_submission(
         endpoint,
         api_key,
         formatted_output=formatted_output,
+        additional_instructions=additional_instructions,
         json_mode=True,
     )
     return data
@@ -395,11 +399,16 @@ def generate_rubric_draft(
     endpoint,
     api_key,
     formatted_output=False,
+    additional_instructions="",
     json_mode=True,
     max_tokens=800,
     timeout=120,
 ):
-    prompt = build_rubric_draft_prompt(assignment_text, formatted_output=formatted_output)
+    prompt = build_rubric_draft_prompt(
+        assignment_text,
+        formatted_output=formatted_output,
+        additional_instructions=additional_instructions,
+    )
     use_responses = _use_responses_api(model)
     responses_messages = _build_messages(prompt, [], True)
     chat_messages = _build_messages(prompt, [], False)

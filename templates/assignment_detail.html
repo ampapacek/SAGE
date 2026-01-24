@@ -195,6 +195,12 @@
               placeholder="{{ t('custom_model_placeholder') }}"
             />
           </div>
+        <label for="rubric_extra_instructions">{{ t('additional_instructions_label') }}</label>
+        <textarea
+          id="rubric_extra_instructions"
+          name="extra_instructions"
+          placeholder="{{ t('additional_instructions_hint') }}"
+        ></textarea>
         <div class="form-actions">
           <input type="hidden" name="formatted_output" value="0" />
           <label class="form-toggle">
@@ -257,6 +263,12 @@
           </div>
           <label for="submitted_text">{{ t('submitted_text_optional') }}</label>
           <textarea id="submitted_text" name="submitted_text" placeholder="{{ t('submission_text_placeholder') }}"></textarea>
+          <label for="submission_extra_instructions">{{ t('additional_instructions_label') }}</label>
+          <textarea
+            id="submission_extra_instructions"
+            name="extra_instructions"
+            placeholder="{{ t('additional_instructions_hint') }}"
+          ></textarea>
           {% if not submissions %}
             <p class="upload-hint">{{ t('files_hint') }}</p>
           {% endif %}

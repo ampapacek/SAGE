@@ -76,6 +76,8 @@ class Config:
         "yes",
         "on",
     }
+    PROMPT_GRADING_ADDITIONAL = os.environ.get("PROMPT_GRADING_ADDITIONAL", "")
+    PROMPT_RUBRIC_ADDITIONAL = os.environ.get("PROMPT_RUBRIC_ADDITIONAL", "")
     SHOW_COSTS = os.environ.get("SHOW_COSTS", "1").lower() in {
         "1",
         "true",

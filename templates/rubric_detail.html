@@ -182,6 +182,12 @@
     {% elif rubric.status == 'ERROR' %}
       {% set formatted_checked = rubric.formatted_output if rubric.formatted_output is not none else formatted_output_default %}
       <form method="post" action="{{ url_for('rerun_rubric', rubric_id=rubric.id) }}">
+        <label for="rubric_extra_instructions">{{ t('additional_instructions_label') }}</label>
+        <textarea
+          id="rubric_extra_instructions"
+          name="extra_instructions"
+          placeholder="{{ t('additional_instructions_hint') }}"
+        >{{ rubric.extra_instructions }}</textarea>
         <div class="form-actions">
           <input type="hidden" name="formatted_output" value="0" />
           <label class="form-toggle">

@@ -72,6 +72,12 @@
           placeholder="{{ t('custom_model_placeholder') }}"
         />
       </div>
+      <label for="job_extra_instructions">{{ t('additional_instructions_label') }}</label>
+      <textarea
+        id="job_extra_instructions"
+        name="extra_instructions"
+        placeholder="{{ t('additional_instructions_hint') }}"
+      >{{ job.extra_instructions }}</textarea>
       <div class="form-actions">
         <input type="hidden" name="formatted_output" value="0" />
         <label class="form-toggle">

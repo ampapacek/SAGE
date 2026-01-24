@@ -55,6 +55,13 @@
             </select>
           {% elif field.type == "checkbox" %}
             <input type="checkbox" id="{{ field.key }}" name="{{ field.key }}" value="1" {% if values[field.key] in ["1", "true", "yes", "on"] %}checked{% endif %} />
+          {% elif field.type == "textarea" %}
+            <textarea
+              id="{{ field.key }}"
+              name="{{ field.key }}"
+              class="settings-input"
+              rows="4"
+            >{{ values[field.key] }}</textarea>
           {% else %}
             <input
               type="{{ field.type }}"
@@ -101,6 +108,13 @@
                 </select>
               {% elif field.type == "checkbox" %}
                 <input type="checkbox" id="{{ field.key }}" name="{{ field.key }}" value="1" {% if values[field.key] in ["1", "true", "yes", "on"] %}checked{% endif %} />
+              {% elif field.type == "textarea" %}
+                <textarea
+                  id="{{ field.key }}"
+                  name="{{ field.key }}"
+                  class="settings-input"
+                  rows="4"
+                >{{ values[field.key] }}</textarea>
               {% else %}
                 <input
                   type="{{ field.type }}"
