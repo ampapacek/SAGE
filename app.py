@@ -349,7 +349,8 @@ TRANSLATIONS = {
         "responsible_use_p1": (
             "SAGE is intended to speed up grading and support teacher review. All grading guides, "
             "outputs, and final grades must be verified by the instructor before release. "
-            "Do not issue grades based only on model output."
+            "Do not issue grades based only on model output. Under the EU AI Act, automated grading "
+            "with AI tools is not allowed; a human must grade first and may then use AI to assist."
         ),
         "responsible_use_p2": (
             "Confirm with students and your department, school, or university that this tool is permitted "
@@ -627,7 +628,9 @@ TRANSLATIONS = {
         "responsible_use_p1": (
             "SAGE má urychlit hodnocení a podpořit kontrolu učitele. Všechna kritéria, "
             "výstupy i finální známky musí být před zveřejněním ověřeny instruktorem. "
-            "Nevydávejte známky pouze na základě výstupu modelu."
+            "Nevydávejte známky pouze na základě výstupu modelu. Dle AI Act nesmíte automaticky "
+            "hodnotit studenty pomocí AI nástrojů; nejdřív musí hodnotit člověk a následně si může "
+            "pomoci AI nástrojem."
         ),
         "responsible_use_p2": (
             "Ověřte se studenty a vedením katedry, školy či univerzity, že je tento nástroj "
