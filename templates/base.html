@@ -246,6 +246,33 @@
         transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
       }
       .back-to-top:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgba(0, 0, 0, 0.2); }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        padding: 16px;
+      }
+      .modal-card {
+        width: 100%;
+        max-width: 460px;
+        background: var(--card);
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 18px;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+      }
+      .modal-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .modal-actions button { margin-top: 0; }
+      .modal-overlay.hidden { display: none; }
     </style>
   </head>
   <body>
@@ -279,6 +306,17 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    <div id="assignment-delete-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="assignment-delete-title">
+      <div class="modal-card">
+        <h3 id="assignment-delete-title">{{ t('delete_assignment_prompt_title') }}</h3>
+        <p class="helper-text">{{ t('delete_assignment_prompt_body') }}</p>
+        <div class="modal-actions">
+          <button type="button" class="danger" data-action="delete">{{ t('delete') }}</button>
+          <button type="button" class="secondary" data-action="archive">{{ t('archive_assignment') }}</button>
+          <button type="button" class="secondary" data-action="cancel">{{ t('cancel') }}</button>
+        </div>
+      </div>
+    </div>
     <button id="back-to-top" class="back-to-top" type="button" aria-label="{{ t('back_to_top') }}">
       &uarr;<span class="sr-only">{{ t('back_to_top') }}</span>
     </button>
@@ -470,6 +508,72 @@
             return;
           }
           window.location.href = "{{ url_for('list_assignments') }}";
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var modal = document.getElementById("assignment-delete-modal");
+        if (!modal) {
+          return;
+        }
+        var currentForm = null;
+        function openModal(form) {
+          if (!form) {
+            return;
+          }
+          currentForm = form;
+          modal.classList.remove("hidden");
+          var focusTarget = modal.querySelector('[data-action="delete"]');
+          if (focusTarget) {
+            focusTarget.focus();
+          }
+        }
+        function closeModal() {
+          modal.classList.add("hidden");
+          currentForm = null;
+        }
+        document.querySelectorAll(".delete-assignment-trigger").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var form = button.form || button.closest("form");
+            openModal(form);
+          });
+        });
+        modal.addEventListener("click", function (event) {
+          if (event.target === modal) {
+            closeModal();
+          }
+        });
+        modal.querySelectorAll("[data-action]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var action = button.getAttribute("data-action");
+            if (action === "cancel") {
+              closeModal();
+              return;
+            }
+            if (!currentForm) {
+              closeModal();
+              return;
+            }
+            var input = currentForm.querySelector('input[name="delete_mode"]');
+            if (!input) {
+              input = document.createElement("input");
+              input.type = "hidden";
+              input.name = "delete_mode";
+              currentForm.appendChild(input);
+            }
+            input.value = action === "archive" ? "archive" : "hard";
+            if (typeof currentForm.requestSubmit === "function") {
+              currentForm.requestSubmit();
+            } else {
+              currentForm.submit();
+            }
+          });
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+            closeModal();
+          }
         });
       })();
     </script>
