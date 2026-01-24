@@ -333,6 +333,9 @@ def process_submission_job(job_id):
             return
 
         llm_model = job.llm_model or provider_cfg["default_model"]
+        formatted_output = job.formatted_output
+        if formatted_output is None:
+            formatted_output = Config.LLM_FORMATTED_OUTPUT
         llm_data, raw_response, usage, meta = grade_submission_and_raw(
             assignment.assignment_text,
             rubric.rubric_text,
@@ -342,7 +345,7 @@ def process_submission_job(job_id):
             llm_model,
             provider_cfg["base_url"],
             provider_cfg["api_key"],
-            formatted_output=Config.LLM_FORMATTED_OUTPUT,
+            formatted_output=formatted_output,
             json_mode=Config.LLM_USE_JSON_MODE,
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,

@@ -52,13 +52,20 @@ Output JSON schema:
 """.strip()
 
 
-def build_rubric_draft_prompt(assignment_text):
+def build_rubric_draft_prompt(assignment_text, formatted_output=False):
+    format_rule = ""
+    if formatted_output:
+        format_rule = (
+            "\nUse Markdown formatting in any text values inside rubric_text and "
+            "reference_solution_text."
+        )
     return f"""
 Create a grading guide and reference solution for the assignment.
 Include the maximum points of the task in total. Include maximum points for each part.
 Return JSON only with keys rubric_text and reference_solution_text.
 Use the same language as the assignment text for all fields.
 Use structured objects for rubric_text and reference_solution_text (not plain strings).
+{format_rule}
 
 Assignment:
 {assignment_text}

@@ -394,11 +394,12 @@ def generate_rubric_draft(
     model,
     endpoint,
     api_key,
+    formatted_output=False,
     json_mode=True,
     max_tokens=800,
     timeout=120,
 ):
-    prompt = build_rubric_draft_prompt(assignment_text)
+    prompt = build_rubric_draft_prompt(assignment_text, formatted_output=formatted_output)
     use_responses = _use_responses_api(model)
     responses_messages = _build_messages(prompt, [], True)
     chat_messages = _build_messages(prompt, [], False)

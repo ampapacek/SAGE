@@ -173,6 +173,7 @@ TRANSLATIONS = {
         "generate_draft_guide": "Generate Draft Guide",
         "choose_model_generation": "Choose model for generation",
         "generate_draft_llm": "Generate Draft via LLM",
+        "formatted_output_label": "Formatted output (Markdown)",
         "guide_empty_hint": "Start here -> Create a grading guide below.",
         "guide_empty_note": "After the grading guide is ready, you can upload submissions.",
         "upload_submissions": "Upload Submissions",
@@ -450,6 +451,7 @@ TRANSLATIONS = {
         "generate_draft_guide": "Vygenerovat koncept kritérií",
         "choose_model_generation": "Vyberte model pro generování",
         "generate_draft_llm": "Vygenerovat koncept přes LLM",
+        "formatted_output_label": "Formátovaný výstup (Markdown)",
         "guide_empty_hint": "Začněte zde → Vytvořte kritéria hodnocení níže.",
         "guide_empty_note": "Po dokončení kritérií hodnocení můžete nahrát řešení.",
         "upload_submissions": "Nahrát řešení",
@@ -1410,6 +1412,15 @@ def _resolve_provider_from_form(form, default_provider):
     return _normalize_provider_key(selected)
 
 
+def _resolve_formatted_output(form, default_value):
+    if "formatted_output" not in form:
+        return default_value
+    values = form.getlist("formatted_output")
+    if not values:
+        return default_value
+    return values[-1].lower() in {"1", "true", "yes", "on"}
+
+
 def _provider_config(provider_key):
     provider_key = _normalize_provider_key(provider_key)
     if provider_key == "custom1":
@@ -1612,6 +1623,14 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added llm_provider column to grading_job table")
+        if "formatted_output" not in columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE grading_job ADD COLUMN formatted_output INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
+            logger.info("Added formatted_output column to grading_job table")
         result = db.session.execute(text("PRAGMA table_info(rubric_version)"))
         rubric_columns = {row[1] for row in result.fetchall()}
         if "llm_model" not in rubric_columns:
@@ -1626,6 +1645,14 @@ def _ensure_schema_updates():
             )
             db.session.commit()
             logger.info("Added llm_provider column to rubric_version table")
+        if "formatted_output" not in rubric_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE rubric_version ADD COLUMN formatted_output INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
+            logger.info("Added formatted_output column to rubric_version table")
         if "error_message" not in rubric_columns:
             db.session.execute(
                 text("ALTER TABLE rubric_version ADD COLUMN error_message TEXT DEFAULT ''")
@@ -1709,7 +1736,10 @@ def create_app():
 
     @app.context_processor
     def inject_settings():
-        return {"show_costs": app.config.get("SHOW_COSTS", True)}
+        return {
+            "show_costs": app.config.get("SHOW_COSTS", True),
+            "formatted_output_default": app.config.get("LLM_FORMATTED_OUTPUT", False),
+        }
 
     @app.route("/")
     def index():
@@ -2295,6 +2325,9 @@ def create_app():
         selected_model, _custom_used = _resolve_model_from_form(
             request.form, provider_cfg["default_model"]
         )
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
@@ -2302,6 +2335,7 @@ def create_app():
             status=RubricStatus.GENERATING,
             llm_provider=provider_key,
             llm_model=selected_model,
+            formatted_output=formatted_output,
             error_message="",
             raw_response="",
         )
@@ -2355,9 +2389,13 @@ def create_app():
             flash("This guide has no model to rerun.")
             return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
         rubric.status = RubricStatus.GENERATING
         rubric.rubric_text = ""
         rubric.reference_solution_text = ""
+        rubric.formatted_output = formatted_output
         rubric.error_message = ""
         rubric.raw_response = ""
         rubric.prompt_tokens = None
@@ -2554,6 +2592,9 @@ def create_app():
         selected_model, custom_used = _resolve_model_from_form(
             request.form, provider_cfg["default_model"]
         )
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
 
         submissions = []
         if zip_file and zip_file.filename:
@@ -2603,6 +2644,7 @@ def create_app():
                 status=JobStatus.QUEUED,
                 llm_provider=provider_key,
                 llm_model=selected_model,
+                formatted_output=formatted_output,
             )
             db.session.add(job)
             db.session.commit()
@@ -3057,6 +3099,7 @@ def create_app():
             status=JobStatus.QUEUED,
             llm_provider=provider_key,
             llm_model=selected_model,
+            formatted_output=formatted_output,
         )
         db.session.add(new_job)
         db.session.commit()
