@@ -69,6 +69,28 @@
       outline: 2px solid var(--accent);
       outline-offset: 4px;
     }
+    .grade-panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--card);
+    }
+    .grade-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .grade-score {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--file-bg);
+      color: var(--muted);
+      white-space: nowrap;
+    }
     @media (max-width: 760px) {
       .lightbox-prev { left: 8px; }
       .lightbox-next { right: 8px; }
@@ -370,7 +392,19 @@
         <h4>{{ t('raw_json') }}</h4>
         <pre>{{ grade_result.json_result }}</pre>
       {% endif %}
-      <pre>{{ grade_result.rendered_text }}</pre>
+      <div class="grade-panel">
+        <div class="grade-header">
+          <strong>{{ t('rendered_feedback') }}</strong>
+          {% if grade_result.total_points is not none %}
+            <span class="grade-score">{{ t('total_points') }}: {{ grade_result.total_points }}</span>
+          {% endif %}
+        </div>
+        {% if grade_result_html %}
+          <div class="markdown">{{ grade_result_html | safe }}</div>
+        {% else %}
+          <p class="helper-text">{{ t('no_grade_result') }}</p>
+        {% endif %}
+      </div>
     {% else %}
       <p>{{ t('no_grade_result') }}</p>
     {% endif %}

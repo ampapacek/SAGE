@@ -2640,6 +2640,9 @@ def create_app():
         student_text = collect_submission_text(submission)
         student_text_html = _render_markdown(student_text)
         assignment_text_html = _render_markdown(assignment.assignment_text or "")
+        grade_result_html = None
+        if grade_result and grade_result.rendered_text:
+            grade_result_html = _render_markdown(grade_result.rendered_text)
 
         return render_template(
             "submission_detail.html",
@@ -2653,6 +2656,7 @@ def create_app():
             student_text=student_text,
             student_text_html=student_text_html,
             assignment_text_html=assignment_text_html,
+            grade_result_html=grade_result_html,
         )
 
     @app.route("/submissions/<int:submission_id>/grade/edit", methods=["POST"])
