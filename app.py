@@ -27,6 +27,7 @@ from flask import (
 
 from config import Config, DATA_DIR, PROCESSED_DIR, UPLOAD_DIR
 from db import db
+from grading.llm_client import LLMResponseError, generate_assignment_draft
 from grading.schemas import safe_json_loads
 from grading.schemas import render_grade_output, validate_grade_result
 from models import (
@@ -87,8 +88,12 @@ TRANSLATIONS = {
         "nav_home": "Home",
         "assignments_create": "Create Assignment",
         "assignments_toggle_create": "Toggle Create Assignment",
+        "assignments_generate_title": "Generate Assignment",
         "assignments_title": "Assignments",
         "assignment_text": "Assignment Text",
+        "assignment_prompt_label": "Topic or instructions",
+        "assignment_prompt_placeholder": "e.g., Intro to derivatives, 20-minute quiz, include 3 problems.",
+        "generate_assignment": "Generate Assignment",
         "folder": "Folder",
         "folder_none": "No folder",
         "folder_new": "New folder",
@@ -374,8 +379,12 @@ TRANSLATIONS = {
         "nav_home": "Domů",
         "assignments_create": "Vytvořit úkol",
         "assignments_toggle_create": "Zobrazit/skrýt formulář",
+        "assignments_generate_title": "Vygenerovat úkol",
         "assignments_title": "Úkoly",
         "assignment_text": "Text úkolu",
+        "assignment_prompt_label": "Téma nebo instrukce",
+        "assignment_prompt_placeholder": "např. Úvod do derivací, 20min test, 3 úlohy.",
+        "generate_assignment": "Vygenerovat úkol",
         "folder": "Složka",
         "folder_none": "Bez složky",
         "folder_new": "Nová složka",
@@ -832,6 +841,13 @@ _SETTINGS_FIELDS = [
     {
         "key": "PROMPT_RUBRIC_ADDITIONAL",
         "label": "Guide Prompt (Additional Instructions)",
+        "type": "textarea",
+        "help": "Additional instructions added to prompt for the LLM.",
+        "restart": False,
+    },
+    {
+        "key": "PROMPT_ASSIGNMENT_ADDITIONAL",
+        "label": "Assignment Prompt (Additional Instructions)",
         "type": "textarea",
         "help": "Additional instructions added to prompt for the LLM.",
         "restart": False,
@@ -1970,6 +1986,11 @@ def create_app():
                 )
                 if group:
                     viewing_folder = group.get("name")
+        provider_options = _provider_option_items()
+        default_provider = _resolve_default_provider(
+            _normalize_provider_key(Config.LLM_PROVIDER), provider_options
+        )
+        default_provider_cfg = _provider_config(default_provider)
         return render_template(
             "assignments.html",
             assignments=assignments,
@@ -1977,7 +1998,77 @@ def create_app():
             foldered_assignments=foldered_assignments,
             archived_foldered_assignments=archived_foldered_assignments,
             viewing_folder=viewing_folder,
+            provider_options=provider_options,
+            provider_model_options=_provider_model_option_items(),
+            provider_default_models=_provider_default_models(),
+            default_provider=default_provider,
+            default_model=default_provider_cfg["default_model"],
         )
+
+    @app.route("/assignments/generate", methods=["POST"])
+    def generate_assignment():
+        topic_text = request.form.get("assignment_prompt", "").strip()
+        if not topic_text:
+            flash("Topic or instructions are required.")
+            return redirect(url_for("list_assignments"))
+
+        folder_choice = request.form.get("gen_folder_select", "").strip()
+        folder_custom = request.form.get("gen_folder_custom", "").strip()
+        if folder_choice == "__new__" and not folder_custom:
+            flash("Folder name is required when selecting New folder.")
+            return redirect(url_for("list_assignments"))
+        folder_name = folder_custom if folder_choice == "__new__" else folder_choice
+        folder_name = _normalize_folder_name(folder_name)
+
+        provider_key = _resolve_provider_from_form(
+            request.form, app.config.get("LLM_PROVIDER")
+        )
+        provider_cfg = _provider_config(provider_key)
+        selected_model, _custom_used = _resolve_model_from_form(
+            request.form, provider_cfg["default_model"]
+        )
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
+        extra_instructions = _resolve_extra_instructions(request.form)
+        global_instructions = (Config.PROMPT_ASSIGNMENT_ADDITIONAL or "").strip()
+        additional_instructions = "\n".join(
+            [text for text in [global_instructions, extra_instructions] if text]
+        )
+
+        try:
+            data, _usage, _raw_text, _meta = generate_assignment_draft(
+                topic_text,
+                selected_model,
+                provider_cfg["base_url"],
+                provider_cfg["api_key"],
+                formatted_output=formatted_output,
+                additional_instructions=additional_instructions,
+                json_mode=Config.LLM_USE_JSON_MODE,
+                max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
+                timeout=Config.LLM_REQUEST_TIMEOUT,
+            )
+        except LLMResponseError as exc:
+            flash(f"Assignment generation failed: {exc}")
+            return redirect(url_for("list_assignments"))
+
+        if not isinstance(data, dict):
+            flash("Assignment generation failed: invalid response.")
+            return redirect(url_for("list_assignments"))
+        title = (data.get("title") or "").strip()
+        assignment_text = (data.get("assignment_text") or "").strip()
+        if not title or not assignment_text:
+            flash("Assignment generation returned empty title or text.")
+            return redirect(url_for("list_assignments"))
+
+        assignment = Assignment(
+            title=title,
+            assignment_text=assignment_text,
+            folder_name=folder_name or None,
+        )
+        db.session.add(assignment)
+        db.session.commit()
+        return redirect(url_for("assignment_detail", assignment_id=assignment.id))
 
     @app.route("/assignments/<int:assignment_id>")
     def assignment_detail(assignment_id):

@@ -36,6 +36,81 @@
         </div>
         <button type="submit">{{ t('create') }}</button>
       </form>
+
+      <h3 style="margin-top: 18px;">{{ t('assignments_generate_title') }}</h3>
+      <form method="post" action="{{ url_for('generate_assignment') }}">
+        <label for="assignment_prompt">{{ t('assignment_prompt_label') }}</label>
+        <textarea
+          id="assignment_prompt"
+          name="assignment_prompt"
+          required
+          placeholder="{{ t('assignment_prompt_placeholder') }}"
+        ></textarea>
+        <label for="assignment_provider">{{ t('provider_label') }}</label>
+        <select id="assignment_provider" name="llm_provider">
+          {% set assignment_provider = default_provider %}
+          {% for option in provider_options %}
+            <option value="{{ option.value }}" {% if assignment_provider == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+        <label for="assignment_model">{{ t('model_selection') }}</label>
+        <select id="assignment_model" name="llm_model">
+          {% set assignment_model = default_model %}
+          {% set assignment_model_options = provider_model_options.get(assignment_provider, []) %}
+          {% set assignment_model_values = assignment_model_options | map(attribute='value') | list %}
+          {% set assignment_is_custom = assignment_model and assignment_model not in assignment_model_values %}
+          {% for option in assignment_model_options %}
+            <option value="{{ option.value }}" {% if assignment_model == option.value %}selected{% endif %}>{{ option.value }}</option>
+          {% endfor %}
+          <option value="other" {% if assignment_is_custom %}selected{% endif %}>{{ t('other_model_option') }}</option>
+        </select>
+        <div id="assignment_custom_wrap" {% if not assignment_is_custom %}class="hidden"{% endif %} style="margin-top: 10px;">
+          <label for="assignment_custom_model">{{ t('custom_model_label') }}</label>
+          <input
+            type="text"
+            id="assignment_custom_model"
+            name="custom_llm_model"
+            value="{% if assignment_is_custom %}{{ assignment_model }}{% endif %}"
+            placeholder="{{ t('custom_model_placeholder') }}"
+          />
+        </div>
+        <label for="assignment_extra_instructions">{{ t('additional_instructions_label') }}</label>
+        <textarea
+          id="assignment_extra_instructions"
+          name="extra_instructions"
+          placeholder="{{ t('additional_instructions_hint') }}"
+        ></textarea>
+        <label for="gen_folder_select">{{ t('folder') }}</label>
+        <select id="gen_folder_select" name="gen_folder_select">
+          <option value="">{{ t('folder_none') }}</option>
+          {% for folder in folder_options %}
+            <option value="{{ folder }}">{{ folder }}</option>
+          {% endfor %}
+          <option value="__new__">{{ t('folder_new') }}</option>
+        </select>
+        <div id="gen_folder_custom_wrap" class="hidden" style="margin-top: 10px;">
+          <label for="gen_folder_custom">{{ t('folder_new') }}</label>
+          <input
+            type="text"
+            id="gen_folder_custom"
+            name="gen_folder_custom"
+            placeholder="{{ t('folder_new_placeholder') }}"
+          />
+        </div>
+        <div class="form-actions">
+          <input type="hidden" name="formatted_output" value="0" />
+          <label class="form-toggle">
+            <input
+              type="checkbox"
+              name="formatted_output"
+              value="1"
+              {% if formatted_output_default %}checked{% endif %}
+            />
+            {{ t('formatted_output_label') }}
+          </label>
+          <button type="submit">{{ t('generate_assignment') }}</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -360,21 +435,102 @@
   </div>
   <script>
     (function () {
-      var select = document.getElementById("folder_select");
-      var wrap = document.getElementById("folder_custom_wrap");
-      var input = document.getElementById("folder_custom");
-      if (!select || !wrap) {
+      function bindFolder(selectId, wrapId, inputId) {
+        var select = document.getElementById(selectId);
+        var wrap = document.getElementById(wrapId);
+        var input = document.getElementById(inputId);
+        if (!select || !wrap) {
+          return;
+        }
+        function toggleCustom() {
+          var isCustom = select.value === "__new__";
+          wrap.classList.toggle("hidden", !isCustom);
+          if (input) {
+            input.required = isCustom;
+          }
+        }
+        select.addEventListener("change", toggleCustom);
+        toggleCustom();
+      }
+      bindFolder("folder_select", "folder_custom_wrap", "folder_custom");
+      bindFolder("gen_folder_select", "gen_folder_custom_wrap", "gen_folder_custom");
+    })();
+  </script>
+  <script>
+    (function () {
+      var providerSelect = document.getElementById("assignment_provider");
+      var modelSelect = document.getElementById("assignment_model");
+      var customWrap = document.getElementById("assignment_custom_wrap");
+      var customInput = document.getElementById("assignment_custom_model");
+      var providerModelOptions = {{ provider_model_options | tojson }};
+      var providerDefaultModels = {{ provider_default_models | tojson }};
+      var otherLabel = "{{ t('other_model_option') }}";
+      if (!providerSelect || !modelSelect || !customWrap) {
         return;
       }
-      function toggleCustom() {
-        var isCustom = select.value === "__new__";
-        wrap.classList.toggle("hidden", !isCustom);
-        if (input) {
-          input.required = isCustom;
+      function selectedModelValue() {
+        if (modelSelect.value === "other" && customInput && customInput.value.trim()) {
+          return customInput.value.trim();
+        }
+        return modelSelect.value || "";
+      }
+      function preferredModel(providerKey) {
+        var current = selectedModelValue();
+        var lastProvider = modelSelect.dataset.lastProvider || providerKey;
+        if (lastProvider !== providerKey) {
+          return providerDefaultModels[providerKey] || "";
+        }
+        return current;
+      }
+      function rebuildOptions(providerKey, selectedValue) {
+        if (providerKey === "other") {
+          providerKey = "custom1";
+        }
+        var options = providerModelOptions[providerKey] || [];
+        modelSelect.innerHTML = "";
+        options.forEach(function (opt) {
+          var option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.value;
+          modelSelect.appendChild(option);
+        });
+        var otherOption = document.createElement("option");
+        otherOption.value = "other";
+        otherOption.textContent = otherLabel;
+        modelSelect.appendChild(otherOption);
+        var hasMatch = options.some(function (opt) {
+          return opt.value === selectedValue;
+        });
+        if (selectedValue && hasMatch) {
+          modelSelect.value = selectedValue;
+        } else if (!selectedValue && options.length) {
+          modelSelect.value = options[0].value;
+        } else {
+          modelSelect.value = "other";
+        }
+        if (customInput) {
+          if (selectedValue && !hasMatch) {
+            customInput.value = selectedValue;
+          } else if (modelSelect.value !== "other") {
+            customInput.value = "";
+          }
         }
       }
-      select.addEventListener("change", toggleCustom);
-      toggleCustom();
+      function toggleCustom() {
+        if (!customWrap) {
+          return;
+        }
+        customWrap.classList.toggle("hidden", modelSelect.value !== "other");
+      }
+      function refreshModels() {
+        var providerKey = providerSelect.value || "openai";
+        rebuildOptions(providerKey, preferredModel(providerKey));
+        modelSelect.dataset.lastProvider = providerKey;
+        toggleCustom();
+      }
+      providerSelect.addEventListener("change", refreshModels);
+      modelSelect.addEventListener("change", toggleCustom);
+      refreshModels();
     })();
   </script>
   <script>

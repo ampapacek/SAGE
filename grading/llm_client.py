@@ -4,7 +4,12 @@ import mimetypes
 import re
 import requests
 
-from grading.prompts import SYSTEM_PROMPT, build_grading_prompt, build_rubric_draft_prompt
+from grading.prompts import (
+    SYSTEM_PROMPT,
+    build_assignment_draft_prompt,
+    build_grading_prompt,
+    build_rubric_draft_prompt,
+)
 from grading.schemas import safe_json_loads
 
 
@@ -406,6 +411,79 @@ def generate_rubric_draft(
 ):
     prompt = build_rubric_draft_prompt(
         assignment_text,
+        formatted_output=formatted_output,
+        additional_instructions=additional_instructions,
+    )
+    use_responses = _use_responses_api(model)
+    responses_messages = _build_messages(prompt, [], True)
+    chat_messages = _build_messages(prompt, [], False)
+
+    api_used = "responses" if use_responses else "chat"
+    api_fallback = False
+    json_fallback = False
+
+    def _call(api, json_enabled):
+        if api == "responses":
+            return _responses_completion(
+                responses_messages,
+                model,
+                endpoint,
+                api_key,
+                json_mode=json_enabled,
+                max_tokens=max_tokens,
+                timeout=timeout,
+            )
+        return _chat_completion(
+            chat_messages,
+            model,
+            endpoint,
+            api_key,
+            json_mode=json_enabled,
+            max_tokens=max_tokens,
+            timeout=timeout,
+        )
+
+    try:
+        raw_text, usage = _call(api_used, json_mode)
+    except LLMResponseError as exc:
+        message = str(exc)
+        if api_used == "responses" and "Unrecognized request argument supplied: text" in message:
+            api_used = "chat"
+            api_fallback = True
+            raw_text, usage = _call(api_used, json_mode)
+        elif json_mode and "empty content" in message.lower():
+            raw_text, usage = _call(api_used, False)
+            json_fallback = True
+        elif "Unsupported parameter" in message and "text.format" in message:
+            api_used = "responses"
+            api_fallback = False
+            raw_text, usage = _call(api_used, False)
+        else:
+            raise
+    data, error, _parsed = _parse_json_from_text(raw_text)
+    if error:
+        raise LLMResponseError(f"Invalid JSON from LLM: {error}", raw_text=raw_text)
+    meta = {
+        "json_mode_fallback": json_fallback,
+        "api_used": api_used,
+        "api_fallback": api_fallback,
+    }
+    return data, usage, raw_text, meta
+
+
+def generate_assignment_draft(
+    topic_text,
+    model,
+    endpoint,
+    api_key,
+    formatted_output=False,
+    additional_instructions="",
+    json_mode=True,
+    max_tokens=800,
+    timeout=120,
+):
+    prompt = build_assignment_draft_prompt(
+        topic_text,
         formatted_output=formatted_output,
         additional_instructions=additional_instructions,
     )

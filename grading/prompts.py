@@ -105,3 +105,34 @@ Output JSON schema:
   }}
 }}
 """.strip()
+
+
+def build_assignment_draft_prompt(
+    topic_text, formatted_output=False, additional_instructions=""
+):
+    format_rule = ""
+    if formatted_output:
+        format_rule = (
+            "\nUse Markdown formatting in assignment_text. "
+            "Use LaTeX ($...$ or $$...$$) for formulas."
+        )
+    extra_block = ""
+    extra_text = (additional_instructions or "").strip()
+    if extra_text:
+        extra_block = f"\nAdditional instructions:\n{extra_text}\n"
+    return f"""
+Create an assignment based on the topic or instructions.
+Return JSON only with keys title and assignment_text.
+Use the same language as the topic or instructions.
+Make assignment_text clear, self-contained, and ready for students.{format_rule}
+{extra_block}
+
+Topic or instructions:
+{topic_text}
+
+Output JSON schema:
+{{
+  "title": string,
+  "assignment_text": string
+}}
+""".strip()
