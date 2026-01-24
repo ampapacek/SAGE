@@ -257,7 +257,7 @@
                   <th class="drag-cell">{{ t('move') }}</th>
                   <th>{{ t('title') }}</th>
                   <th>{{ t('created') }}</th>
-                  <th></th>
+                  <th class="actions-cell"></th>
                 </tr>
               </thead>
               <tbody>
@@ -275,12 +275,14 @@
                     </td>
                     <td>{{ assignment.title }}</td>
                     <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                    <td>
-                      <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                      <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
-                        <input type="hidden" name="delete_mode" value="hard" />
-                        <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
-                      </form>
+                    <td class="actions-cell">
+                      <div class="row-actions">
+                        <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                          <input type="hidden" name="delete_mode" value="hard" />
+                          <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 {% endfor %}
@@ -296,7 +298,7 @@
         </div>
       {% endfor %}
       {% if archived_foldered_assignments %}
-        <div class="section-divider"></div>
+        <div class="section-divider archived-divider"></div>
         <div class="archived-header">
           <h3 class="archived-title">{{ t('archived_folders') }}</h3>
           <button
@@ -411,7 +413,7 @@
                     <th>{{ t('title') }}</th>
                     <th>{{ t('created') }}</th>
                     <th>{{ t('archived_on') }}</th>
-                    <th></th>
+                    <th class="actions-cell"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,12 +428,14 @@
                           --
                         {% endif %}
                       </td>
-                      <td>
-                        <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
-                          <input type="hidden" name="delete_mode" value="hard" />
-                          <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
-                        </form>
+                      <td class="actions-cell">
+                        <div class="row-actions">
+                          <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                          <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                            <input type="hidden" name="delete_mode" value="hard" />
+                            <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   {% endfor %}

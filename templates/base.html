@@ -166,8 +166,19 @@
       .folder-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 8px; }
       .folder-header h3 { margin: 0; }
       .folder-actions { display: inline-flex; align-items: center; gap: 8px; }
-      .archived-title { margin: 0 0 12px; }
-      .archived-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+      .actions-cell { text-align: right; }
+      .row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
+      .row-actions button { margin-top: 0; }
+      .archived-title { margin: 0; }
+      .archived-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 12px;
+        padding-top: 6px;
+      }
+      .archived-divider { height: 3px; background: var(--accent); opacity: 0.25; margin: 6px 0 20px; }
       .folder-view-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
       .folder-view-banner .helper-text { margin: 0; }
       .folder-open-link { padding: 4px 10px; font-size: 12px; background: var(--secondary); }
