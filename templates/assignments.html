@@ -6,6 +6,17 @@
     <button type="button" class="secondary" onclick="document.getElementById('assignment-form').classList.toggle('hidden')">
       {{ t('assignments_toggle_create') }}
     </button>
+    <div
+      id="assignment-generation-status"
+      class="generation-status hidden"
+      data-gen-id="{{ assignment_generation_id or '' }}"
+      data-status-url="{{ url_for('assignment_generation_status', generation_id=0) }}"
+      data-assignment-url="{{ url_for('assignment_detail', assignment_id=0) }}"
+    >
+      <span class="generation-label">{{ t('assignment_generation_status') }}</span>
+      <span id="assignment-generation-state" class="status"></span>
+      <a id="assignment-generation-link" class="action-link hidden">{{ t('assignment_generation_view') }}</a>
+    </div>
     {% if not assignments %}
       <div class="dropzone-hint" style="margin-top: 10px;">
         {{ t('assignments_empty_hint') }}
@@ -111,17 +122,6 @@
           <button type="submit">{{ t('generate_assignment') }}</button>
         </div>
       </form>
-      <div
-        id="assignment-generation-status"
-        class="generation-status hidden"
-        data-gen-id="{{ assignment_generation_id or '' }}"
-        data-status-url="{{ url_for('assignment_generation_status', generation_id=0) }}"
-        data-assignment-url="{{ url_for('assignment_detail', assignment_id=0) }}"
-      >
-        <span class="generation-label">{{ t('assignment_generation_status') }}</span>
-        <span id="assignment-generation-state" class="status"></span>
-        <a id="assignment-generation-link" class="action-link hidden">{{ t('assignment_generation_view') }}</a>
-      </div>
     </div>
   </div>
 
