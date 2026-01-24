@@ -39,8 +39,9 @@
       </p>
     {% endif %}
     <a class="action-link" href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}">{{ t('edit_assignment') }}</a>
-    <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-      <button type="submit" class="danger">{{ t('delete_assignment') }}</button>
+    <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+      <input type="hidden" name="delete_mode" value="hard" />
+      <button type="button" class="danger delete-assignment-trigger">{{ t('delete_assignment') }}</button>
     </form>
   </div>
 
@@ -194,7 +195,19 @@
               placeholder="{{ t('custom_model_placeholder') }}"
             />
           </div>
-        <button type="submit">{{ t('generate_draft_llm') }}</button>
+        <div class="form-actions">
+          <input type="hidden" name="formatted_output" value="0" />
+          <label class="form-toggle">
+            <input
+              type="checkbox"
+              name="formatted_output"
+              value="1"
+              {% if formatted_output_default %}checked{% endif %}
+            />
+            {{ t('formatted_output_label') }}
+          </label>
+          <button type="submit">{{ t('generate_draft_llm') }}</button>
+        </div>
       </form>
     </div>
   </div>
@@ -260,7 +273,19 @@
             <input type="file" id="zip_file" name="zip_file" accept=".zip" class="file-input" />
             <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
           </div>
-          <button type="submit">{{ t('upload') }}</button>
+          <div class="form-actions">
+            <input type="hidden" name="formatted_output" value="0" />
+            <label class="form-toggle">
+              <input
+                type="checkbox"
+                name="formatted_output"
+                value="1"
+                {% if formatted_output_default %}checked{% endif %}
+              />
+              {{ t('formatted_output_label') }}
+            </label>
+            <button type="submit">{{ t('upload') }}</button>
+          </div>
         </div>
       </fieldset>
     </form>

@@ -181,8 +181,9 @@
                       <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
                       <td>
                         <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                          <button type="submit" class="danger">{{ t('delete') }}</button>
+                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                          <input type="hidden" name="delete_mode" value="hard" />
+                          <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
                         </form>
                       </td>
                     </tr>
@@ -332,8 +333,9 @@
                         </td>
                         <td>
                           <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                          <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" onsubmit="return confirm('Delete this assignment and all related data?');">
-                            <button type="submit" class="danger">{{ t('delete') }}</button>
+                          <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                            <input type="hidden" name="delete_mode" value="hard" />
+                            <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
                           </form>
                         </td>
                       </tr>

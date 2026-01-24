@@ -204,6 +204,11 @@ TRANSLATIONS = {
         "submission_number": "Submission #",
         "total_price_estimate": "Total Price Estimate (guides + jobs):",
         "delete_assignment": "Delete Assignment",
+        "delete_assignment_prompt_title": "Delete assignment?",
+        "delete_assignment_prompt_body": (
+            "Choose Delete to remove the assignment and all related data, or Archive to hide it."
+        ),
+        "archive_assignment": "Archive",
         "edit_assignment": "Edit Assignment",
         "edit": "Edit",
         "save_changes": "Save Changes",
@@ -483,6 +488,11 @@ TRANSLATIONS = {
         "submission_number": "Řešení #",
         "total_price_estimate": "Celkový odhad ceny (průvodci + úlohy):",
         "delete_assignment": "Smazat úkol",
+        "delete_assignment_prompt_title": "Smazat úkol?",
+        "delete_assignment_prompt_body": (
+            "Vyberte Smazat pro trvalé odstranění úkolu a všech dat, nebo Archivovat pro skrytí."
+        ),
+        "archive_assignment": "Archivovat",
         "edit_assignment": "Upravit úkol",
         "edit": "Upravit",
         "save_changes": "Uložit změny",
@@ -2104,6 +2114,15 @@ def create_app():
     @app.route("/assignments/<int:assignment_id>/delete", methods=["POST"])
     def delete_assignment(assignment_id):
         assignment = Assignment.query.get_or_404(assignment_id)
+        delete_mode = request.form.get("delete_mode", "hard").strip().lower()
+        if delete_mode == "archive":
+            assignment.archived_at = _utcnow()
+            db.session.commit()
+            flash("Assignment archived.")
+            return redirect(url_for("list_assignments"))
+        if delete_mode not in {"hard", "delete"}:
+            flash("Invalid delete option.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
         has_active_jobs = (
             GradingJob.query.filter(
                 GradingJob.assignment_id == assignment_id,
