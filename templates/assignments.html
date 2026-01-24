@@ -240,45 +240,44 @@
             </div>
           {% endif %}
           <div id="active-folder-table-{{ loop.index }}">
-            {% if folder.assignments %}
-              <table>
-                <thead>
-                  <tr>
-                    <th class="drag-cell">{{ t('move') }}</th>
-                    <th>{{ t('title') }}</th>
-                    <th>{{ t('created') }}</th>
-                    <th></th>
+            <table {% if not folder.assignments %}class="hidden"{% endif %}>
+              <thead>
+                <tr>
+                  <th class="drag-cell">{{ t('move') }}</th>
+                  <th>{{ t('title') }}</th>
+                  <th>{{ t('created') }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assignment in folder.assignments %}
+                  <tr
+                    data-assignment-id="{{ assignment.id }}"
+                    data-folder-value="{{ folder.value }}"
+                    data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
+                  >
+                    <td class="drag-cell">
+                      <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}" aria-label="{{ t('drag_to_move') }}">
+                        <span class="drag-icon" aria-hidden="true">&#x270B;</span>
+                        <span class="sr-only">{{ t('move') }}</span>
+                      </span>
+                    </td>
+                    <td>{{ assignment.title }}</td>
+                    <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                    <td>
+                      <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                      <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                        <input type="hidden" name="delete_mode" value="hard" />
+                        <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
+                      </form>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {% for assignment in folder.assignments %}
-                    <tr
-                      data-assignment-id="{{ assignment.id }}"
-                      data-folder-value="{{ folder.value }}"
-                      data-move-url="{{ url_for('move_assignment', assignment_id=assignment.id) }}"
-                    >
-                      <td class="drag-cell">
-                        <span class="drag-handle" draggable="true" title="{{ t('drag_to_move') }}" aria-label="{{ t('drag_to_move') }}">
-                          <span class="drag-icon" aria-hidden="true">&#x270B;</span>
-                          <span class="sr-only">{{ t('move') }}</span>
-                        </span>
-                      </td>
-                      <td>{{ assignment.title }}</td>
-                      <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                      <td>
-                        <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
-                          <input type="hidden" name="delete_mode" value="hard" />
-                          <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
-                        </form>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <p class="folder-empty">{{ t('folder_empty_hint') }}</p>
-            {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+            <p class="folder-empty {% if folder.assignments %}hidden{% endif %}">
+              {{ t('folder_empty_hint') }}
+            </p>
           </div>
           {% if not loop.last %}
             <div class="section-divider"></div>
@@ -395,42 +394,41 @@
               </div>
             {% endif %}
             <div id="archived-folder-table-{{ loop.index }}">
-              {% if folder.assignments %}
-                <table>
-                  <thead>
+              <table {% if not folder.assignments %}class="hidden"{% endif %}>
+                <thead>
+                  <tr>
+                    <th>{{ t('title') }}</th>
+                    <th>{{ t('created') }}</th>
+                    <th>{{ t('archived_on') }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in folder.assignments %}
                     <tr>
-                      <th>{{ t('title') }}</th>
-                      <th>{{ t('created') }}</th>
-                      <th>{{ t('archived_on') }}</th>
-                      <th></th>
+                      <td>{{ assignment.title }}</td>
+                      <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                      <td>
+                        {% if assignment.archived_at %}
+                          {{ assignment.archived_at.strftime('%b %d, %Y %H:%M') }}
+                        {% else %}
+                          --
+                        {% endif %}
+                      </td>
+                      <td>
+                        <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
+                        <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
+                          <input type="hidden" name="delete_mode" value="hard" />
+                          <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
+                        </form>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {% for assignment in folder.assignments %}
-                      <tr>
-                        <td>{{ assignment.title }}</td>
-                        <td>{{ assignment.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                        <td>
-                          {% if assignment.archived_at %}
-                            {{ assignment.archived_at.strftime('%b %d, %Y %H:%M') }}
-                          {% else %}
-                            --
-                          {% endif %}
-                        </td>
-                        <td>
-                          <a class="action-link" href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}">{{ t('open') }}</a>
-                          <form method="post" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="delete-assignment-form">
-                            <input type="hidden" name="delete_mode" value="hard" />
-                            <button type="button" class="danger delete-assignment-trigger">{{ t('delete') }}</button>
-                          </form>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              {% else %}
-                <p class="folder-empty">{{ t('folder_empty_hint') }}</p>
-              {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+              <p class="folder-empty {% if folder.assignments %}hidden{% endif %}">
+                {{ t('folder_empty_hint') }}
+              </p>
             </div>
             {% if not loop.last %}
               <div class="section-divider"></div>
@@ -637,14 +635,22 @@
           var rows = group.querySelectorAll("tbody tr");
           var deleteForm = group.querySelector(".folder-delete-form");
           var archiveForm = group.querySelector(".folder-archive-form");
+          var emptyHint = group.querySelector(".folder-empty");
+          var table = group.querySelector("table");
+          var rowCount = rows.length;
           if (countEl) {
-            countEl.textContent = rows.length;
+            countEl.textContent = rowCount;
           }
           if (deleteForm) {
-            deleteForm.dataset.count = rows.length;
+            deleteForm.dataset.count = rowCount;
           }
           if (archiveForm) {
-            archiveForm.dataset.count = rows.length;
+            archiveForm.dataset.count = rowCount;
+          }
+          if (emptyHint && table) {
+            var isEmpty = rowCount === 0;
+            emptyHint.classList.toggle("hidden", !isEmpty);
+            table.classList.toggle("hidden", isEmpty);
           }
         });
       }
