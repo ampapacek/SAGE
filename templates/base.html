@@ -258,7 +258,7 @@
           <img id="theme-icon" src="{{ url_for('static', filename='images/sun.png') }}" alt="" aria-hidden="true" />
           <span class="sr-only">Toggle theme</span>
         </button>
-        <button class="back-button" type="button" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='{{ url_for('list_assignments') }}')">{{ t('nav_back') }}</button>
+        <button id="back-button" class="back-button" type="button">{{ t('nav_back') }}</button>
         <a class="home-button" href="{{ url_for('list_assignments') }}">{{ t('nav_home') }}</a>
       </div>
     </header>
@@ -388,6 +388,82 @@
         });
         window.addEventListener("scroll", toggleBackToTop);
         toggleBackToTop();
+      })();
+    </script>
+    <script>
+      (function () {
+        var button = document.getElementById("back-button");
+        if (!button) {
+          return;
+        }
+        var storageKey = "sage-nav-history";
+        var overrideKey = "sage-nav-override-index";
+        var maxEntries = 40;
+        var current = window.location.pathname + window.location.search + window.location.hash;
+        function loadState() {
+          try {
+            var raw = sessionStorage.getItem(storageKey);
+            if (!raw) {
+              return { paths: [], index: -1 };
+            }
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.paths)) {
+              return { paths: [], index: -1 };
+            }
+            if (typeof parsed.index !== "number") {
+              parsed.index = parsed.paths.length - 1;
+            }
+            return parsed;
+          } catch (error) {
+            return { paths: [], index: -1 };
+          }
+        }
+        function saveState(state) {
+          sessionStorage.setItem(storageKey, JSON.stringify(state));
+        }
+        var state = loadState();
+        var override = sessionStorage.getItem(overrideKey);
+        if (override !== null) {
+          var index = parseInt(override, 10);
+          if (!Number.isNaN(index)) {
+            state.index = index;
+          }
+          sessionStorage.removeItem(overrideKey);
+        } else {
+          if (
+            state.index < 0 ||
+            state.index >= state.paths.length ||
+            state.paths[state.index] !== current
+          ) {
+            if (state.index < state.paths.length - 1) {
+              state.paths = state.paths.slice(0, state.index + 1);
+            }
+            if (!state.paths.length || state.paths[state.paths.length - 1] !== current) {
+              state.paths.push(current);
+            }
+            state.index = state.paths.length - 1;
+            if (state.paths.length > maxEntries) {
+              var overflow = state.paths.length - maxEntries;
+              state.paths = state.paths.slice(overflow);
+              state.index = Math.max(0, state.index - overflow);
+            }
+          }
+        }
+        saveState(state);
+        button.addEventListener("click", function () {
+          var state = loadState();
+          if (state.index > 0) {
+            var targetIndex = state.index - 1;
+            sessionStorage.setItem(overrideKey, String(targetIndex));
+            window.location.href = state.paths[targetIndex];
+            return;
+          }
+          if (window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+          window.location.href = "{{ url_for('list_assignments') }}";
+        });
       })();
     </script>
   </body>
