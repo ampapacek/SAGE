@@ -16,7 +16,10 @@ def build_grading_prompt(
     # "rubric_text" holds the grading guide content.
     format_rule = ""
     if formatted_output:
-        format_rule = "\n- Use Markdown formatting in notes, reasons, hints, and final_feedback."
+        format_rule = (
+            "\n- Use Markdown formatting in notes, reasons, hints, and final_feedback. "
+            "Use LaTeX ($...$ or $$...$$) for formulas."
+        )
     return f"""
 Grade the submission using the grading guide and reference solution.
 
@@ -57,7 +60,7 @@ def build_rubric_draft_prompt(assignment_text, formatted_output=False):
     if formatted_output:
         format_rule = (
             "\nUse Markdown formatting in any text values inside rubric_text and "
-            "reference_solution_text."
+            "reference_solution_text. Use LaTeX ($...$ or $$...$$) for formulas."
         )
     return f"""
 Create a grading guide and reference solution for the assignment.
