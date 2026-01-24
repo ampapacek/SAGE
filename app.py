@@ -2407,6 +2407,9 @@ def create_app():
         formatted_output = _resolve_formatted_output(
             request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
         )
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
         rubric = RubricVersion(
             assignment_id=assignment_id,
             rubric_text="",
