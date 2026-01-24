@@ -95,6 +95,12 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Toggle Create Assignment",
         "assignments_generate_title": "Generate Assignment",
         "assignments_title": "Assignments",
+        "assignment_generation_status": "Assignment generation",
+        "assignment_generation_running": "Running",
+        "assignment_generation_done": "Finished",
+        "assignment_generation_failed": "Failed",
+        "assignment_generation_view": "View",
+        "assignment_generation_busy": "Assignment generation is already running.",
         "assignment_text": "Assignment Text",
         "assignment_prompt_label": "Topic or instructions",
         "assignment_prompt_placeholder": "e.g., Intro to derivatives, 20-minute quiz, include 3 problems.",
@@ -386,6 +392,12 @@ TRANSLATIONS = {
         "assignments_toggle_create": "Zobrazit/skrýt formulář",
         "assignments_generate_title": "Vygenerovat úkol",
         "assignments_title": "Úkoly",
+        "assignment_generation_status": "Generování úkolu",
+        "assignment_generation_running": "Probíhá",
+        "assignment_generation_done": "Dokončeno",
+        "assignment_generation_failed": "Chyba",
+        "assignment_generation_view": "Zobrazit",
+        "assignment_generation_busy": "Generování úkolu už běží.",
         "assignment_text": "Text úkolu",
         "assignment_prompt_label": "Téma nebo instrukce",
         "assignment_prompt_placeholder": "např. Úvod do derivací, 20min test, 3 úlohy.",
@@ -1931,6 +1943,8 @@ def create_app():
         assignments = active_assignments + archived_assignments
         folder_filter = (request.args.get("folder") or "").strip()
         archived_filter = request.args.get("archived", "0") in {"1", "true", "yes", "on"}
+        gen_id_raw = (request.args.get("gen_id") or "").strip()
+        assignment_generation_id = int(gen_id_raw) if gen_id_raw.isdigit() else None
         folder_options = _folder_options(assignments=active_assignments)
         foldered_assignments = _build_folder_groups(
             active_assignments,
@@ -2008,6 +2022,7 @@ def create_app():
             provider_default_models=_provider_default_models(),
             default_provider=default_provider,
             default_model=default_provider_cfg["default_model"],
+            assignment_generation_id=assignment_generation_id,
         )
 
     @app.route("/assignments/generate", methods=["POST"])
@@ -2016,6 +2031,17 @@ def create_app():
         if not topic_text:
             flash("Topic or instructions are required.")
             return redirect(url_for("list_assignments"))
+
+        active_generation = (
+            AssignmentGeneration.query.filter(
+                AssignmentGeneration.status.in_([JobStatus.QUEUED, JobStatus.RUNNING])
+            )
+            .order_by(AssignmentGeneration.created_at.desc())
+            .first()
+        )
+        if active_generation:
+            flash(t("assignment_generation_busy"))
+            return redirect(url_for("list_assignments", gen_id=active_generation.id))
 
         folder_choice = request.form.get("gen_folder_select", "").strip()
         folder_custom = request.form.get("gen_folder_custom", "").strip()
@@ -2052,7 +2078,17 @@ def create_app():
         db.session.commit()
         enqueue_assignment_job(generation.id)
         flash("Assignment generation queued. It will appear when ready.")
-        return redirect(url_for("list_assignments"))
+        return redirect(url_for("list_assignments", gen_id=generation.id))
+
+    @app.route("/assignment-generations/<int:generation_id>/status.json")
+    def assignment_generation_status(generation_id):
+        generation = AssignmentGeneration.query.get_or_404(generation_id)
+        payload = {"status": generation.status}
+        if generation.assignment_id:
+            payload["assignment_id"] = generation.assignment_id
+        if generation.error_message:
+            payload["error_message"] = generation.error_message
+        return jsonify(payload)
 
     @app.route("/assignments/<int:assignment_id>")
     def assignment_detail(assignment_id):

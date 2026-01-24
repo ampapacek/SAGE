@@ -111,6 +111,17 @@
           <button type="submit">{{ t('generate_assignment') }}</button>
         </div>
       </form>
+      <div
+        id="assignment-generation-status"
+        class="generation-status hidden"
+        data-gen-id="{{ assignment_generation_id or '' }}"
+        data-status-url="{{ url_for('assignment_generation_status', generation_id=0) }}"
+        data-assignment-url="{{ url_for('assignment_detail', assignment_id=0) }}"
+      >
+        <span class="generation-label">{{ t('assignment_generation_status') }}</span>
+        <span id="assignment-generation-state" class="status"></span>
+        <a id="assignment-generation-link" class="action-link hidden">{{ t('assignment_generation_view') }}</a>
+      </div>
     </div>
   </div>
 
@@ -531,6 +542,84 @@
       providerSelect.addEventListener("change", refreshModels);
       modelSelect.addEventListener("change", toggleCustom);
       refreshModels();
+    })();
+  </script>
+  <script>
+    (function () {
+      var statusWrap = document.getElementById("assignment-generation-status");
+      if (!statusWrap) {
+        return;
+      }
+      var generationId = statusWrap.dataset.genId;
+      if (!generationId) {
+        return;
+      }
+      var statusUrlTemplate = statusWrap.dataset.statusUrl || "";
+      var assignmentUrlTemplate = statusWrap.dataset.assignmentUrl || "";
+      var stateEl = document.getElementById("assignment-generation-state");
+      var linkEl = document.getElementById("assignment-generation-link");
+      var labelQueued = "{{ t('assignment_generation_running') }}";
+      var labelDone = "{{ t('assignment_generation_done') }}";
+      var labelFailed = "{{ t('assignment_generation_failed') }}";
+
+      function buildUrl(template, id) {
+        return template.replace("/0", "/" + id);
+      }
+
+      function updateFromStatus(data) {
+        var status = (data && data.status) || "";
+        statusWrap.classList.remove("hidden");
+        if (stateEl) {
+          var label = status;
+          if (status === "QUEUED" || status === "RUNNING") {
+            label = labelQueued;
+          } else if (status === "SUCCESS") {
+            label = labelDone;
+          } else if (status === "ERROR") {
+            label = labelFailed;
+          }
+          stateEl.textContent = label || labelQueued;
+          stateEl.className = "status " + (status || "RUNNING");
+        }
+        if (status === "SUCCESS" && data.assignment_id && linkEl) {
+          linkEl.classList.remove("hidden");
+          linkEl.href = buildUrl(assignmentUrlTemplate, data.assignment_id);
+        } else if (linkEl) {
+          linkEl.classList.add("hidden");
+        }
+        if (status === "ERROR" && data.error_message) {
+          statusWrap.title = data.error_message;
+        }
+        if (status === "QUEUED" || status === "RUNNING" || !status) {
+          setTimeout(fetchStatus, 2000);
+        }
+      }
+
+      function fetchStatus() {
+        var url = buildUrl(statusUrlTemplate, generationId);
+        fetch(url)
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("status fetch failed");
+            }
+            return response.json();
+          })
+          .then(updateFromStatus)
+          .catch(function () {});
+      }
+
+      try {
+        var url = new URL(window.location.href);
+        if (url.searchParams.has("gen_id")) {
+          url.searchParams.delete("gen_id");
+          window.history.replaceState({}, document.title, url.toString());
+        }
+      } catch (err) {
+        // Ignore history errors in older browsers.
+      }
+
+      updateFromStatus({ status: "RUNNING" });
+      fetchStatus();
     })();
   </script>
   <script>

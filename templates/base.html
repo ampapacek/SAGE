@@ -200,6 +200,21 @@
       .status.ERROR { color: var(--status-error); }
       .status.CANCELLED { color: var(--status-cancelled); }
       .status.SUCCESS { color: var(--status-success); }
+      .status.QUEUED { color: var(--status-generating); }
+      .status.RUNNING { color: var(--status-generating); }
+      .generation-status {
+        margin-top: 12px;
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--file-bg);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .generation-status .action-link { padding: 4px 10px; font-size: 12px; }
+      .generation-label { font-weight: 600; }
       .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
       .thumb img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; }
       .hidden { display: none; }
