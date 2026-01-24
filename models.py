@@ -100,6 +100,29 @@ class GradingJob(db.Model):
     rubric_version = db.relationship("RubricVersion", backref="jobs", lazy=True)
 
 
+class AssignmentGeneration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    topic_text = db.Column(db.Text, nullable=False)
+    folder_name = db.Column(db.String(255))
+    assignment_id = db.Column(db.Integer, db.ForeignKey("assignment.id"))
+    status = db.Column(db.String(20), default=JobStatus.QUEUED, nullable=False)
+    llm_provider = db.Column(db.String(64))
+    llm_model = db.Column(db.String(128))
+    formatted_output = db.Column(db.Boolean, default=False)
+    extra_instructions = db.Column(db.Text, default="", nullable=False)
+    error_message = db.Column(db.Text, default="", nullable=False)
+    raw_response = db.Column(db.Text, default="", nullable=False)
+    prompt_tokens = db.Column(db.Integer)
+    completion_tokens = db.Column(db.Integer)
+    total_tokens = db.Column(db.Integer)
+    price_estimate = db.Column(db.Float)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    started_at = db.Column(db.DateTime)
+    finished_at = db.Column(db.DateTime)
+
+    assignment = db.relationship("Assignment", backref="generation_jobs", lazy=True)
+
+
 class GradeResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.Integer, db.ForeignKey("submission.id"), nullable=False)

@@ -6,6 +6,7 @@ import threading
 from redis import Redis
 from rq import Queue
 
+from processing.assignment_runner import process_assignment_generation
 from processing.job_runner import process_submission_job
 from processing.rubric_runner import process_rubric_generation
 
@@ -52,6 +53,15 @@ def enqueue_rubric_job(rubric_id):
 
     _local_queue.put((process_rubric_generation, (rubric_id,)))
     return f"local-rubric-{rubric_id}"
+
+
+def enqueue_assignment_job(generation_id):
+    if _use_rq:
+        job = _rq_queue.enqueue(process_assignment_generation, generation_id)
+        return job.id
+
+    _local_queue.put((process_assignment_generation, (generation_id,)))
+    return f"local-assignment-{generation_id}"
 
 
 def _start_local_worker(app):

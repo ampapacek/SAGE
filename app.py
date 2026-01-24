@@ -27,11 +27,11 @@ from flask import (
 
 from config import Config, DATA_DIR, PROCESSED_DIR, UPLOAD_DIR
 from db import db
-from grading.llm_client import LLMResponseError, generate_assignment_draft
 from grading.schemas import safe_json_loads
 from grading.schemas import render_grade_output, validate_grade_result
 from models import (
     Assignment,
+    AssignmentGeneration,
     GradeResult,
     GradingJob,
     JobStatus,
@@ -47,7 +47,12 @@ from processing.file_ingest import (
     ingest_zip_upload,
     save_submission_files,
 )
-from processing.job_queue import enqueue_rubric_job, enqueue_submission_job, init_job_queue
+from processing.job_queue import (
+    enqueue_assignment_job,
+    enqueue_rubric_job,
+    enqueue_submission_job,
+    init_job_queue,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -2031,44 +2036,23 @@ def create_app():
             request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
         )
         extra_instructions = _resolve_extra_instructions(request.form)
-        global_instructions = (Config.PROMPT_ASSIGNMENT_ADDITIONAL or "").strip()
-        additional_instructions = "\n".join(
-            [text for text in [global_instructions, extra_instructions] if text]
-        )
 
-        try:
-            data, _usage, _raw_text, _meta = generate_assignment_draft(
-                topic_text,
-                selected_model,
-                provider_cfg["base_url"],
-                provider_cfg["api_key"],
-                formatted_output=formatted_output,
-                additional_instructions=additional_instructions,
-                json_mode=Config.LLM_USE_JSON_MODE,
-                max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
-                timeout=Config.LLM_REQUEST_TIMEOUT,
-            )
-        except LLMResponseError as exc:
-            flash(f"Assignment generation failed: {exc}")
-            return redirect(url_for("list_assignments"))
-
-        if not isinstance(data, dict):
-            flash("Assignment generation failed: invalid response.")
-            return redirect(url_for("list_assignments"))
-        title = (data.get("title") or "").strip()
-        assignment_text = (data.get("assignment_text") or "").strip()
-        if not title or not assignment_text:
-            flash("Assignment generation returned empty title or text.")
-            return redirect(url_for("list_assignments"))
-
-        assignment = Assignment(
-            title=title,
-            assignment_text=assignment_text,
+        generation = AssignmentGeneration(
+            topic_text=topic_text,
             folder_name=folder_name or None,
+            status=JobStatus.QUEUED,
+            llm_provider=provider_key,
+            llm_model=selected_model,
+            formatted_output=formatted_output,
+            extra_instructions=extra_instructions,
+            error_message="",
+            raw_response="",
         )
-        db.session.add(assignment)
+        db.session.add(generation)
         db.session.commit()
-        return redirect(url_for("assignment_detail", assignment_id=assignment.id))
+        enqueue_assignment_job(generation.id)
+        flash("Assignment generation queued. It will appear when ready.")
+        return redirect(url_for("list_assignments"))
 
     @app.route("/assignments/<int:assignment_id>")
     def assignment_detail(assignment_id):
