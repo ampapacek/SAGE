@@ -294,12 +294,17 @@ def grade_submission_and_raw(
     model,
     endpoint,
     api_key,
+    formatted_output=False,
     json_mode=True,
     max_tokens=800,
     timeout=120,
 ):
     prompt = build_grading_prompt(
-        assignment_text, rubric_text, reference_solution_text, student_text
+        assignment_text,
+        rubric_text,
+        reference_solution_text,
+        student_text,
+        formatted_output=formatted_output,
     )
     use_responses = _use_responses_api(model)
     responses_messages = _build_messages(prompt, image_paths, True)
@@ -367,6 +372,7 @@ def grade_submission(
     model,
     endpoint,
     api_key,
+    formatted_output=False,
 ):
     data, _raw, _usage, _meta = grade_submission_and_raw(
         assignment_text,
@@ -377,6 +383,7 @@ def grade_submission(
         model,
         endpoint,
         api_key,
+        formatted_output=formatted_output,
         json_mode=True,
     )
     return data

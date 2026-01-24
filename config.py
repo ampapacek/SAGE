@@ -70,6 +70,12 @@ class Config:
         "yes",
         "on",
     }
+    LLM_FORMATTED_OUTPUT = os.environ.get("LLM_FORMATTED_OUTPUT", "0").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     SHOW_COSTS = os.environ.get("SHOW_COSTS", "1").lower() in {
         "1",
         "true",

@@ -795,6 +795,13 @@ _SETTINGS_FIELDS = [
         "restart": False,
     },
     {
+        "key": "LLM_FORMATTED_OUTPUT",
+        "label": "Formatted Feedback (Markdown)",
+        "type": "checkbox",
+        "help": "Ask models to format feedback text with Markdown.",
+        "restart": False,
+    },
+    {
         "key": "LLM_MAX_OUTPUT_TOKENS",
         "label": "LLM Max Output Tokens",
         "type": "number",
@@ -2931,7 +2938,7 @@ def create_app():
             for key, value in updates.items():
                 os.environ[key] = value
                 app.config[key] = value
-                if key in {"LLM_USE_JSON_MODE", "SHOW_COSTS"}:
+                if key in {"LLM_USE_JSON_MODE", "LLM_FORMATTED_OUTPUT", "SHOW_COSTS"}:
                     app.config[key] = value.lower() in {"1", "true", "yes", "on"}
                 if key in {
                     "LLM_MAX_OUTPUT_TOKENS",

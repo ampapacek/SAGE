@@ -342,6 +342,7 @@ def process_submission_job(job_id):
             llm_model,
             provider_cfg["base_url"],
             provider_cfg["api_key"],
+            formatted_output=Config.LLM_FORMATTED_OUTPUT,
             json_mode=Config.LLM_USE_JSON_MODE,
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,
