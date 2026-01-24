@@ -43,6 +43,7 @@
       </form>
     {% endif %}
     <form method="post" action="{{ url_for('rerun_job', job_id=job.id) }}">
+      {% set formatted_checked = job.formatted_output if job.formatted_output is not none else formatted_output_default %}
       <label for="llm_provider">{{ t('provider_label') }}</label>
       <select id="llm_provider" name="llm_provider" class="compact-select">
         {% set selected_provider = rerun_provider %}
@@ -71,7 +72,19 @@
           placeholder="{{ t('custom_model_placeholder') }}"
         />
       </div>
-      <button type="submit">{{ t('rerun_job') }}</button>
+      <div class="form-actions">
+        <input type="hidden" name="formatted_output" value="0" />
+        <label class="form-toggle">
+          <input
+            type="checkbox"
+            name="formatted_output"
+            value="1"
+            {% if formatted_checked %}checked{% endif %}
+          />
+          {{ t('formatted_output_label') }}
+        </label>
+        <button type="submit">{{ t('rerun_job') }}</button>
+      </div>
     </form>
     <script>
       (function () {

@@ -79,6 +79,9 @@ def process_rubric_generation(rubric_id):
     provider_key = rubric.llm_provider or Config.LLM_PROVIDER
     provider_cfg = _provider_config(provider_key)
     model = rubric.llm_model or provider_cfg["default_model"]
+    formatted_output = rubric.formatted_output
+    if formatted_output is None:
+        formatted_output = Config.LLM_FORMATTED_OUTPUT
     raw_text = ""
     try:
         data, usage, raw_text, meta = generate_rubric_draft(
@@ -86,6 +89,7 @@ def process_rubric_generation(rubric_id):
             model,
             provider_cfg["base_url"],
             provider_cfg["api_key"],
+            formatted_output=formatted_output,
             json_mode=Config.LLM_USE_JSON_MODE,
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,
