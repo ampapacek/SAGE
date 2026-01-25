@@ -152,47 +152,47 @@
     {% endif %}
 
     <h4>{{ t('guide_creation') }}</h4>
-    <h4>{{ t('grading_templates') }}</h4>
-    {% if templates %}
-      <label for="template_id">{{ t('use_template') }}</label>
-      <div class="form-actions">
-        <select id="template_id" name="template_id">
-          {% for template in templates %}
-            <option value="{{ template.id }}">{{ template.name }}</option>
-          {% endfor %}
-        </select>
-        <button type="button" class="secondary" id="apply-template">{{ t('create_guide_from_template') }}</button>
-      </div>
-      <table style="margin-top: 12px;">
-        <thead>
-          <tr>
-            <th>{{ t('template_name') }}</th>
-            <th>{{ t('created') }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for template in templates %}
-            <tr>
-              <td>{{ template.name }}</td>
-              <td>{{ template.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-              <td class="row-actions">
-                <a class="action-link" href="{{ url_for('edit_template', template_id=template.id, next=url_for('assignment_detail', assignment_id=assignment.id)) }}">{{ t('edit_template') }}</a>
-                <form method="post" action="{{ url_for('delete_template', template_id=template.id) }}?next={{ url_for('assignment_detail', assignment_id=assignment.id) }}" onsubmit="return confirm('{{ t('delete_template_confirm') }}');">
-                  <button type="submit" class="danger">{{ t('delete_template') }}</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="helper-text">{{ t('no_templates') }}</p>
-    {% endif %}
     <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
       {{ t('toggle_guide_form') }}
     </button>
     <div id="rubric-forms" {% if approved_rubric %}class="hidden"{% endif %}>
+      <h4>{{ t('grading_templates') }}</h4>
+      {% if templates %}
+        <label for="template_id">{{ t('use_template') }}</label>
+        <div class="form-actions">
+          <select id="template_id" name="template_id">
+            {% for template in templates %}
+              <option value="{{ template.id }}">{{ template.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="secondary" id="apply-template">{{ t('create_guide_from_template') }}</button>
+        </div>
+        <table style="margin-top: 12px;">
+          <thead>
+            <tr>
+              <th>{{ t('template_name') }}</th>
+              <th>{{ t('created') }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for template in templates %}
+              <tr>
+                <td>{{ template.name }}</td>
+                <td>{{ template.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                <td class="row-actions">
+                  <a class="action-link" href="{{ url_for('edit_template', template_id=template.id, next=url_for('assignment_detail', assignment_id=assignment.id)) }}">{{ t('edit_template') }}</a>
+                  <form method="post" action="{{ url_for('delete_template', template_id=template.id) }}?next={{ url_for('assignment_detail', assignment_id=assignment.id) }}" onsubmit="return confirm('{{ t('delete_template_confirm') }}');">
+                    <button type="submit" class="danger">{{ t('delete_template') }}</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="helper-text">{{ t('no_templates') }}</p>
+      {% endif %}
       <h4>{{ t('create_guide_manual') }}</h4>
       <form method="post" action="{{ url_for('create_rubric', assignment_id=assignment.id) }}">
         <label for="rubric_text">{{ t('guide_text') }}</label>
