@@ -56,6 +56,14 @@ class RubricVersion(db.Model):
     finished_at = db.Column(db.DateTime)
 
 
+class GradingTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    rubric_text = db.Column(db.Text, nullable=False)
+    reference_solution_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey("assignment.id"), nullable=False)

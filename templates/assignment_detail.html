@@ -152,6 +152,20 @@
     {% endif %}
 
     <h4>{{ t('guide_creation') }}</h4>
+    <h4>{{ t('grading_templates') }}</h4>
+    {% if templates %}
+      <form method="post" action="{{ url_for('create_rubric_from_template', assignment_id=assignment.id) }}">
+        <label for="template_id">{{ t('use_template') }}</label>
+        <select id="template_id" name="template_id">
+          {% for template in templates %}
+            <option value="{{ template.id }}">{{ template.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="secondary">{{ t('create_guide_from_template') }}</button>
+      </form>
+    {% else %}
+      <p class="helper-text">{{ t('no_templates') }}</p>
+    {% endif %}
     <button type="button" class="secondary" onclick="document.getElementById('rubric-forms').classList.toggle('hidden')">
       {{ t('toggle_guide_form') }}
     </button>

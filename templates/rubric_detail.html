@@ -166,6 +166,17 @@
     </div>
   {% endif %}
 
+  {% if rubric.rubric_text and rubric.reference_solution_text %}
+    <div class="card">
+      <h3>{{ t('grading_templates') }}</h3>
+      <form method="post" action="{{ url_for('save_rubric_template', rubric_id=rubric.id) }}">
+        <label for="template_name">{{ t('template_name') }}</label>
+        <input type="text" id="template_name" name="template_name" required />
+        <button type="submit" class="secondary">{{ t('save_template') }}</button>
+      </form>
+    </div>
+  {% endif %}
+
   <div class="card">
     {% if rubric.status == 'DRAFT' %}
       <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">

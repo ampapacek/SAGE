@@ -35,6 +35,7 @@ from models import (
     GradeResult,
     GradingJob,
     JobStatus,
+    GradingTemplate,
     RubricStatus,
     RubricVersion,
     SubmissionFile,
@@ -182,6 +183,12 @@ TRANSLATIONS = {
         "add_reference_part": "Add reference part",
         "no_guides": "No grading guides yet.",
         "guide_creation": "Grading Guide Creation",
+        "grading_templates": "Grading Templates",
+        "template_name": "Template name",
+        "save_template": "Save as template",
+        "use_template": "Use template",
+        "create_guide_from_template": "Create guide from template",
+        "no_templates": "No templates yet.",
         "toggle_guide_form": "Toggle Guide Form",
         "create_guide_manual": "Create Grading Guide (Manual)",
         "guide_text": "Grading Guide Text",
@@ -480,6 +487,12 @@ TRANSLATIONS = {
         "add_reference_part": "Přidat část řešení",
         "no_guides": "Zatím žádná kritéria hodnocení.",
         "guide_creation": "Vytvoření kritérií hodnocení",
+        "grading_templates": "Šablony hodnocení",
+        "template_name": "Název šablony",
+        "save_template": "Uložit jako šablonu",
+        "use_template": "Použít šablonu",
+        "create_guide_from_template": "Vytvořit kritéria ze šablony",
+        "no_templates": "Zatím žádné šablony.",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
         "create_guide_manual": "Vytvořit kritéria hodnocení (ručně)",
         "guide_text": "Text kritérií hodnocení",
@@ -2143,6 +2156,9 @@ def create_app():
             .order_by(GradingJob.created_at.desc())
             .all()
         )
+        templates = GradingTemplate.query.order_by(
+            GradingTemplate.created_at.desc()
+        ).all()
         has_pending_rubrics = any(
             rubric.status == RubricStatus.GENERATING for rubric in rubrics
         )
@@ -2254,6 +2270,7 @@ def create_app():
             rubrics=rubrics,
             submissions=submissions,
             jobs=jobs,
+            templates=templates,
             has_active_jobs=has_active_jobs,
             has_pending_rubrics=has_pending_rubrics,
             approved_rubric=approved_rubric,
@@ -2718,6 +2735,54 @@ def create_app():
         enqueue_rubric_job(rubric.id)
         flash("Grading guide generation rerun queued.")
         return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+    @app.route("/rubrics/<int:rubric_id>/save_template", methods=["POST"])
+    def save_rubric_template(rubric_id):
+        rubric = RubricVersion.query.get_or_404(rubric_id)
+        template_name = (request.form.get("template_name") or "").strip()
+        if not template_name:
+            flash("Template name is required.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+        if not rubric.rubric_text or not rubric.reference_solution_text:
+            flash("Guide text and reference solution are required to save a template.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+        template = GradingTemplate(
+            name=template_name,
+            rubric_text=rubric.rubric_text,
+            reference_solution_text=rubric.reference_solution_text,
+        )
+        db.session.add(template)
+        db.session.commit()
+        flash("Template saved.")
+        return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+    @app.route(
+        "/assignments/<int:assignment_id>/rubrics/from_template", methods=["POST"]
+    )
+    def create_rubric_from_template(assignment_id):
+        template_id = request.form.get("template_id")
+        if not template_id:
+            flash("Template selection is required.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+        try:
+            template_id_int = int(template_id)
+        except ValueError:
+            flash("Template selection is invalid.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+        template = db.session.get(GradingTemplate, template_id_int)
+        if not template:
+            flash("Template not found.")
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+        rubric = RubricVersion(
+            assignment_id=assignment_id,
+            rubric_text=template.rubric_text,
+            reference_solution_text=template.reference_solution_text,
+            status=RubricStatus.DRAFT,
+        )
+        db.session.add(rubric)
+        db.session.commit()
+        flash("Grading guide created from template.")
+        return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
     @app.route("/rubrics/<int:rubric_id>/delete", methods=["POST"])
     def delete_rubric(rubric_id):
