@@ -154,15 +154,15 @@
     <h4>{{ t('guide_creation') }}</h4>
     <h4>{{ t('grading_templates') }}</h4>
     {% if templates %}
-      <form method="post" action="{{ url_for('create_rubric_from_template', assignment_id=assignment.id) }}">
-        <label for="template_id">{{ t('use_template') }}</label>
+      <label for="template_id">{{ t('use_template') }}</label>
+      <div class="form-actions">
         <select id="template_id" name="template_id">
           {% for template in templates %}
             <option value="{{ template.id }}">{{ template.name }}</option>
           {% endfor %}
         </select>
-        <button type="submit" class="secondary">{{ t('create_guide_from_template') }}</button>
-      </form>
+        <button type="button" class="secondary" id="apply-template">{{ t('create_guide_from_template') }}</button>
+      </div>
     {% else %}
       <p class="helper-text">{{ t('no_templates') }}</p>
     {% endif %}
@@ -328,11 +328,15 @@
         var rubricModel = document.getElementById("rubric_model");
         var rubricCustomModel = document.getElementById("rubric_custom_model");
         var rubricCustomWrap = document.getElementById("rubric_custom_wrap");
+        var templateSelect = document.getElementById("template_id");
+        var applyTemplate = document.getElementById("apply-template");
+        var rubricForms = document.getElementById("rubric-forms");
         var filesDrop = document.getElementById("files-drop");
         var zipDrop = document.getElementById("zip-drop");
         var providerModelOptions = {{ provider_model_options | tojson }};
         var providerDefaultModels = {{ provider_default_models | tojson }};
         var otherLabel = "{{ t('other_model_option') }}";
+        var templateBaseUrl = "{{ url_for('template_detail_json', template_id=0) }}";
         if (!fileInput || !zipInput || !modelSelect) {
           return;
         }
@@ -534,6 +538,37 @@
         zipInput.addEventListener("change", function () {
           applyImageConstraints(modelSelect);
         });
+        if (applyTemplate && templateSelect) {
+          applyTemplate.addEventListener("click", function () {
+            var templateId = templateSelect.value;
+            if (!templateId) {
+              return;
+            }
+            var url = templateBaseUrl.replace("0.json", templateId + ".json");
+            fetch(url)
+              .then(function (response) { return response.json(); })
+              .then(function (data) {
+                if (!data || data.error) {
+                  return;
+                }
+                if (rubricForms) {
+                  rubricForms.classList.remove("hidden");
+                }
+                var guideText = document.getElementById("rubric_text");
+                var referenceText = document.getElementById("reference_solution_text");
+                if (guideText) {
+                  guideText.value = data.rubric_text || "";
+                }
+                if (referenceText) {
+                  referenceText.value = data.reference_solution_text || "";
+                }
+                if (guideText) {
+                  guideText.focus();
+                }
+              })
+              .catch(function () {});
+          });
+        }
         refreshModelSelects();
       })();
     </script>

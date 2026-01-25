@@ -187,7 +187,7 @@ TRANSLATIONS = {
         "template_name": "Template name",
         "save_template": "Save as template",
         "use_template": "Use template",
-        "create_guide_from_template": "Create guide from template",
+        "create_guide_from_template": "Load template into form",
         "no_templates": "No templates yet.",
         "toggle_guide_form": "Toggle Guide Form",
         "create_guide_manual": "Create Grading Guide (Manual)",
@@ -491,7 +491,7 @@ TRANSLATIONS = {
         "template_name": "Název šablony",
         "save_template": "Uložit jako šablonu",
         "use_template": "Použít šablonu",
-        "create_guide_from_template": "Vytvořit kritéria ze šablony",
+        "create_guide_from_template": "Načíst šablonu do formuláře",
         "no_templates": "Zatím žádné šablony.",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
         "create_guide_manual": "Vytvořit kritéria hodnocení (ručně)",
@@ -2783,6 +2783,20 @@ def create_app():
         db.session.commit()
         flash("Grading guide created from template.")
         return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+
+    @app.route("/templates/<int:template_id>.json")
+    def template_detail_json(template_id):
+        template = db.session.get(GradingTemplate, template_id)
+        if not template:
+            return jsonify({"error": "Template not found"}), 404
+        return jsonify(
+            {
+                "id": template.id,
+                "name": template.name,
+                "rubric_text": template.rubric_text,
+                "reference_solution_text": template.reference_solution_text,
+            }
+        )
 
     @app.route("/rubrics/<int:rubric_id>/delete", methods=["POST"])
     def delete_rubric(rubric_id):
