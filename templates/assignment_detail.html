@@ -157,6 +157,7 @@
     </button>
     <div id="rubric-forms" {% if approved_rubric %}class="hidden"{% endif %}>
       <h4>{{ t('grading_templates') }}</h4>
+      <p class="helper-text">{{ t('template_hint') }}</p>
       {% if templates %}
         <label for="template_id">{{ t('use_template') }}</label>
         <div class="form-actions">
@@ -170,22 +171,31 @@
         <table style="margin-top: 12px;">
           <thead>
             <tr>
-              <th>{{ t('template_name') }}</th>
-              <th>{{ t('created') }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for template in templates %}
-              <tr>
-                <td>{{ template.name }}</td>
-                <td>{{ template.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                <td class="row-actions">
-                  <a class="action-link" href="{{ url_for('edit_template', template_id=template.id, next=url_for('assignment_detail', assignment_id=assignment.id)) }}">{{ t('edit_template') }}</a>
-                  <form method="post" action="{{ url_for('delete_template', template_id=template.id) }}?next={{ url_for('assignment_detail', assignment_id=assignment.id) }}" onsubmit="return confirm('{{ t('delete_template_confirm') }}');">
-                    <button type="submit" class="danger">{{ t('delete_template') }}</button>
-                  </form>
-                </td>
+            <th>{{ t('template_name') }}</th>
+            <th>{{ t('created') }}</th>
+            <th>{{ t('preview') }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for template in templates %}
+            <tr>
+              <td>{{ template.name }}</td>
+              <td>{{ template.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+              <td>
+                {% if template.preview_total_points is not none %}
+                  <div><strong>{{ t('total_points') }}:</strong> {{ template.preview_total_points }}</div>
+                {% endif %}
+                {% if template.preview_text %}
+                  <div class="helper-text">{{ template.preview_text }}</div>
+                {% endif %}
+              </td>
+              <td class="row-actions">
+                <a class="action-link" href="{{ url_for('edit_template', template_id=template.id, next=url_for('assignment_detail', assignment_id=assignment.id)) }}">{{ t('edit_template') }}</a>
+                <form method="post" action="{{ url_for('delete_template', template_id=template.id) }}?next={{ url_for('assignment_detail', assignment_id=assignment.id) }}" onsubmit="return confirm('{{ t('delete_template_confirm') }}');">
+                  <button type="submit" class="danger">{{ t('delete_template') }}</button>
+                </form>
+              </td>
               </tr>
             {% endfor %}
           </tbody>

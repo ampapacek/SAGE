@@ -192,6 +192,7 @@ TRANSLATIONS = {
         "edit_template": "Edit template",
         "delete_template": "Delete template",
         "delete_template_confirm": "Delete this template?",
+        "template_hint": "Save a grading guide as a reusable template.",
         "no_templates": "No templates yet.",
         "toggle_guide_form": "Toggle Guide Form",
         "create_guide_manual": "Create Grading Guide (Manual)",
@@ -500,6 +501,7 @@ TRANSLATIONS = {
         "edit_template": "Upravit šablonu",
         "delete_template": "Smazat šablonu",
         "delete_template_confirm": "Smazat tuto šablonu?",
+        "template_hint": "Uložte kritéria hodnocení jako znovupoužitelnou šablonu.",
         "no_templates": "Zatím žádné šablony.",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
         "create_guide_manual": "Vytvořit kritéria hodnocení (ručně)",
@@ -2219,6 +2221,10 @@ def create_app():
             job.price_estimate_display = job.price_estimate
             if job.price_estimate_display is None:
                 job.price_estimate_display = _extract_price_estimate(job.message)
+        for template in templates:
+            preview = _build_guide_preview(template.rubric_text)
+            template.preview_total_points = preview["total_points"]
+            template.preview_text = preview["text"]
         has_active_jobs = any(
             job.status in {JobStatus.QUEUED, JobStatus.RUNNING} for job in jobs
         )
