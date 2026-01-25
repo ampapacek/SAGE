@@ -192,7 +192,8 @@ TRANSLATIONS = {
         "edit_template": "Edit template",
         "delete_template": "Delete template",
         "delete_template_confirm": "Delete this template?",
-        "template_hint": "Save a grading guide as a reusable template.",
+        "template_hint": "Use a saved grading guide template.",
+        "save_template_hint": "Provide a name to save this guide as a template.",
         "toggle_templates": "Toggle templates",
         "no_templates": "No templates yet.",
         "toggle_guide_form": "Toggle Guide Form",
@@ -502,7 +503,8 @@ TRANSLATIONS = {
         "edit_template": "Upravit šablonu",
         "delete_template": "Smazat šablonu",
         "delete_template_confirm": "Smazat tuto šablonu?",
-        "template_hint": "Uložte kritéria hodnocení jako znovupoužitelnou šablonu.",
+        "template_hint": "Použijte uloženou šablonu kritérií hodnocení.",
+        "save_template_hint": "Zadejte název a uložte tato kritéria jako šablonu.",
         "toggle_templates": "Zobrazit/skrýt šablony",
         "no_templates": "Zatím žádné šablony.",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
@@ -2650,6 +2652,17 @@ def create_app():
         )
         db.session.add(rubric)
         db.session.commit()
+        if request.form.get("save_template"):
+            template_name = (request.form.get("template_name") or "").strip()
+            if template_name:
+                template = GradingTemplate(
+                    name=template_name,
+                    rubric_text=rubric_text,
+                    reference_solution_text=reference_solution_text,
+                )
+                db.session.add(template)
+                db.session.commit()
+                flash("Template saved.")
         flash("Grading guide saved as DRAFT.")
         return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 

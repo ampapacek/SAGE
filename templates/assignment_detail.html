@@ -214,7 +214,15 @@
         <textarea id="rubric_text" name="rubric_text" required {% if not rubrics %}placeholder="{{ t('guide_text_placeholder') }}"{% endif %}></textarea>
         <label for="reference_solution_text">{{ t('reference_solution') }}</label>
         <textarea id="reference_solution_text" name="reference_solution_text" required {% if not rubrics %}placeholder="{{ t('reference_solution_placeholder') }}"{% endif %}></textarea>
-        <button type="submit">{{ t('save_draft') }}</button>
+        <div class="form-actions">
+          <button type="submit">{{ t('save_draft') }}</button>
+          <label for="template_name_inline">{{ t('template_name') }}</label>
+          <input type="text" id="template_name_inline" name="template_name" />
+          <button type="submit" class="secondary" name="save_template" value="1">
+            {{ t('save_template') }}
+          </button>
+          <span class="helper-text">{{ t('save_template_hint') }}</span>
+        </div>
       </form>
 
       <h4>{{ t('generate_draft_guide') }}</h4>
