@@ -188,6 +188,10 @@ TRANSLATIONS = {
         "save_template": "Save as template",
         "use_template": "Use template",
         "create_guide_from_template": "Load template into form",
+        "template_list": "Templates",
+        "edit_template": "Edit template",
+        "delete_template": "Delete template",
+        "delete_template_confirm": "Delete this template?",
         "no_templates": "No templates yet.",
         "toggle_guide_form": "Toggle Guide Form",
         "create_guide_manual": "Create Grading Guide (Manual)",
@@ -492,6 +496,10 @@ TRANSLATIONS = {
         "save_template": "Uložit jako šablonu",
         "use_template": "Použít šablonu",
         "create_guide_from_template": "Načíst šablonu do formuláře",
+        "template_list": "Šablony",
+        "edit_template": "Upravit šablonu",
+        "delete_template": "Smazat šablonu",
+        "delete_template_confirm": "Smazat tuto šablonu?",
         "no_templates": "Zatím žádné šablony.",
         "toggle_guide_form": "Zobrazit/skrýt formulář",
         "create_guide_manual": "Vytvořit kritéria hodnocení (ručně)",
@@ -2797,6 +2805,49 @@ def create_app():
                 "reference_solution_text": template.reference_solution_text,
             }
         )
+
+    @app.route("/templates/<int:template_id>/edit", methods=["GET", "POST"])
+    def edit_template(template_id):
+        template = db.session.get(GradingTemplate, template_id)
+        if not template:
+            flash("Template not found.")
+            return redirect(url_for("list_assignments"))
+        next_url = request.args.get("next") or url_for("list_assignments")
+        if request.method == "POST":
+            name = (request.form.get("name") or "").strip()
+            rubric_text = (request.form.get("rubric_text") or "").strip()
+            reference_solution_text = (
+                request.form.get("reference_solution_text") or ""
+            ).strip()
+            if not name:
+                flash("Template name is required.")
+                return redirect(url_for("edit_template", template_id=template.id, next=next_url))
+            if not rubric_text or not reference_solution_text:
+                flash("Guide text and reference solution are required.")
+                return redirect(url_for("edit_template", template_id=template.id, next=next_url))
+            template.name = name
+            template.rubric_text = rubric_text
+            template.reference_solution_text = reference_solution_text
+            db.session.commit()
+            flash("Template updated.")
+            return redirect(next_url)
+        return render_template(
+            "template_edit.html",
+            template=template,
+            next_url=next_url,
+        )
+
+    @app.route("/templates/<int:template_id>/delete", methods=["POST"])
+    def delete_template(template_id):
+        template = db.session.get(GradingTemplate, template_id)
+        if not template:
+            flash("Template not found.")
+            return redirect(url_for("list_assignments"))
+        db.session.delete(template)
+        db.session.commit()
+        flash("Template deleted.")
+        next_url = request.args.get("next") or url_for("list_assignments")
+        return redirect(next_url)
 
     @app.route("/rubrics/<int:rubric_id>/delete", methods=["POST"])
     def delete_rubric(rubric_id):

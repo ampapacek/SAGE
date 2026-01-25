@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <h2>{{ t('edit_template') }}</h2>
+    <form method="post">
+      <label for="name">{{ t('template_name') }}</label>
+      <input type="text" id="name" name="name" value="{{ template.name }}" required />
+
+      <label for="rubric_text">{{ t('guide_text') }}</label>
+      <textarea id="rubric_text" name="rubric_text" required>{{ template.rubric_text }}</textarea>
+
+      <label for="reference_solution_text">{{ t('reference_solution') }}</label>
+      <textarea id="reference_solution_text" name="reference_solution_text" required>{{ template.reference_solution_text }}</textarea>
+
+      <div class="form-actions">
+        <button type="submit">{{ t('save_changes') }}</button>
+        <a class="action-link" href="{{ next_url }}">{{ t('cancel') }}</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
