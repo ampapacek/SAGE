@@ -14,6 +14,7 @@ if (-not (Test-Path $pythonExe)) {
 }
 
 & $pipExe install -r requirements.txt
+& $pythonExe scripts/reconstruct_key.py
 
 if (-not (Test-Path ".env")) {
     Copy-Item .env.example .env
