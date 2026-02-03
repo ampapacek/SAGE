@@ -5,7 +5,7 @@ PYTHON ?= python3
 VENV := .venv
 PIP := $(VENV)/bin/pip
 FLASK := $(VENV)/bin/flask
-PORT ?= 5000
+PORT ?= 8080
 
 .PHONY: help run setup venv install env check-poppler
 
