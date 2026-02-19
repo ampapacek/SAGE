@@ -88,6 +88,12 @@ _PROVIDER_OPTIONS = [
     "custom2",
     "custom3",
 ]
+
+
+class _StaticRequestFilter(logging.Filter):
+    def filter(self, record):
+        # Hide noisy static asset request logs from Werkzeug.
+        return " /static/" not in record.getMessage()
 TRANSLATIONS = {
     "en": {
         "nav_back": "Back",
@@ -1917,6 +1923,9 @@ def _ensure_schema_updates():
 
 def _init_logging():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    werkzeug_logger = logging.getLogger("werkzeug")
+    if not any(isinstance(f, _StaticRequestFilter) for f in werkzeug_logger.filters):
+        werkzeug_logger.addFilter(_StaticRequestFilter())
 
 
 def _get_approved_rubric(assignment_id):
