@@ -6,6 +6,7 @@ import threading
 from redis import Redis
 from rq import Queue
 
+from processing.assignment_import_runner import process_assignment_import
 from processing.assignment_runner import process_assignment_generation
 from processing.job_runner import process_submission_job
 from processing.rubric_runner import process_rubric_generation
@@ -16,6 +17,7 @@ _local_queue = queue.Queue()
 _worker_started = False
 _use_rq = False
 _rq_queue = None
+_worker_threads = []
 
 
 def init_job_queue(app):
@@ -64,8 +66,17 @@ def enqueue_assignment_job(generation_id):
     return f"local-assignment-{generation_id}"
 
 
+def enqueue_assignment_import_job(import_id):
+    if _use_rq:
+        job = _rq_queue.enqueue(process_assignment_import, import_id)
+        return job.id
+
+    _local_queue.put((process_assignment_import, (import_id,)))
+    return f"local-assignment-import-{import_id}"
+
+
 def _start_local_worker(app):
-    global _worker_started
+    global _worker_started, _worker_threads
     if _worker_started:
         return
 
@@ -73,6 +84,12 @@ def _start_local_worker(app):
         return
 
     _worker_started = True
+    concurrency = app.config.get("LOCAL_WORKER_CONCURRENCY", 8)
+    try:
+        concurrency = int(concurrency)
+    except (TypeError, ValueError):
+        concurrency = 8
+    concurrency = max(1, concurrency)
 
     def _worker():
         with app.app_context():
@@ -91,6 +108,13 @@ def _start_local_worker(app):
                 finally:
                     _local_queue.task_done()
 
-    thread = threading.Thread(target=_worker, name="local-grading-worker", daemon=True)
-    thread.start()
-    logger.info("Started local background worker thread")
+    _worker_threads = []
+    for idx in range(concurrency):
+        thread = threading.Thread(
+            target=_worker,
+            name=f"local-grading-worker-{idx + 1}",
+            daemon=True,
+        )
+        thread.start()
+        _worker_threads.append(thread)
+    logger.info("Started %s local background worker thread(s)", concurrency)

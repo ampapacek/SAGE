@@ -105,6 +105,7 @@ Key variables:
 - `LLM_IMAGE_TOKENS_PER_IMAGE`: estimated token cost per image for pricing estimates
 - `SHOW_COSTS`: set to `0` to hide price estimates in the UI
 - `REDIS_URL`: optional; if missing, a local background thread processes jobs
+- `LOCAL_WORKER_CONCURRENCY`: number of local fallback workers (parallel jobs) when `REDIS_URL` is blank
 - `MAX_CONTENT_LENGTH`: upload size limit in bytes
 
 ## Run Locally
@@ -129,7 +130,7 @@ In a separate terminal, run the worker:
 rq worker
 ```
 
-Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app falls back to a local background thread.
+Make sure `REDIS_URL` is set in `.env`. If Redis is not configured, the app falls back to local background workers, controlled by `LOCAL_WORKER_CONCURRENCY` (default `8`).
 
 ## Using the App
 
