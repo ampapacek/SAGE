@@ -131,6 +131,28 @@ class AssignmentGeneration(db.Model):
     assignment = db.relationship("Assignment", backref="generation_jobs", lazy=True)
 
 
+class AssignmentImport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    zip_path = db.Column(db.Text, nullable=False)
+    import_title = db.Column(db.String(255))
+    folder_name = db.Column(db.String(255))
+    assignment_id = db.Column(db.Integer, db.ForeignKey("assignment.id"))
+    status = db.Column(db.String(20), default=JobStatus.QUEUED, nullable=False)
+    queue_job_id = db.Column(db.String(128), default="", nullable=False)
+    llm_provider = db.Column(db.String(64))
+    llm_model = db.Column(db.String(128))
+    imported_submissions = db.Column(db.Integer, default=0, nullable=False)
+    message = db.Column(db.Text, default="", nullable=False)
+    error_message = db.Column(db.Text, default="", nullable=False)
+    raw_response = db.Column(db.Text, default="", nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    started_at = db.Column(db.DateTime)
+    finished_at = db.Column(db.DateTime)
+
+    assignment = db.relationship("Assignment", backref="import_jobs", lazy=True)
+
+
 class GradeResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.Integer, db.ForeignKey("submission.id"), nullable=False)

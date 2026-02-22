@@ -17,6 +17,18 @@
       <span id="assignment-generation-state" class="status"></span>
       <a id="assignment-generation-link" class="action-link hidden">{{ t('assignment_generation_view') }}</a>
     </div>
+    <div
+      id="assignment-import-status"
+      class="generation-status hidden"
+      data-import-id="{{ assignment_import_id or '' }}"
+      data-status-url="{{ url_for('assignment_import_status', import_id=0) }}"
+      data-assignment-url="{{ url_for('assignment_detail', assignment_id=0) }}"
+    >
+      <span class="generation-label">{{ t('assignment_import_status') }}</span>
+      <span id="assignment-import-state" class="status"></span>
+      <span id="assignment-import-message" class="helper-text"></span>
+      <a id="assignment-import-link" class="action-link hidden">{{ t('assignment_import_view') }}</a>
+    </div>
     {% if not assignments %}
       <div class="dropzone-hint" style="margin-top: 10px;">
         {{ t('assignments_empty_hint') }}
@@ -125,8 +137,11 @@
 
       <h3 style="margin-top: 18px;">{{ t('assignments_import_title') }}</h3>
       <form method="post" action="{{ url_for('import_assignment_zip') }}" enctype="multipart/form-data">
-        <label for="assignment_zip">{{ t('assignments_import_file') }}</label>
-        <input type="file" id="assignment_zip" name="assignment_zip" accept=".zip" required />
+        <div class="dropzone" id="assignment-zip-drop">
+          <label for="assignment_zip">{{ t('assignments_import_file') }}</label>
+          <input type="file" id="assignment_zip" name="assignment_zip" accept=".zip" required class="file-input" />
+          <div class="dropzone-hint">{{ t('drop_zip_hint') }}</div>
+        </div>
         <div class="dropzone-hint">{{ t('assignments_import_hint') }}</div>
         <label for="import_title">{{ t('title') }}</label>
         <input type="text" id="import_title" name="import_title" />
@@ -506,6 +521,40 @@
       bindFolder("folder_select", "folder_custom_wrap", "folder_custom");
       bindFolder("gen_folder_select", "gen_folder_custom_wrap", "gen_folder_custom");
       bindFolder("import_folder_select", "import_folder_custom_wrap", "import_folder_custom");
+
+      var importZipDrop = document.getElementById("assignment-zip-drop");
+      var importZipInput = document.getElementById("assignment_zip");
+      if (importZipDrop && importZipInput) {
+        function setDropActive(active) {
+          importZipDrop.classList.toggle("active", !!active);
+        }
+        importZipDrop.addEventListener("dragenter", function (event) {
+          event.preventDefault();
+          setDropActive(true);
+        });
+        importZipDrop.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          setDropActive(true);
+        });
+        importZipDrop.addEventListener("dragleave", function () {
+          setDropActive(false);
+        });
+        importZipDrop.addEventListener("drop", function (event) {
+          event.preventDefault();
+          setDropActive(false);
+          var files = Array.prototype.slice.call(event.dataTransfer.files || []);
+          files = files.filter(function (file) {
+            return (file.name || "").toLowerCase().endsWith(".zip");
+          });
+          if (!files.length) {
+            return;
+          }
+          var dataTransfer = new DataTransfer();
+          dataTransfer.items.add(files[0]);
+          importZipInput.files = dataTransfer.files;
+          importZipInput.dispatchEvent(new Event("change"));
+        });
+      }
     })();
   </script>
   <script>
@@ -657,6 +706,87 @@
         }
       } catch (err) {
         // Ignore history errors in older browsers.
+      }
+
+      updateFromStatus({ status: "RUNNING" });
+      fetchStatus();
+    })();
+  </script>
+  <script>
+    (function () {
+      var statusWrap = document.getElementById("assignment-import-status");
+      if (!statusWrap) {
+        return;
+      }
+      var importId = statusWrap.dataset.importId;
+      if (!importId) {
+        return;
+      }
+      var statusUrlTemplate = statusWrap.dataset.statusUrl || "";
+      var assignmentUrlTemplate = statusWrap.dataset.assignmentUrl || "";
+      var stateEl = document.getElementById("assignment-import-state");
+      var messageEl = document.getElementById("assignment-import-message");
+      var linkEl = document.getElementById("assignment-import-link");
+      var labelRunning = "{{ t('assignment_import_running') }}";
+      var labelDone = "{{ t('assignment_import_done') }}";
+      var labelFailed = "{{ t('assignment_import_failed') }}";
+
+      function buildUrl(template, id) {
+        return template.replace("/0", "/" + id);
+      }
+
+      function updateFromStatus(data) {
+        var status = (data && data.status) || "";
+        statusWrap.classList.remove("hidden");
+        if (stateEl) {
+          var label = status;
+          if (status === "QUEUED" || status === "RUNNING") {
+            label = labelRunning;
+          } else if (status === "SUCCESS") {
+            label = labelDone;
+          } else if (status === "ERROR") {
+            label = labelFailed;
+          }
+          stateEl.textContent = label || labelRunning;
+          stateEl.className = "status " + (status || "RUNNING");
+        }
+        if (messageEl) {
+          messageEl.textContent = (data && data.message) || "";
+        }
+        if (status === "SUCCESS" && data.assignment_id && linkEl) {
+          linkEl.classList.remove("hidden");
+          linkEl.href = buildUrl(assignmentUrlTemplate, data.assignment_id);
+        } else if (linkEl) {
+          linkEl.classList.add("hidden");
+        }
+        if (status === "ERROR" && data.error_message) {
+          statusWrap.title = data.error_message;
+        }
+        if (status === "QUEUED" || status === "RUNNING" || !status) {
+          setTimeout(fetchStatus, 2000);
+        }
+      }
+
+      function fetchStatus() {
+        var url = buildUrl(statusUrlTemplate, importId);
+        fetch(url)
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("status fetch failed");
+            }
+            return response.json();
+          })
+          .then(updateFromStatus)
+          .catch(function () {});
+      }
+
+      try {
+        var url = new URL(window.location.href);
+        if (url.searchParams.has("import_id")) {
+          url.searchParams.delete("import_id");
+          window.history.replaceState({}, document.title, url.toString());
+        }
+      } catch (err) {
       }
 
       updateFromStatus({ status: "RUNNING" });
