@@ -2588,6 +2588,9 @@ def create_app():
             flash("Folder name is required.")
             return redirect(url_for("list_assignments"))
 
+        folder_order = FolderOrder.query.filter(
+            FolderOrder.sort_key == folder_name.lower()
+        ).first()
         assignments = (
             Assignment.query.filter(
                 Assignment.folder_name.isnot(None),
@@ -2596,14 +2599,19 @@ def create_app():
             .order_by(Assignment.created_at.desc())
             .all()
         )
-        if not assignments:
+        if not assignments and not folder_order:
             flash("Folder not found.")
             return redirect(url_for("list_assignments"))
 
         if delete_mode == "archive":
-            archived_at = _utcnow()
-            for assignment in assignments:
-                assignment.archived_at = archived_at
+            if assignments:
+                archived_at = _utcnow()
+                for assignment in assignments:
+                    assignment.archived_at = archived_at
+            if folder_order:
+                # Remove active-folder ordering so archived folders do not stay visible as
+                # empty active folders.
+                db.session.delete(folder_order)
             db.session.commit()
             flash("Folder archived.")
             return redirect(url_for("list_assignments"))
@@ -2613,45 +2621,56 @@ def create_app():
             return redirect(url_for("list_assignments"))
 
         assignment_ids = [assignment.id for assignment in assignments]
-        has_active_jobs = (
+        if assignment_ids:
+            has_active_jobs = (
+                GradingJob.query.filter(
+                    GradingJob.assignment_id.in_(assignment_ids),
+                    GradingJob.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+                ).first()
+                is not None
+            )
+            if has_active_jobs:
+                flash("Cancel running jobs before deleting the folder.")
+                return redirect(url_for("list_assignments"))
+
+            submissions = Submission.query.filter(
+                Submission.assignment_id.in_(assignment_ids)
+            ).all()
+            submission_ids = [submission.id for submission in submissions]
+
+            if submission_ids:
+                GradeResult.query.filter(
+                    GradeResult.submission_id.in_(submission_ids)
+                ).delete(synchronize_session=False)
+                SubmissionFile.query.filter(
+                    SubmissionFile.submission_id.in_(submission_ids)
+                ).delete(synchronize_session=False)
+                Submission.query.filter(
+                    Submission.id.in_(submission_ids)
+                ).delete(synchronize_session=False)
+
             GradingJob.query.filter(
-                GradingJob.assignment_id.in_(assignment_ids),
-                GradingJob.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
-            ).first()
-            is not None
-        )
-        if has_active_jobs:
-            flash("Cancel running jobs before deleting the folder.")
-            return redirect(url_for("list_assignments"))
-
-        submissions = Submission.query.filter(
-            Submission.assignment_id.in_(assignment_ids)
-        ).all()
-        submission_ids = [submission.id for submission in submissions]
-
-        if submission_ids:
-            GradeResult.query.filter(
-                GradeResult.submission_id.in_(submission_ids)
+                GradingJob.assignment_id.in_(assignment_ids)
             ).delete(synchronize_session=False)
-            SubmissionFile.query.filter(
-                SubmissionFile.submission_id.in_(submission_ids)
+            AssignmentGeneration.query.filter(
+                AssignmentGeneration.assignment_id.in_(assignment_ids)
             ).delete(synchronize_session=False)
-            Submission.query.filter(
-                Submission.id.in_(submission_ids)
+            AssignmentImport.query.filter(
+                AssignmentImport.assignment_id.in_(assignment_ids)
+            ).delete(synchronize_session=False)
+            RubricVersion.query.filter(
+                RubricVersion.assignment_id.in_(assignment_ids)
+            ).delete(synchronize_session=False)
+            Assignment.query.filter(
+                Assignment.id.in_(assignment_ids)
             ).delete(synchronize_session=False)
 
-        GradingJob.query.filter(
-            GradingJob.assignment_id.in_(assignment_ids)
-        ).delete(synchronize_session=False)
-        RubricVersion.query.filter(
-            RubricVersion.assignment_id.in_(assignment_ids)
-        ).delete(synchronize_session=False)
-        Assignment.query.filter(
-            Assignment.id.in_(assignment_ids)
-        ).delete(synchronize_session=False)
-        FolderOrder.query.filter(
-            FolderOrder.sort_key == folder_name.lower()
-        ).delete(synchronize_session=False)
+        if folder_order:
+            db.session.delete(folder_order)
+        else:
+            FolderOrder.query.filter(
+                FolderOrder.sort_key == folder_name.lower()
+            ).delete(synchronize_session=False)
         db.session.commit()
 
         for assignment_id in assignment_ids:
