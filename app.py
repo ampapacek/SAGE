@@ -6,12 +6,15 @@ import html
 import os
 import re
 import shutil
+import uuid
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import func, text
 import bleach
 import markdown
+from werkzeug.utils import secure_filename
 from flask import (
     Flask,
     Response,
@@ -27,6 +30,7 @@ from flask import (
 
 from config import Config, DATA_DIR, PROCESSED_DIR, UPLOAD_DIR
 from db import db
+from grading.llm_client import LLMResponseError, generate_rubric_draft
 from grading.schemas import safe_json_loads
 from grading.schemas import render_grade_output, validate_grade_result
 from models import (
@@ -45,8 +49,11 @@ from models import (
 from processing.file_ingest import (
     collect_submission_images,
     collect_submission_text,
+    detect_file_type,
     ingest_zip_upload,
+    relpath_from_data,
     save_submission_files,
+    submission_upload_dir,
 )
 from processing.job_queue import (
     enqueue_assignment_job,
@@ -101,6 +108,14 @@ TRANSLATIONS = {
         "assignments_create": "Create Assignment",
         "assignments_toggle_create": "Toggle Create Assignment",
         "assignments_generate_title": "Generate Assignment",
+        "assignments_import_title": "Import Assignment ZIP",
+        "assignments_import_file": "Assignment ZIP file",
+        "assignments_import_hint": (
+            "ZIP must contain assigment.md/txt (or assignment.md/txt). Optional: "
+            "guide.md/txt and ref_solution.md/txt. Student files should use the same base name "
+            "(e.g., Alice.txt + Alice.pdf)."
+        ),
+        "assignments_import_button": "Import and grade all",
         "assignments_title": "Assignments",
         "create_folder": "Create folder",
         "assignment_generation_status": "Assignment generation",
@@ -412,6 +427,14 @@ TRANSLATIONS = {
         "assignments_create": "Vytvořit úkol",
         "assignments_toggle_create": "Zobrazit/skrýt formulář",
         "assignments_generate_title": "Vygenerovat úkol",
+        "assignments_import_title": "Import úkolu ze ZIP",
+        "assignments_import_file": "ZIP soubor úkolu",
+        "assignments_import_hint": (
+            "ZIP musí obsahovat assigment.md/txt (nebo assignment.md/txt). Volitelně: "
+            "guide.md/txt a ref_solution.md/txt. Soubory studentů mají mít stejný základ názvu "
+            "(např. Alice.txt + Alice.pdf)."
+        ),
+        "assignments_import_button": "Importovat a spustit hodnocení",
         "assignments_title": "Úkoly",
         "create_folder": "Vytvořit složku",
         "assignment_generation_status": "Generování úkolu",
@@ -1108,6 +1131,148 @@ def _format_points(value):
     if numeric.is_integer():
         return str(int(numeric))
     return f"{numeric:.2f}".rstrip("0").rstrip(".")
+
+
+_ZIP_TEXT_EXTENSIONS = {".txt", ".md"}
+_ZIP_BINARY_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
+_ZIP_ASSIGNMENT_NAMES = {"assignment", "assigment"}
+_ZIP_GUIDE_NAMES = {"guide"}
+_ZIP_REFERENCE_NAMES = {"ref_solution"}
+
+
+def _decode_text_blob(data):
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            return data.decode(encoding).strip()
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", errors="ignore").strip()
+
+
+def _normalize_generated_text(value, field_name):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return "\n".join(item.strip() for item in value if item is not None).strip()
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=True, indent=2)
+    raise ValueError(
+        f"Draft response expected {field_name} as string or object, got {type(value).__name__}."
+    )
+
+
+def _guess_assignment_title_from_zip(filename):
+    stem = Path(filename or "").stem.strip()
+    if not stem:
+        return "Imported Assignment"
+    cleaned = re.sub(r"[_-]+", " ", stem).strip()
+    return cleaned[:255] or "Imported Assignment"
+
+
+def _extract_assignment_zip_payload(zip_storage):
+    if not zip_storage or not zip_storage.filename:
+        raise ValueError("ZIP file is required.")
+
+    raw_zip = zip_storage.read()
+    if not raw_zip:
+        raise ValueError("ZIP file is empty.")
+
+    assignment_text = ""
+    guide_text = ""
+    reference_solution_text = ""
+    student_files = {}
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw_zip)) as archive:
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                member_path = Path(info.filename)
+                if any(part.startswith("__MACOSX") for part in member_path.parts):
+                    continue
+                filename = member_path.name
+                if not filename or filename.startswith("."):
+                    continue
+
+                stem = Path(filename).stem.strip()
+                ext = Path(filename).suffix.lower()
+                if ext not in (_ZIP_TEXT_EXTENSIONS | _ZIP_BINARY_EXTENSIONS):
+                    continue
+
+                data = archive.read(info)
+                lower_stem = stem.lower()
+                if ext in _ZIP_TEXT_EXTENSIONS and lower_stem in _ZIP_ASSIGNMENT_NAMES:
+                    assignment_text = _decode_text_blob(data)
+                    continue
+                if ext in _ZIP_TEXT_EXTENSIONS and lower_stem in _ZIP_GUIDE_NAMES:
+                    guide_text = _decode_text_blob(data)
+                    continue
+                if ext in _ZIP_TEXT_EXTENSIONS and lower_stem in _ZIP_REFERENCE_NAMES:
+                    reference_solution_text = _decode_text_blob(data)
+                    continue
+
+                if not stem:
+                    continue
+                student_files.setdefault(stem, []).append(
+                    {"filename": filename, "ext": ext, "data": data}
+                )
+    except zipfile.BadZipFile as exc:
+        raise ValueError("Uploaded file is not a valid ZIP archive.") from exc
+
+    if not assignment_text:
+        raise ValueError(
+            "ZIP must contain assigment.md/txt or assignment.md/txt with the assignment text."
+        )
+    if not student_files:
+        raise ValueError("No student files found in ZIP.")
+
+    return {
+        "assignment_text": assignment_text,
+        "guide_text": guide_text,
+        "reference_solution_text": reference_solution_text,
+        "student_files": student_files,
+    }
+
+
+def _store_submission_binary_file(submission, filename, data):
+    safe_name = secure_filename(filename) or filename
+    ext = Path(safe_name).suffix.lower()
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    dest_dir = submission_upload_dir(submission.assignment_id, submission.id)
+    dest_path = dest_dir / unique_name
+    dest_path.write_bytes(data)
+
+    submission_file = SubmissionFile(
+        submission_id=submission.id,
+        file_path=relpath_from_data(dest_path),
+        file_type=detect_file_type(safe_name),
+        original_filename=safe_name,
+    )
+    db.session.add(submission_file)
+    return submission_file
+
+
+def _pick_default_import_model(provider_key, requires_images):
+    provider_cfg = _provider_config(provider_key)
+    model = provider_cfg["default_model"] or Config.LLM_MODEL
+    if not requires_images or _model_supports_images(model):
+        return provider_cfg, model
+
+    model_options = _provider_model_option_items().get(provider_key, [])
+    for option in model_options:
+        value = option.get("value")
+        if not value:
+            continue
+        supports_images = option.get("supports_images")
+        if supports_images is False:
+            continue
+        if _model_supports_images(value):
+            return provider_cfg, value
+    raise ValueError(
+        "Default model does not support images and no image-capable model was found in provider options."
+    )
 
 
 def _normalize_folder_name(value):
@@ -2149,6 +2314,160 @@ def create_app():
         enqueue_assignment_job(generation.id)
         flash("Assignment generation queued. It will appear when ready.")
         return redirect(url_for("list_assignments", gen_id=generation.id))
+
+    @app.route("/assignments/import_zip", methods=["POST"])
+    def import_assignment_zip():
+        zip_file = request.files.get("assignment_zip")
+        folder_choice = request.form.get("import_folder_select", "").strip()
+        folder_custom = request.form.get("import_folder_custom", "").strip()
+        if folder_choice == "__new__" and not folder_custom:
+            flash("Folder name is required when selecting New folder.")
+            return redirect(url_for("list_assignments"))
+        folder_name = folder_custom if folder_choice == "__new__" else folder_choice
+        folder_name = _normalize_folder_name(folder_name)
+
+        try:
+            payload = _extract_assignment_zip_payload(zip_file)
+        except ValueError as exc:
+            flash(str(exc))
+            return redirect(url_for("list_assignments"))
+
+        assignment_text = payload["assignment_text"]
+        guide_text = payload["guide_text"]
+        reference_solution_text = payload["reference_solution_text"]
+        student_files = payload["student_files"]
+
+        requires_images = any(
+            any(item["ext"] in _ZIP_BINARY_EXTENSIONS for item in files)
+            for files in student_files.values()
+        )
+        provider_key = _normalize_provider_key(app.config.get("LLM_PROVIDER"))
+        try:
+            provider_cfg, selected_model = _pick_default_import_model(
+                provider_key, requires_images
+            )
+        except ValueError as exc:
+            flash(str(exc))
+            return redirect(url_for("list_assignments"))
+
+        generated_guide = False
+        generated_raw_response = ""
+        if not guide_text or not reference_solution_text:
+            try:
+                draft_data, _usage, generated_raw_response, _meta = generate_rubric_draft(
+                    assignment_text,
+                    selected_model,
+                    provider_cfg["base_url"],
+                    provider_cfg["api_key"],
+                    formatted_output=app.config.get("LLM_FORMATTED_OUTPUT", False),
+                    additional_instructions="",
+                    json_mode=app.config.get("LLM_USE_JSON_MODE", True),
+                    max_tokens=app.config.get("LLM_MAX_OUTPUT_TOKENS", 800),
+                    timeout=app.config.get("LLM_REQUEST_TIMEOUT", 120),
+                )
+            except LLMResponseError as exc:
+                flash(f"Failed generating missing guide/reference files: {exc}")
+                return redirect(url_for("list_assignments"))
+            except Exception as exc:
+                flash(f"Failed generating missing guide/reference files: {exc}")
+                return redirect(url_for("list_assignments"))
+
+            if not guide_text:
+                guide_text = _normalize_generated_text(
+                    draft_data.get("rubric_text"), "rubric_text"
+                )
+                generated_guide = True
+            if not reference_solution_text:
+                reference_solution_text = _normalize_generated_text(
+                    draft_data.get("reference_solution_text"),
+                    "reference_solution_text",
+                )
+                generated_guide = True
+
+        if not guide_text or not reference_solution_text:
+            flash("Guide and reference solution are required.")
+            return redirect(url_for("list_assignments"))
+
+        title_input = request.form.get("import_title", "").strip()
+        assignment_title = title_input or _guess_assignment_title_from_zip(
+            getattr(zip_file, "filename", "")
+        )
+        assignment_title = assignment_title[:255]
+
+        assignment = Assignment(
+            title=assignment_title,
+            assignment_text=assignment_text,
+            folder_name=folder_name or None,
+        )
+        db.session.add(assignment)
+        db.session.flush()
+
+        rubric = RubricVersion(
+            assignment_id=assignment.id,
+            rubric_text=guide_text,
+            reference_solution_text=reference_solution_text,
+            status=RubricStatus.APPROVED,
+            llm_provider=provider_key if generated_guide else None,
+            llm_model=selected_model if generated_guide else None,
+            formatted_output=app.config.get("LLM_FORMATTED_OUTPUT", False),
+            raw_response=generated_raw_response if generated_guide else "",
+            error_message="",
+            finished_at=_utcnow(),
+        )
+        db.session.add(rubric)
+        db.session.flush()
+
+        jobs = []
+        imported_submissions = 0
+        for student_identifier in sorted(student_files.keys(), key=str.lower):
+            entries = student_files[student_identifier]
+            submission = Submission(
+                assignment_id=assignment.id,
+                student_identifier=student_identifier,
+                submitted_text="",
+            )
+            db.session.add(submission)
+            db.session.flush()
+
+            text_parts = []
+            for entry in sorted(entries, key=lambda item: item["filename"].lower()):
+                ext = entry["ext"]
+                if ext in _ZIP_TEXT_EXTENSIONS:
+                    text_value = _decode_text_blob(entry["data"])
+                    if text_value:
+                        text_parts.append(text_value)
+                    continue
+                if ext in _ZIP_BINARY_EXTENSIONS:
+                    _store_submission_binary_file(
+                        submission, entry["filename"], entry["data"]
+                    )
+            submission.submitted_text = "\n\n".join(text_parts).strip()
+
+            job = GradingJob(
+                assignment_id=assignment.id,
+                submission_id=submission.id,
+                rubric_version_id=rubric.id,
+                status=JobStatus.QUEUED,
+                llm_provider=provider_key,
+                llm_model=selected_model,
+                formatted_output=app.config.get("LLM_FORMATTED_OUTPUT", False),
+                extra_instructions="",
+            )
+            db.session.add(job)
+            jobs.append(job)
+            imported_submissions += 1
+
+        db.session.commit()
+
+        for job in jobs:
+            queue_id = enqueue_submission_job(job.id)
+            job.queue_job_id = queue_id
+        db.session.commit()
+
+        flash(
+            f"Imported assignment with {imported_submissions} submission(s). Grading jobs queued."
+        )
+        return redirect(url_for("assignment_detail", assignment_id=assignment.id))
 
     @app.route("/assignment-generations/<int:generation_id>/status.json")
     def assignment_generation_status(generation_id):

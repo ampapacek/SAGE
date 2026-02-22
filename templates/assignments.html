@@ -122,6 +122,33 @@
           <button type="submit">{{ t('generate_assignment') }}</button>
         </div>
       </form>
+
+      <h3 style="margin-top: 18px;">{{ t('assignments_import_title') }}</h3>
+      <form method="post" action="{{ url_for('import_assignment_zip') }}" enctype="multipart/form-data">
+        <label for="assignment_zip">{{ t('assignments_import_file') }}</label>
+        <input type="file" id="assignment_zip" name="assignment_zip" accept=".zip" required />
+        <div class="dropzone-hint">{{ t('assignments_import_hint') }}</div>
+        <label for="import_title">{{ t('title') }}</label>
+        <input type="text" id="import_title" name="import_title" />
+        <label for="import_folder_select">{{ t('folder') }}</label>
+        <select id="import_folder_select" name="import_folder_select">
+          <option value="">{{ t('folder_none') }}</option>
+          {% for folder in folder_options %}
+            <option value="{{ folder }}">{{ folder }}</option>
+          {% endfor %}
+          <option value="__new__">{{ t('folder_new') }}</option>
+        </select>
+        <div id="import_folder_custom_wrap" class="hidden" style="margin-top: 10px;">
+          <label for="import_folder_custom">{{ t('folder_new') }}</label>
+          <input
+            type="text"
+            id="import_folder_custom"
+            name="import_folder_custom"
+            placeholder="{{ t('folder_new_placeholder') }}"
+          />
+        </div>
+        <button type="submit">{{ t('assignments_import_button') }}</button>
+      </form>
     </div>
   </div>
 
@@ -478,6 +505,7 @@
       }
       bindFolder("folder_select", "folder_custom_wrap", "folder_custom");
       bindFolder("gen_folder_select", "gen_folder_custom_wrap", "gen_folder_custom");
+      bindFolder("import_folder_select", "import_folder_custom_wrap", "import_folder_custom");
     })();
   </script>
   <script>
