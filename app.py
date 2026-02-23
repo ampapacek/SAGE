@@ -55,6 +55,10 @@ from processing.file_ingest import (
     relpath_from_data,
     save_submission_files,
 )
+from processing.assignment_import_runner import (
+    _extract_assignment_zip_payload,
+    _guess_assignment_title_from_zip,
+)
 from processing.job_queue import (
     enqueue_assignment_job,
     enqueue_assignment_import_job,
@@ -2520,12 +2524,52 @@ def create_app():
         if not raw_zip:
             flash("ZIP file is empty.")
             return redirect(url_for("list_assignments"))
+        try:
+            preview_payload = _extract_assignment_zip_payload(raw_zip)
+            assignment_text = preview_payload.get("assignment_text", "").strip()
+        except Exception as exc:
+            flash(str(exc))
+            return redirect(url_for("list_assignments"))
+        if not assignment_text:
+            flash("ZIP assignment text is empty.")
+            return redirect(url_for("list_assignments"))
+
+        import_title = (
+            title_input[:255]
+            if title_input
+            else _guess_assignment_title_from_zip(zip_file.filename)
+        )
+
+        assignment = Assignment(
+            title=import_title,
+            assignment_text=assignment_text,
+            folder_name=folder_name or None,
+        )
+        db.session.add(assignment)
+        db.session.flush()
+
+        provider_cfg = _provider_config(provider_key)
+        placeholder_rubric = RubricVersion(
+            assignment_id=assignment.id,
+            rubric_text="",
+            reference_solution_text="",
+            status=RubricStatus.GENERATING,
+            llm_provider=provider_key,
+            llm_model=provider_cfg["default_model"],
+            formatted_output=app.config.get("LLM_FORMATTED_OUTPUT", False),
+            extra_instructions="",
+            error_message="",
+            raw_response="",
+        )
+        db.session.add(placeholder_rubric)
+        db.session.flush()
 
         import_job = AssignmentImport(
             original_filename=(zip_file.filename or "import.zip")[:255],
             zip_path="",
-            import_title=title_input[:255] if title_input else None,
+            import_title=import_title,
             folder_name=folder_name or None,
+            assignment_id=assignment.id,
             status=JobStatus.QUEUED,
             llm_provider=provider_key,
             run_right_away=run_right_away,
@@ -2550,12 +2594,12 @@ def create_app():
         import_job.queue_job_id = queue_id
         db.session.commit()
 
+        flash("Assignment ZIP import started. This page will update as guide/reference processing finishes.")
         if not run_right_away:
             flash(t("assignments_import_wait_notice"))
         if manual_guide or manual_reference_solution:
             flash(t("assignments_import_manual_notice"))
-        flash("Assignment ZIP import queued. Progress will update automatically.")
-        return redirect(url_for("list_assignments", import_id=import_job.id))
+        return redirect(url_for("assignment_detail", assignment_id=assignment.id))
 
     @app.route("/assignment-generations/<int:generation_id>/status.json")
     def assignment_generation_status(generation_id):

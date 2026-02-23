@@ -230,6 +230,25 @@ def _set_message(import_job, message):
     logger.info("Assignment import %s: %s", import_job.id, message)
 
 
+def _mark_import_rubric_error(import_job, error_message, raw_response=""):
+    if not import_job.assignment_id:
+        return
+    rubric = (
+        RubricVersion.query.filter_by(
+            assignment_id=import_job.assignment_id, status=RubricStatus.GENERATING
+        )
+        .order_by(RubricVersion.created_at.desc())
+        .first()
+    )
+    if not rubric:
+        return
+    rubric.status = RubricStatus.ERROR
+    rubric.error_message = (error_message or "").strip()
+    if raw_response:
+        rubric.raw_response = raw_response
+    rubric.finished_at = _utcnow()
+
+
 def process_assignment_import(import_id):
     import_job = db.session.get(AssignmentImport, import_id)
     if not import_job:
@@ -334,28 +353,57 @@ def process_assignment_import(import_id):
             (import_job.import_title or "").strip()
             or _guess_assignment_title_from_zip(import_job.original_filename)
         )
-        assignment = Assignment(
-            title=assignment_title[:255],
-            assignment_text=assignment_text,
-            folder_name=import_job.folder_name or None,
+        assignment = (
+            db.session.get(Assignment, import_job.assignment_id)
+            if import_job.assignment_id
+            else None
         )
-        db.session.add(assignment)
-        db.session.flush()
+        if assignment:
+            assignment.title = assignment_title[:255]
+            assignment.assignment_text = assignment_text
+            assignment.folder_name = import_job.folder_name or None
+        else:
+            assignment = Assignment(
+                title=assignment_title[:255],
+                assignment_text=assignment_text,
+                folder_name=import_job.folder_name or None,
+            )
+            db.session.add(assignment)
+            db.session.flush()
+            import_job.assignment_id = assignment.id
 
-        rubric = RubricVersion(
-            assignment_id=assignment.id,
-            rubric_text=guide_text,
-            reference_solution_text=reference_solution_text,
-            status=RubricStatus.APPROVED if should_auto_approve else RubricStatus.DRAFT,
-            llm_provider=provider_key,
-            llm_model=selected_model,
-            formatted_output=Config.LLM_FORMATTED_OUTPUT,
-            raw_response=generated_raw_response,
-            error_message="",
-            finished_at=_utcnow(),
+        rubric = (
+            RubricVersion.query.filter_by(
+                assignment_id=assignment.id,
+                status=RubricStatus.GENERATING,
+            )
+            .order_by(RubricVersion.created_at.desc())
+            .first()
         )
-        db.session.add(rubric)
-        db.session.flush()
+        if not rubric:
+            rubric = RubricVersion(
+                assignment_id=assignment.id,
+                rubric_text="",
+                reference_solution_text="",
+                status=RubricStatus.GENERATING,
+                llm_provider=provider_key,
+                llm_model=selected_model,
+                formatted_output=Config.LLM_FORMATTED_OUTPUT,
+                raw_response="",
+                error_message="",
+            )
+            db.session.add(rubric)
+            db.session.flush()
+
+        rubric.rubric_text = guide_text
+        rubric.reference_solution_text = reference_solution_text
+        rubric.status = RubricStatus.APPROVED if should_auto_approve else RubricStatus.DRAFT
+        rubric.llm_provider = provider_key
+        rubric.llm_model = selected_model
+        rubric.formatted_output = Config.LLM_FORMATTED_OUTPUT
+        rubric.raw_response = generated_raw_response
+        rubric.error_message = ""
+        rubric.finished_at = _utcnow()
 
         total = len(student_files)
         jobs = [] if should_auto_approve else None
@@ -441,10 +489,12 @@ def process_assignment_import(import_id):
         import_job.error_message = str(exc)
         import_job.raw_response = exc.raw_text or ""
         import_job.finished_at = _utcnow()
+        _mark_import_rubric_error(import_job, str(exc), raw_response=exc.raw_text or "")
         db.session.commit()
     except Exception as exc:
         logger.exception("Assignment import error for %s", import_id)
         import_job.status = JobStatus.ERROR
         import_job.error_message = str(exc)
         import_job.finished_at = _utcnow()
+        _mark_import_rubric_error(import_job, str(exc))
         db.session.commit()
