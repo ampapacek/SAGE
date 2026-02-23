@@ -13,6 +13,7 @@ from grading.llm_client import LLMResponseError, generate_rubric_draft
 from models import (
     Assignment,
     AssignmentImport,
+    GradingTemplate,
     GradingJob,
     JobStatus,
     RubricStatus,
@@ -248,6 +249,7 @@ def process_assignment_import(import_id):
         guide_text = payload["guide_text"]
         reference_solution_text = payload["reference_solution_text"]
         student_files = payload["student_files"]
+        has_guide_from_zip = bool(guide_text.strip() and reference_solution_text.strip())
 
         _set_message(
             import_job,
@@ -267,7 +269,17 @@ def process_assignment_import(import_id):
         db.session.commit()
 
         generated_raw_response = ""
-        if not guide_text or not reference_solution_text:
+        if import_job.use_template_guide:
+            template = db.session.get(GradingTemplate, import_job.template_id)
+            if not template:
+                raise ValueError("Selected template was not found.")
+            guide_text = (template.rubric_text or "").strip()
+            reference_solution_text = (template.reference_solution_text or "").strip()
+            if not guide_text or not reference_solution_text:
+                raise ValueError("Selected template has empty guide or reference solution.")
+            has_guide_from_zip = False
+            _set_message(import_job, f"Using guide/reference from template '{template.name}'.")
+        elif not guide_text or not reference_solution_text:
             _set_message(import_job, "Guide/reference missing. Generating draft guide...")
             draft_data, _usage, generated_raw_response, _meta = generate_rubric_draft(
                 assignment_text,
@@ -293,6 +305,9 @@ def process_assignment_import(import_id):
         else:
             _set_message(import_job, "Using guide and reference solution from ZIP.")
 
+        should_auto_approve = has_guide_from_zip or bool(import_job.run_right_away)
+        import_job.wait_for_guide_approval = not should_auto_approve
+
         assignment_title = (
             (import_job.import_title or "").strip()
             or _guess_assignment_title_from_zip(import_job.original_filename)
@@ -309,7 +324,7 @@ def process_assignment_import(import_id):
             assignment_id=assignment.id,
             rubric_text=guide_text,
             reference_solution_text=reference_solution_text,
-            status=RubricStatus.APPROVED,
+            status=RubricStatus.APPROVED if should_auto_approve else RubricStatus.DRAFT,
             llm_provider=provider_key,
             llm_model=selected_model,
             formatted_output=Config.LLM_FORMATTED_OUTPUT,
@@ -321,7 +336,7 @@ def process_assignment_import(import_id):
         db.session.flush()
 
         total = len(student_files)
-        jobs = []
+        jobs = [] if should_auto_approve else None
         for index, student_identifier in enumerate(
             sorted(student_files.keys(), key=str.lower), start=1
         ):
@@ -347,35 +362,43 @@ def process_assignment_import(import_id):
                     )
             submission.submitted_text = "\n\n".join(text_parts).strip()
 
-            job = GradingJob(
-                assignment_id=assignment.id,
-                submission_id=submission.id,
-                rubric_version_id=rubric.id,
-                status=JobStatus.QUEUED,
-                llm_provider=provider_key,
-                llm_model=selected_model,
-                formatted_output=Config.LLM_FORMATTED_OUTPUT,
-                extra_instructions="",
-            )
-            db.session.add(job)
-            jobs.append(job)
+            if should_auto_approve:
+                job = GradingJob(
+                    assignment_id=assignment.id,
+                    submission_id=submission.id,
+                    rubric_version_id=rubric.id,
+                    status=JobStatus.QUEUED,
+                    llm_provider=provider_key,
+                    llm_model=selected_model,
+                    formatted_output=Config.LLM_FORMATTED_OUTPUT,
+                    extra_instructions="",
+                )
+                db.session.add(job)
+                jobs.append(job)
             import_job.imported_submissions = index
             db.session.flush()
             _set_message(import_job, f"Loaded {index}/{total} solutions.")
 
         db.session.commit()
 
-        from processing.job_queue import enqueue_submission_job
-
-        _set_message(import_job, "Queueing grading jobs...")
-        for job in jobs:
-            job.queue_job_id = enqueue_submission_job(job.id)
         import_job.assignment_id = assignment.id
         import_job.status = JobStatus.SUCCESS
         import_job.finished_at = _utcnow()
-        import_job.message = (
-            f"Done. Loaded {import_job.imported_submissions} solutions and queued grading."
-        )
+        if should_auto_approve:
+            from processing.job_queue import enqueue_submission_job
+
+            _set_message(import_job, "Queueing grading jobs...")
+            for job in jobs:
+                job.queue_job_id = enqueue_submission_job(job.id)
+            import_job.wait_for_guide_approval = False
+            import_job.message = (
+                f"Done. Loaded {import_job.imported_submissions} solutions and queued grading."
+            )
+        else:
+            import_job.message = (
+                "Guide/reference were not fully provided in ZIP. "
+                "Loaded solutions and waiting for manual guide approval before grading."
+            )
         db.session.commit()
     except LLMResponseError as exc:
         logger.exception("Assignment import failed for %s", import_id)
@@ -390,4 +413,3 @@ def process_assignment_import(import_id):
         import_job.error_message = str(exc)
         import_job.finished_at = _utcnow()
         db.session.commit()
-

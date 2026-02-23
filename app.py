@@ -111,6 +111,16 @@ TRANSLATIONS = {
             "(e.g., Alice.txt + Alice.pdf)."
         ),
         "assignments_import_button": "Import and grade all",
+        "assignments_import_run_right_away": "Run grading right away",
+        "assignments_import_run_right_away_hint": (
+            "If enabled, generated/template guide and reference solution are auto-approved."
+        ),
+        "assignments_import_wait_notice": (
+            "If disabled, grading waits until you manually approve the grading guide."
+        ),
+        "assignments_import_use_template": "Use template guide + reference solution",
+        "assignments_import_template_label": "Template",
+        "assignments_import_template_none": "Choose template",
         "assignments_title": "Assignments",
         "create_folder": "Create folder",
         "assignment_generation_status": "Assignment generation",
@@ -435,6 +445,16 @@ TRANSLATIONS = {
             "(např. Alice.txt + Alice.pdf)."
         ),
         "assignments_import_button": "Importovat a spustit hodnocení",
+        "assignments_import_run_right_away": "Spustit hodnocení hned",
+        "assignments_import_run_right_away_hint": (
+            "Pokud zapnete, vygenerovaná/šablonová kritéria a referenční řešení se schválí automaticky."
+        ),
+        "assignments_import_wait_notice": (
+            "Pokud je vypnuto, hodnocení počká na ruční schválení kritérií."
+        ),
+        "assignments_import_use_template": "Použít šablonu kritérií + referenční řešení",
+        "assignments_import_template_label": "Šablona",
+        "assignments_import_template_none": "Vyberte šablonu",
         "assignments_title": "Úkoly",
         "create_folder": "Vytvořit složku",
         "assignment_generation_status": "Generování úkolu",
@@ -1951,6 +1971,34 @@ def _ensure_schema_updates():
                 text("ALTER TABLE rubric_version ADD COLUMN finished_at DATETIME")
             )
             db.session.commit()
+        result = db.session.execute(text("PRAGMA table_info(assignment_import)"))
+        import_columns = {row[1] for row in result.fetchall()}
+        if "run_right_away" not in import_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE assignment_import ADD COLUMN run_right_away INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
+        if "use_template_guide" not in import_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE assignment_import ADD COLUMN use_template_guide INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
+        if "template_id" not in import_columns:
+            db.session.execute(
+                text("ALTER TABLE assignment_import ADD COLUMN template_id INTEGER")
+            )
+            db.session.commit()
+        if "wait_for_guide_approval" not in import_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE assignment_import ADD COLUMN wait_for_guide_approval INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
     except Exception:
         logger.exception("Failed to apply schema updates")
         db.session.rollback()
@@ -1972,6 +2020,69 @@ def _get_approved_rubric(assignment_id):
         .order_by(RubricVersion.created_at.desc())
         .first()
     )
+
+
+def _queue_waiting_import_submissions(assignment_id, rubric):
+    waiting_imports = (
+        AssignmentImport.query.filter_by(
+            assignment_id=assignment_id,
+            wait_for_guide_approval=True,
+        )
+        .order_by(AssignmentImport.created_at.desc())
+        .all()
+    )
+    if not waiting_imports:
+        return 0
+
+    source_import = waiting_imports[0]
+    provider_key = _normalize_provider_key(source_import.llm_provider)
+    model = (source_import.llm_model or "").strip()
+    if not model:
+        model = _provider_config(provider_key)["default_model"]
+
+    queued = 0
+    submissions = (
+        Submission.query.filter_by(assignment_id=assignment_id)
+        .order_by(Submission.created_at.asc())
+        .all()
+    )
+    for submission in submissions:
+        existing_job = (
+            GradingJob.query.filter_by(submission_id=submission.id)
+            .order_by(GradingJob.created_at.desc())
+            .first()
+        )
+        if existing_job:
+            continue
+        job = GradingJob(
+            assignment_id=assignment_id,
+            submission_id=submission.id,
+            rubric_version_id=rubric.id,
+            status=JobStatus.QUEUED,
+            llm_provider=provider_key,
+            llm_model=model,
+            formatted_output=bool(rubric.formatted_output),
+            extra_instructions="",
+        )
+        db.session.add(job)
+        db.session.commit()
+        job.queue_job_id = enqueue_submission_job(job.id)
+        db.session.commit()
+        queued += 1
+
+    for waiting_import in waiting_imports:
+        waiting_import.wait_for_guide_approval = False
+        if queued:
+            waiting_import.message = (
+                f"Guide approved. Queued {queued} grading job(s) for imported submissions."
+            )
+        else:
+            waiting_import.message = (
+                "Guide approved. Imported submissions were already queued."
+            )
+    db.session.commit()
+
+    return queued
 
 
 def create_app():
@@ -2046,6 +2157,9 @@ def create_app():
             .all()
         )
         assignments = active_assignments + archived_assignments
+        import_templates = (
+            GradingTemplate.query.order_by(GradingTemplate.created_at.desc()).all()
+        )
         folder_filter = (request.args.get("folder") or "").strip()
         archived_filter = request.args.get("archived", "0") in {"1", "true", "yes", "on"}
         gen_id_raw = (request.args.get("gen_id") or "").strip()
@@ -2131,6 +2245,7 @@ def create_app():
             default_model=default_provider_cfg["default_model"],
             assignment_generation_id=assignment_generation_id,
             assignment_import_id=assignment_import_id,
+            import_templates=import_templates,
         )
 
     @app.route("/assignments/generate", methods=["POST"])
@@ -2203,6 +2318,33 @@ def create_app():
         folder_name = _normalize_folder_name(folder_name)
         provider_key = _normalize_provider_key(app.config.get("LLM_PROVIDER"))
         title_input = request.form.get("import_title", "").strip()
+        run_right_away = request.form.get("import_run_right_away") in {
+            "1",
+            "true",
+            "on",
+            "yes",
+        }
+        use_template_guide = request.form.get("import_use_template_guide") in {
+            "1",
+            "true",
+            "on",
+            "yes",
+        }
+        template_id_raw = (request.form.get("import_template_id") or "").strip()
+        template_id = None
+        if use_template_guide:
+            if not template_id_raw:
+                flash("Choose a template, or disable template usage.")
+                return redirect(url_for("list_assignments"))
+            try:
+                template_id = int(template_id_raw)
+            except ValueError:
+                flash("Template selection is invalid.")
+                return redirect(url_for("list_assignments"))
+            template = db.session.get(GradingTemplate, template_id)
+            if not template:
+                flash("Template not found.")
+                return redirect(url_for("list_assignments"))
         raw_zip = zip_file.read()
         if not raw_zip:
             flash("ZIP file is empty.")
@@ -2215,6 +2357,10 @@ def create_app():
             folder_name=folder_name or None,
             status=JobStatus.QUEUED,
             llm_provider=provider_key,
+            run_right_away=run_right_away,
+            use_template_guide=use_template_guide,
+            template_id=template_id,
+            wait_for_guide_approval=False,
             message="Queued import job.",
         )
         db.session.add(import_job)
@@ -2231,6 +2377,8 @@ def create_app():
         import_job.queue_job_id = queue_id
         db.session.commit()
 
+        if not run_right_away:
+            flash(t("assignments_import_wait_notice"))
         flash("Assignment ZIP import queued. Progress will update automatically.")
         return redirect(url_for("list_assignments", import_id=import_job.id))
 
@@ -2251,6 +2399,7 @@ def create_app():
             "status": import_job.status,
             "message": import_job.message,
             "imported_submissions": import_job.imported_submissions,
+            "wait_for_guide_approval": bool(import_job.wait_for_guide_approval),
         }
         if import_job.assignment_id:
             payload["assignment_id"] = import_job.assignment_id
@@ -2840,6 +2989,14 @@ def create_app():
 
         rubric.status = RubricStatus.APPROVED
         db.session.commit()
+        queued_from_import = _queue_waiting_import_submissions(
+            rubric.assignment_id, rubric
+        )
+        if queued_from_import:
+            flash(
+                f"Grading guide activated. Queued {queued_from_import} imported submission(s)."
+            )
+            return redirect(url_for("assignment_detail", assignment_id=rubric.assignment_id))
         flash("Grading guide activated.")
         return redirect(url_for("assignment_detail", assignment_id=rubric.assignment_id))
 

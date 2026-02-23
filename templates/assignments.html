@@ -145,6 +145,25 @@
         <div class="dropzone-hint">{{ t('assignments_import_hint') }}</div>
         <label for="import_title">{{ t('title') }}</label>
         <input type="text" id="import_title" name="import_title" />
+        <label class="form-toggle">
+          <input type="checkbox" id="import_run_right_away" name="import_run_right_away" value="1" />
+          {{ t('assignments_import_run_right_away') }}
+        </label>
+        <div class="helper-text">{{ t('assignments_import_run_right_away_hint') }}</div>
+        <div class="helper-text">{{ t('assignments_import_wait_notice') }}</div>
+        <label class="form-toggle">
+          <input type="checkbox" id="import_use_template_guide" name="import_use_template_guide" value="1" />
+          {{ t('assignments_import_use_template') }}
+        </label>
+        <div id="import_template_wrap" class="hidden" style="margin-top: 10px;">
+          <label for="import_template_id">{{ t('assignments_import_template_label') }}</label>
+          <select id="import_template_id" name="import_template_id">
+            <option value="">{{ t('assignments_import_template_none') }}</option>
+            {% for template in import_templates %}
+              <option value="{{ template.id }}">{{ template.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <label for="import_folder_select">{{ t('folder') }}</label>
         <select id="import_folder_select" name="import_folder_select">
           <option value="">{{ t('folder_none') }}</option>
@@ -521,6 +540,23 @@
       bindFolder("folder_select", "folder_custom_wrap", "folder_custom");
       bindFolder("gen_folder_select", "gen_folder_custom_wrap", "gen_folder_custom");
       bindFolder("import_folder_select", "import_folder_custom_wrap", "import_folder_custom");
+      var useTemplateCheckbox = document.getElementById("import_use_template_guide");
+      var templateWrap = document.getElementById("import_template_wrap");
+      var templateSelect = document.getElementById("import_template_id");
+      function toggleImportTemplate() {
+        if (!useTemplateCheckbox || !templateWrap) {
+          return;
+        }
+        var isOn = !!useTemplateCheckbox.checked;
+        templateWrap.classList.toggle("hidden", !isOn);
+        if (templateSelect) {
+          templateSelect.required = isOn;
+        }
+      }
+      if (useTemplateCheckbox) {
+        useTemplateCheckbox.addEventListener("change", toggleImportTemplate);
+        toggleImportTemplate();
+      }
 
       var importZipDrop = document.getElementById("assignment-zip-drop");
       var importZipInput = document.getElementById("assignment_zip");
