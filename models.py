@@ -145,6 +145,8 @@ class AssignmentImport(db.Model):
     llm_model = db.Column(db.String(128))
     run_right_away = db.Column(db.Boolean, default=False, nullable=False)
     use_template_guide = db.Column(db.Boolean, default=False, nullable=False)
+    manual_guide = db.Column(db.Boolean, default=False, nullable=False)
+    manual_reference_solution = db.Column(db.Boolean, default=False, nullable=False)
     template_id = db.Column(db.Integer, db.ForeignKey("grading_template.id"))
     wait_for_guide_approval = db.Column(db.Boolean, default=False, nullable=False)
     imported_submissions = db.Column(db.Integer, default=0, nullable=False)

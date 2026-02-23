@@ -127,6 +127,21 @@ TRANSLATIONS = {
         "assignments_import_use_template": "Use template grading guide",
         "assignments_import_template_label": "Template",
         "assignments_import_template_none": "Choose template",
+        "assignments_import_manual_guide": "Create grading guide manually",
+        "assignments_import_manual_reference": "Create reference solution manually",
+        "assignments_import_manual_hint": (
+            "If enabled, SAGE imports the assignment and student files first. "
+            "Then open the assignment and complete the guide/reference before approval."
+        ),
+        "assignments_import_manual_notice": (
+            "Manual setup selected. SAGE will import files, then wait for you to complete and approve the guide."
+        ),
+        "assignments_import_manual_disables_auto_run": (
+            "Run right away was disabled because manual guide/reference setup is selected."
+        ),
+        "assignments_import_manual_guide_overrides_template": (
+            "Template guide was disabled because manual guide creation is selected."
+        ),
         "assignments_title": "Assignments",
         "create_folder": "Create folder",
         "assignment_generation_status": "Assignment generation",
@@ -495,6 +510,21 @@ TRANSLATIONS = {
         "assignments_import_use_template": "Použít šablonu kritérií hodnocení",
         "assignments_import_template_label": "Šablona",
         "assignments_import_template_none": "Vyberte šablonu",
+        "assignments_import_manual_guide": "Vytvořit kritéria hodnocení ručně",
+        "assignments_import_manual_reference": "Vytvořit referenční řešení ručně",
+        "assignments_import_manual_hint": (
+            "Pokud zapnete, SAGE nejdřív naimportuje úkol a soubory studentů. "
+            "Potom otevřete úkol a dokončíte kritéria/referenční řešení před schválením."
+        ),
+        "assignments_import_manual_notice": (
+            "Je zapnuté ruční dokončení. SAGE naimportuje soubory a počká na doplnění a schválení kritérií."
+        ),
+        "assignments_import_manual_disables_auto_run": (
+            "Volba Spustit hodnocení hned byla vypnuta, protože je zapnuté ruční vytvoření kritérií/referenčního řešení."
+        ),
+        "assignments_import_manual_guide_overrides_template": (
+            "Použití šablony bylo vypnuto, protože je zvolené ruční vytvoření kritérií."
+        ),
         "assignments_title": "Úkoly",
         "create_folder": "Vytvořit složku",
         "assignment_generation_status": "Generování úkolu",
@@ -2073,6 +2103,18 @@ def _ensure_schema_updates():
                 )
             )
             db.session.commit()
+        if "manual_guide" not in import_columns:
+            db.session.execute(
+                text("ALTER TABLE assignment_import ADD COLUMN manual_guide INTEGER DEFAULT 0")
+            )
+            db.session.commit()
+        if "manual_reference_solution" not in import_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE assignment_import ADD COLUMN manual_reference_solution INTEGER DEFAULT 0"
+                )
+            )
+            db.session.commit()
         if "template_id" not in import_columns:
             db.session.execute(
                 text("ALTER TABLE assignment_import ADD COLUMN template_id INTEGER")
@@ -2410,6 +2452,18 @@ def create_app():
             "on",
             "yes",
         }
+        manual_guide = request.form.get("import_manual_guide") in {
+            "1",
+            "true",
+            "on",
+            "yes",
+        }
+        manual_reference_solution = request.form.get("import_manual_reference_solution") in {
+            "1",
+            "true",
+            "on",
+            "yes",
+        }
         use_template_guide = request.form.get("import_use_template_guide") in {
             "1",
             "true",
@@ -2431,6 +2485,13 @@ def create_app():
             if not template:
                 flash("Template not found.")
                 return redirect(url_for("list_assignments"))
+        if manual_guide and use_template_guide:
+            use_template_guide = False
+            template_id = None
+            flash(t("assignments_import_manual_guide_overrides_template"))
+        if run_right_away and (manual_guide or manual_reference_solution):
+            run_right_away = False
+            flash(t("assignments_import_manual_disables_auto_run"))
         raw_zip = zip_file.read()
         if not raw_zip:
             flash("ZIP file is empty.")
@@ -2445,6 +2506,8 @@ def create_app():
             llm_provider=provider_key,
             run_right_away=run_right_away,
             use_template_guide=use_template_guide,
+            manual_guide=manual_guide,
+            manual_reference_solution=manual_reference_solution,
             template_id=template_id,
             wait_for_guide_approval=False,
             message="Queued import job.",
@@ -2465,6 +2528,8 @@ def create_app():
 
         if not run_right_away:
             flash(t("assignments_import_wait_notice"))
+        if manual_guide or manual_reference_solution:
+            flash(t("assignments_import_manual_notice"))
         flash("Assignment ZIP import queued. Progress will update automatically.")
         return redirect(url_for("list_assignments", import_id=import_job.id))
 

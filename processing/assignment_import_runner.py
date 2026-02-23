@@ -250,6 +250,8 @@ def process_assignment_import(import_id):
         reference_solution_text = payload["reference_solution_text"]
         student_files = payload["student_files"]
         has_guide_from_zip = bool(guide_text.strip() and reference_solution_text.strip())
+        manual_guide = bool(import_job.manual_guide)
+        manual_reference_solution = bool(import_job.manual_reference_solution)
 
         _set_message(
             import_job,
@@ -269,7 +271,7 @@ def process_assignment_import(import_id):
         db.session.commit()
 
         generated_raw_response = ""
-        if import_job.use_template_guide:
+        if import_job.use_template_guide and not manual_guide:
             template = db.session.get(GradingTemplate, import_job.template_id)
             if not template:
                 raise ValueError("Selected template was not found.")
@@ -278,8 +280,22 @@ def process_assignment_import(import_id):
                 raise ValueError("Selected template has empty grading guide.")
             has_guide_from_zip = False
             _set_message(import_job, f"Using grading guide from template '{template.name}'.")
+        elif manual_guide:
+            guide_text = ""
+            _set_message(import_job, "Manual grading guide selected. Guide generation skipped.")
 
-        if not guide_text or not reference_solution_text:
+        if manual_reference_solution:
+            reference_solution_text = ""
+            _set_message(
+                import_job,
+                "Manual reference solution selected. Reference generation skipped.",
+            )
+
+        need_generated_guide = not manual_guide and not guide_text
+        need_generated_reference = (
+            not manual_reference_solution and not reference_solution_text
+        )
+        if need_generated_guide or need_generated_reference:
             _set_message(import_job, "Guide/reference missing. Generating missing content...")
             draft_data, _usage, generated_raw_response, _meta = generate_rubric_draft(
                 assignment_text,
@@ -292,11 +308,11 @@ def process_assignment_import(import_id):
                 max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
                 timeout=Config.LLM_REQUEST_TIMEOUT,
             )
-            if not guide_text:
+            if need_generated_guide:
                 guide_text = _normalize_generated_text(
                     draft_data.get("rubric_text"), "rubric_text"
                 )
-            if not reference_solution_text:
+            if need_generated_reference:
                 reference_solution_text = _normalize_generated_text(
                     draft_data.get("reference_solution_text"),
                     "reference_solution_text",
@@ -307,7 +323,11 @@ def process_assignment_import(import_id):
         else:
             _set_message(import_job, "Using guide and reference solution from ZIP.")
 
-        should_auto_approve = has_guide_from_zip or bool(import_job.run_right_away)
+        should_auto_approve = (
+            not manual_guide
+            and not manual_reference_solution
+            and (has_guide_from_zip or bool(import_job.run_right_away))
+        )
         import_job.wait_for_guide_approval = not should_auto_approve
 
         assignment_title = (
@@ -397,10 +417,23 @@ def process_assignment_import(import_id):
                 f"Done. Loaded {import_job.imported_submissions} solutions and queued grading."
             )
         else:
-            import_job.message = (
-                "Guide/reference were not fully provided in ZIP. "
-                "Loaded solutions and waiting for manual guide approval before grading."
-            )
+            if manual_guide or manual_reference_solution:
+                manual_targets = []
+                if manual_guide:
+                    manual_targets.append("grading guide")
+                if manual_reference_solution:
+                    manual_targets.append("reference solution")
+                manual_text = " and ".join(manual_targets)
+                import_job.message = (
+                    f"Done. Loaded {import_job.imported_submissions} solutions. "
+                    f"Manual {manual_text} setup is required. Open the assignment, complete the DRAFT guide, "
+                    "then approve it to start grading."
+                )
+            else:
+                import_job.message = (
+                    "Guide/reference were not fully provided in ZIP. "
+                    "Loaded solutions and waiting for manual guide approval before grading."
+                )
         db.session.commit()
     except LLMResponseError as exc:
         logger.exception("Assignment import failed for %s", import_id)

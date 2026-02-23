@@ -155,6 +155,15 @@
           <input type="checkbox" id="import_use_template_guide" name="import_use_template_guide" value="1" />
           {{ t('assignments_import_use_template') }}
         </label>
+        <label class="form-toggle">
+          <input type="checkbox" id="import_manual_guide" name="import_manual_guide" value="1" />
+          {{ t('assignments_import_manual_guide') }}
+        </label>
+        <label class="form-toggle">
+          <input type="checkbox" id="import_manual_reference_solution" name="import_manual_reference_solution" value="1" />
+          {{ t('assignments_import_manual_reference') }}
+        </label>
+        <div class="helper-text" id="import_manual_hint">{{ t('assignments_import_manual_hint') }}</div>
         <div id="import_template_wrap" class="hidden" style="margin-top: 10px;">
           <label for="import_template_id">{{ t('assignments_import_template_label') }}</label>
           <select id="import_template_id" name="import_template_id">
@@ -540,7 +549,11 @@
       bindFolder("folder_select", "folder_custom_wrap", "folder_custom");
       bindFolder("gen_folder_select", "gen_folder_custom_wrap", "gen_folder_custom");
       bindFolder("import_folder_select", "import_folder_custom_wrap", "import_folder_custom");
+      var runRightAwayCheckbox = document.getElementById("import_run_right_away");
       var useTemplateCheckbox = document.getElementById("import_use_template_guide");
+      var manualGuideCheckbox = document.getElementById("import_manual_guide");
+      var manualReferenceCheckbox = document.getElementById("import_manual_reference_solution");
+      var manualHint = document.getElementById("import_manual_hint");
       var templateWrap = document.getElementById("import_template_wrap");
       var templateSelect = document.getElementById("import_template_id");
       function toggleImportTemplate() {
@@ -553,9 +566,41 @@
           templateSelect.required = isOn;
         }
       }
-      if (useTemplateCheckbox) {
-        useTemplateCheckbox.addEventListener("change", toggleImportTemplate);
+      function syncManualImportOptions() {
+        var manualGuide = !!(manualGuideCheckbox && manualGuideCheckbox.checked);
+        var manualReference = !!(manualReferenceCheckbox && manualReferenceCheckbox.checked);
+        var manualEnabled = manualGuide || manualReference;
+        if (manualGuide && useTemplateCheckbox) {
+          useTemplateCheckbox.checked = false;
+        }
+        if (useTemplateCheckbox) {
+          useTemplateCheckbox.disabled = manualGuide;
+        }
         toggleImportTemplate();
+        if (runRightAwayCheckbox) {
+          if (manualEnabled) {
+            runRightAwayCheckbox.checked = false;
+            runRightAwayCheckbox.disabled = true;
+          } else {
+            runRightAwayCheckbox.disabled = false;
+          }
+        }
+        if (manualHint) {
+          manualHint.style.opacity = manualEnabled ? "1" : "0.85";
+          manualHint.style.fontWeight = manualEnabled ? "700" : "400";
+        }
+      }
+      if (useTemplateCheckbox || manualGuideCheckbox || manualReferenceCheckbox) {
+        if (useTemplateCheckbox) {
+          useTemplateCheckbox.addEventListener("change", toggleImportTemplate);
+        }
+        if (manualGuideCheckbox) {
+          manualGuideCheckbox.addEventListener("change", syncManualImportOptions);
+        }
+        if (manualReferenceCheckbox) {
+          manualReferenceCheckbox.addEventListener("change", syncManualImportOptions);
+        }
+        syncManualImportOptions();
       }
 
       var importZipDrop = document.getElementById("assignment-zip-drop");
