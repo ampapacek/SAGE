@@ -5,9 +5,9 @@ import re
 import requests
 
 from grading.prompts import (
-    SYSTEM_PROMPT,
     build_assignment_draft_prompt,
     build_grading_prompt,
+    get_system_prompt,
     build_rubric_draft_prompt,
 )
 from grading.schemas import safe_json_loads
@@ -79,12 +79,13 @@ def _use_responses_api(model):
 
 
 def _build_messages(prompt, image_paths, use_responses):
+    system_prompt = get_system_prompt()
     if use_responses:
         user_content = [{"type": "input_text", "text": prompt}]
         for path in image_paths:
             user_content.append(_encode_image_response(path))
         return [
-            {"role": "system", "content": [{"type": "input_text", "text": SYSTEM_PROMPT}]},
+            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
             {"role": "user", "content": user_content},
         ]
 
@@ -95,7 +96,7 @@ def _build_messages(prompt, image_paths, use_responses):
     else:
         content = prompt
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": content},
     ]
 

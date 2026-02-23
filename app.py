@@ -28,6 +28,12 @@ from config import Config, DATA_DIR, PROCESSED_DIR, UPLOAD_DIR
 from db import db
 from grading.schemas import safe_json_loads
 from grading.schemas import render_grade_output, validate_grade_result
+from grading.prompts import (
+    get_prompt_template_records,
+    reset_all_prompt_templates,
+    reset_prompt_template,
+    save_prompt_templates,
+)
 from models import (
     Assignment,
     AssignmentGeneration,
@@ -314,6 +320,18 @@ TRANSLATIONS = {
         "settings_helper": "Edit values stored in .env. Some changes require a restart.",
         "save_settings": "Save Settings",
         "restart_required": "Restart required.",
+        "prompt_templates": "Prompt Templates",
+        "prompt_templates_nav_short": "PT",
+        "prompt_templates_helper": (
+            "View and edit reusable system/user prompt templates used by grading and generation."
+        ),
+        "save_prompt_templates": "Save Prompt Templates",
+        "reset_prompt_template": "Reset Template",
+        "reset_all_prompt_templates": "Reset All Templates",
+        "prompt_tokens_used": "Tokens",
+        "prompt_template_saved": "Prompt templates saved.",
+        "prompt_template_reset": "Prompt template reset to default.",
+        "prompt_template_reset_all": "All prompt templates reset to defaults.",
         "guide": "Grading Guide",
         "approved_guide_in_use": "Approved guide in use.",
         "guide_not_ready": "Guide is not ready to approve.",
@@ -652,6 +670,18 @@ TRANSLATIONS = {
         "settings_helper": "Upravte hodnoty v .env. Některé změny vyžadují restart.",
         "save_settings": "Uložit nastavení",
         "restart_required": "Vyžaduje restart.",
+        "prompt_templates": "Šablony promptů",
+        "prompt_templates_nav_short": "PT",
+        "prompt_templates_helper": (
+            "Zobrazení a úprava opakovaně používaných systémových a uživatelských promptů."
+        ),
+        "save_prompt_templates": "Uložit šablony promptů",
+        "reset_prompt_template": "Obnovit výchozí",
+        "reset_all_prompt_templates": "Obnovit vše výchozí",
+        "prompt_tokens_used": "Tokeny",
+        "prompt_template_saved": "Šablony promptů byly uloženy.",
+        "prompt_template_reset": "Šablona promptu byla obnovena na výchozí hodnotu.",
+        "prompt_template_reset_all": "Všechny šablony promptů byly obnoveny na výchozí hodnoty.",
         "guide": "Kritéria hodnocení",
         "approved_guide_in_use": "Schválená kritéria jsou aktivní.",
         "guide_not_ready": "Kritéria nejsou připravena ke schválení.",
@@ -3759,6 +3789,45 @@ def create_app():
         db.session.commit()
         flash("Job deleted.")
         return redirect(url_for("assignment_detail", assignment_id=job.assignment_id))
+
+    @app.route("/prompt-templates", methods=["GET", "POST"])
+    def prompt_templates():
+        templates = get_prompt_template_records()
+        template_keys = {item["key"] for item in templates}
+
+        if request.method == "POST":
+            action = (request.form.get("action") or "save").strip().lower()
+            if action == "save":
+                selected_key = (request.form.get("template_key") or "").strip()
+                updates = {}
+                if selected_key and selected_key in template_keys:
+                    field_name = f"template_{selected_key}"
+                    updates[selected_key] = request.form.get(field_name, "")
+                else:
+                    for item in templates:
+                        field_name = f"template_{item['key']}"
+                        if field_name in request.form:
+                            updates[item["key"]] = request.form.get(field_name, "")
+                if not updates:
+                    flash("No prompt template content submitted.")
+                    return redirect(url_for("prompt_templates"))
+                save_prompt_templates(updates)
+                flash(t("prompt_template_saved"))
+            elif action == "reset":
+                key = (request.form.get("template_key") or "").strip()
+                if key not in template_keys:
+                    flash("Invalid template key.")
+                else:
+                    reset_prompt_template(key)
+                    flash(t("prompt_template_reset"))
+            elif action == "reset_all":
+                reset_all_prompt_templates()
+                flash(t("prompt_template_reset_all"))
+            else:
+                flash("Invalid action.")
+            return redirect(url_for("prompt_templates"))
+
+        return render_template("prompt_templates.html", prompt_templates=templates)
 
     @app.route("/settings", methods=["GET", "POST"])
     def settings():

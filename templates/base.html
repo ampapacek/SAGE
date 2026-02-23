@@ -134,6 +134,7 @@
       .icon-link { width: 46px; height: 46px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--header-text); background: rgba(255, 255, 255, 0.08); padding: 0; overflow: hidden; cursor: pointer; }
       .icon-link img { width: 34px; height: 34px; display: block; transform: scale(2.4); transform-origin: center; }
       .icon-link:hover { background: rgba(255, 255, 255, 0.16); }
+      .icon-link.text-icon { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
       .nav-buttons { display: flex; gap: 12px; align-items: center; }
       main { max-width: 1300px; margin: 20px auto; padding: 0 20px 40px; }
@@ -317,6 +318,9 @@
         <span>SAGE</span>
       </a>
       <div class="nav-buttons">
+        <a class="icon-link text-icon" href="{{ url_for('prompt_templates') }}" aria-label="{{ t('prompt_templates') }}">
+          {{ t('prompt_templates_nav_short') }}
+        </a>
         <a class="icon-link" href="{{ url_for('settings') }}" aria-label="Settings">
           <img src="{{ url_for('static', filename='images/settings.png') }}" alt="" aria-hidden="true" />
         </a>
