@@ -326,17 +326,28 @@ TRANSLATIONS = {
         "prompt_templates_helper": (
             "View and edit reusable system/user prompt templates used by grading and generation."
         ),
-        "guide_prompt_template_focus": (
-            "Main section for grading guide generation template. Other prompts are in advanced settings."
+        "guide_templates_manage_helper": (
+            "Manage stored grading guide templates used when creating guides in assignments."
         ),
         "advanced_prompt_settings": "Advanced prompt settings",
         "show_advanced_prompt_settings": "Show advanced prompt settings",
         "hide_advanced_prompt_settings": "Hide advanced prompt settings",
         "save_prompt_templates": "Save Prompt Templates",
+        "save_guide_template_changes": "Save Guide Template",
+        "create_guide_template": "Create Guide Template",
         "reset_prompt_template": "Reset Template",
         "reset_all_prompt_templates": "Reset All Templates",
         "prompt_tokens_used": "Tokens",
         "prompt_template_saved": "Prompt templates saved.",
+        "guide_template_saved": "Guide template saved.",
+        "guide_template_updated": "Guide template updated.",
+        "guide_template_deleted": "Guide template deleted.",
+        "guide_template_not_found": "Guide template not found.",
+        "guide_template_name_required": "Template name is required.",
+        "guide_template_text_required": "Grading guide text is required.",
+        "guide_templates_used_in_assignments": (
+            "These templates are used when creating grading guides in assignments."
+        ),
         "prompt_template_reset": "Prompt template reset to default.",
         "prompt_template_reset_all": "All prompt templates reset to defaults.",
         "guide": "Grading Guide",
@@ -683,17 +694,28 @@ TRANSLATIONS = {
         "prompt_templates_helper": (
             "Zobrazení a úprava opakovaně používaných systémových a uživatelských promptů."
         ),
-        "guide_prompt_template_focus": (
-            "Hlavní část pro šablonu generování kritérií hodnocení. Ostatní prompty jsou v pokročilém nastavení."
+        "guide_templates_manage_helper": (
+            "Správa uložených šablon kritérií hodnocení, které se používají při tvorbě kritérií v úkolech."
         ),
         "advanced_prompt_settings": "Pokročilé nastavení promptů",
         "show_advanced_prompt_settings": "Zobrazit pokročilé nastavení promptů",
         "hide_advanced_prompt_settings": "Skrýt pokročilé nastavení promptů",
         "save_prompt_templates": "Uložit šablony promptů",
+        "save_guide_template_changes": "Uložit šablonu kritérií",
+        "create_guide_template": "Vytvořit šablonu kritérií",
         "reset_prompt_template": "Obnovit výchozí",
         "reset_all_prompt_templates": "Obnovit vše výchozí",
         "prompt_tokens_used": "Tokeny",
         "prompt_template_saved": "Šablony promptů byly uloženy.",
+        "guide_template_saved": "Šablona kritérií byla uložena.",
+        "guide_template_updated": "Šablona kritérií byla aktualizována.",
+        "guide_template_deleted": "Šablona kritérií byla smazána.",
+        "guide_template_not_found": "Šablona kritérií nebyla nalezena.",
+        "guide_template_name_required": "Název šablony je povinný.",
+        "guide_template_text_required": "Text kritérií hodnocení je povinný.",
+        "guide_templates_used_in_assignments": (
+            "Tyto šablony se používají při vytváření kritérií hodnocení v úkolech."
+        ),
         "prompt_template_reset": "Šablona promptu byla obnovena na výchozí hodnotu.",
         "prompt_template_reset_all": "Všechny šablony promptů byly obnoveny na výchozí hodnoty.",
         "guide": "Kritéria hodnocení",
@@ -1409,7 +1431,12 @@ def _render_markdown(text):
         output_format="html5",
     )
     cleaned = bleach.clean(
-        rendered, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, strip=True
+        rendered,
+        tags=_ALLOWED_TAGS,
+        attributes=_ALLOWED_ATTRIBUTES,
+        # Keep text that looks like HTML/math comparisons (e.g. x<y) by escaping
+        # unsupported tags instead of stripping them and their contents.
+        strip=False,
     )
     cleaned = bleach.linkify(cleaned)
     for key, value in placeholders.items():
@@ -3816,16 +3843,62 @@ def create_app():
     def prompt_templates():
         templates = get_prompt_template_records()
         template_keys = {item["key"] for item in templates}
-        guide_templates = [
-            item for item in templates if item["key"] == "rubric_prompt_template"
-        ]
-        advanced_templates = [
-            item for item in templates if item["key"] != "rubric_prompt_template"
-        ]
+        guide_templates = GradingTemplate.query.order_by(
+            GradingTemplate.created_at.desc()
+        ).all()
 
         if request.method == "POST":
             action = (request.form.get("action") or "save").strip().lower()
-            if action == "save":
+            if action == "save_guide_template":
+                template_name = (request.form.get("guide_template_name") or "").strip()
+                rubric_text = (request.form.get("guide_template_rubric_text") or "").strip()
+                template_id_raw = (request.form.get("guide_template_id") or "").strip()
+                if not template_name:
+                    flash(t("guide_template_name_required"))
+                    return redirect(url_for("prompt_templates"))
+                if not rubric_text:
+                    flash(t("guide_template_text_required"))
+                    return redirect(url_for("prompt_templates"))
+                if template_id_raw:
+                    try:
+                        template_id = int(template_id_raw)
+                    except ValueError:
+                        flash(t("guide_template_not_found"))
+                        return redirect(url_for("prompt_templates"))
+                    template = db.session.get(GradingTemplate, template_id)
+                    if not template:
+                        flash(t("guide_template_not_found"))
+                        return redirect(url_for("prompt_templates"))
+                    template.name = template_name[:255]
+                    template.rubric_text = rubric_text
+                    if template.reference_solution_text is None:
+                        template.reference_solution_text = ""
+                    db.session.commit()
+                    flash(t("guide_template_updated"))
+                else:
+                    template = GradingTemplate(
+                        name=template_name[:255],
+                        rubric_text=rubric_text,
+                        reference_solution_text="",
+                    )
+                    db.session.add(template)
+                    db.session.commit()
+                    flash(t("guide_template_saved"))
+            elif action == "delete_guide_template":
+                template_id_raw = (request.form.get("guide_template_id") or "").strip()
+                try:
+                    template_id = int(template_id_raw)
+                except ValueError:
+                    flash(t("guide_template_not_found"))
+                    return redirect(url_for("prompt_templates"))
+                template = db.session.get(GradingTemplate, template_id)
+                if not template:
+                    flash(t("guide_template_not_found"))
+                    return redirect(url_for("prompt_templates"))
+                db.session.delete(template)
+                db.session.commit()
+                flash(t("guide_template_deleted"))
+            elif action == "save":
                 selected_key = (request.form.get("template_key") or "").strip()
                 updates = {}
                 if selected_key and selected_key in template_keys:
@@ -3857,8 +3930,8 @@ def create_app():
 
         return render_template(
             "prompt_templates.html",
+            advanced_templates=templates,
             guide_templates=guide_templates,
-            advanced_templates=advanced_templates,
         )
 
     @app.route("/settings", methods=["GET", "POST"])
