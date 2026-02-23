@@ -25,13 +25,11 @@
     {% if show_costs and job_price_display is not none %}
       <p>{{ t('price_estimate') }}: <span class="price-amount" data-usd="{{ "%.6f"|format(job_price_display) }}">${{ "%.4f"|format(job_price_display) }}</span></p>
     {% endif %}
-    {% if job.message %}
-      <button type="button" class="secondary" id="toggle-summary" data-show="{{ t('show_processing_summary') }}" data-hide="{{ t('hide_processing_summary') }}">{{ t('show_processing_summary') }}</button>
-      <div id="processing-summary" class="hidden">
-        <h3>{{ t('processing_summary') }}</h3>
-        <pre>{{ job.message }}</pre>
-      </div>
-    {% endif %}
+    <button type="button" class="secondary" id="toggle-summary" data-show="{{ t('show_processing_summary') }}" data-hide="{{ t('hide_processing_summary') }}">{{ t('show_processing_summary') }}</button>
+    <div id="processing-summary" class="hidden">
+      <h3>{{ t('processing_summary') }}</h3>
+      <pre id="processing-summary-text">{{ job.message or t('job_progress_waiting') }}</pre>
+    </div>
     {% if job.status in ['QUEUED', 'RUNNING'] %}
       <form method="post" action="{{ url_for('terminate_job', job_id=job.id) }}">
         <button type="submit" class="secondary">{{ t('terminate_job') }}</button>
@@ -203,28 +201,27 @@
       <pre>{{ grade_result.raw_response }}</pre>
     {% endif %}
   </div>
-  {% if job.message %}
-    <script>
-      (function () {
-        var button = document.getElementById("toggle-summary");
-        var panel = document.getElementById("processing-summary");
-        if (!button || !panel) {
-          return;
-        }
-        button.addEventListener("click", function () {
-          var isHidden = panel.classList.contains("hidden");
-          panel.classList.toggle("hidden");
-          button.textContent = isHidden ? button.dataset.hide : button.dataset.show;
-        });
-      })();
-    </script>
-  {% endif %}
+  <script>
+    (function () {
+      var button = document.getElementById("toggle-summary");
+      var panel = document.getElementById("processing-summary");
+      if (!button || !panel) {
+        return;
+      }
+      button.addEventListener("click", function () {
+        var isHidden = panel.classList.contains("hidden");
+        panel.classList.toggle("hidden");
+        button.textContent = isHidden ? button.dataset.hide : button.dataset.show;
+      });
+    })();
+  </script>
   {% if auto_refresh %}
     <script>
       (function () {
         var statusUrl = "{{ url_for('job_status', job_id=job.id) }}";
         var statusEl = document.getElementById("job-status");
         var durationEl = document.getElementById("job-duration");
+        var summaryEl = document.getElementById("processing-summary-text");
         if (!statusEl || !durationEl) {
           return;
         }
@@ -241,6 +238,9 @@
               }
               if (data.duration_seconds !== null && data.duration_seconds !== undefined) {
                 durationEl.textContent = Number(data.duration_seconds).toFixed(2);
+              }
+              if (summaryEl && typeof data.message === "string") {
+                summaryEl.textContent = data.message || "{{ t('job_progress_waiting') }}";
               }
               if (data.status && data.status !== "QUEUED" && data.status !== "RUNNING") {
                 clearInterval(intervalId);

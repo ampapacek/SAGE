@@ -143,6 +143,22 @@ def _log_summary(job_id, summary_lines):
         logger.info("Job %s summary: %s", job_id, line)
 
 
+def _persist_progress(job_id, summary_lines, transient_line=None):
+    job = db.session.get(GradingJob, job_id)
+    if not job or job.status == JobStatus.CANCELLED:
+        return
+    lines = list(summary_lines)
+    if transient_line:
+        lines.append(transient_line)
+    job.message = "\n".join(lines)
+    db.session.commit()
+
+
+def _is_reasoning_model(model_name):
+    name = (model_name or "").strip().lower()
+    return name.startswith("gpt-5") or name.startswith("o")
+
+
 def _get_or_create_grade_result(submission_id, rubric_version_id):
     result = (
         GradeResult.query.filter_by(
@@ -202,6 +218,11 @@ def process_submission_job(job_id):
         summary_lines.append(f"Model: {job.llm_model or provider_cfg['default_model']}")
         json_mode_label = "on" if Config.LLM_USE_JSON_MODE else "off"
         summary_lines.append(f"JSON mode: {json_mode_label}")
+        if _is_reasoning_model(job.llm_model):
+            summary_lines.append(
+                "Reasoning progress is not streamed; showing stage and elapsed time while waiting."
+            )
+        _persist_progress(job_id, summary_lines, "Stage: analyzing submission files...")
         logger.info(
             "Job %s started for submission %s (assignment %s)",
             job_id,
@@ -341,6 +362,8 @@ def process_submission_job(job_id):
         additional_instructions = "\n".join(
             [text for text in [global_instructions, extra_instructions] if text]
         )
+        summary_lines.append("LLM request: started (waiting for provider response)...")
+        _persist_progress(job_id, summary_lines)
         llm_data, raw_response, usage, meta = grade_submission_and_raw(
             assignment.assignment_text,
             rubric.rubric_text,
@@ -356,6 +379,7 @@ def process_submission_job(job_id):
             max_tokens=Config.LLM_MAX_OUTPUT_TOKENS,
             timeout=Config.LLM_REQUEST_TIMEOUT,
         )
+        summary_lines.append("LLM request: completed.")
 
         valid, error = validate_grade_result(llm_data)
         if not valid:

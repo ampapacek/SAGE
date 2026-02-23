@@ -306,6 +306,7 @@ TRANSLATIONS = {
         "processing_summary": "Processing Summary",
         "show_processing_summary": "Show Processing Summary",
         "hide_processing_summary": "Hide Processing Summary",
+        "job_progress_waiting": "Waiting for progress updates...",
         "terminate_job": "Terminate Job",
         "delete_job": "Delete Job",
         "model_options": "Model options",
@@ -662,6 +663,7 @@ TRANSLATIONS = {
         "processing_summary": "Souhrn zpracování",
         "show_processing_summary": "Zobrazit souhrn",
         "hide_processing_summary": "Skrýt souhrn",
+        "job_progress_waiting": "Čeká se na průběžné informace...",
         "terminate_job": "Ukončit úlohu",
         "delete_job": "Smazat úlohu",
         "model_options": "Možnosti modelu",
@@ -3778,6 +3780,7 @@ def create_app():
             {
                 "status": job.status,
                 "duration_seconds": duration_seconds,
+                "message": job.message or "",
                 "started_at": job.started_at.isoformat() if job.started_at else None,
                 "finished_at": job.finished_at.isoformat() if job.finished_at else None,
             }
