@@ -4,31 +4,65 @@
   <div class="card">
     <h2>{{ t('prompt_templates') }}</h2>
     <p class="helper-text">{{ t('prompt_templates_helper') }}</p>
-    <p class="helper-text">{{ t('guide_prompt_template_focus') }}</p>
   </div>
 
-  {% for template in guide_templates %}
-    <form method="post" class="card">
-      <h3>{{ template.label }}</h3>
-      {% if template.description %}
-        <p class="helper-text">{{ template.description }}</p>
-      {% endif %}
-      {% if template.tokens %}
-        <p class="helper-text">{{ t('prompt_tokens_used') }}: {{ template.tokens | join(', ') }}</p>
-      {% endif %}
-      <label for="template_{{ template.key }}">Template</label>
-      <textarea
-        id="template_{{ template.key }}"
-        name="template_{{ template.key }}"
-        rows="14"
-      >{{ template.text }}</textarea>
-      <input type="hidden" name="template_key" value="{{ template.key }}" />
-      <div class="form-actions">
-        <button type="submit" name="action" value="save">{{ t('save_prompt_templates') }}</button>
-        <button type="submit" name="action" value="reset" class="secondary">{{ t('reset_prompt_template') }}</button>
-      </div>
-    </form>
-  {% endfor %}
+  <form method="post" class="card">
+    <h3>{{ t('grading_templates') }}</h3>
+    <p class="helper-text">{{ t('guide_templates_manage_helper') }}</p>
+    <p class="helper-text">{{ t('guide_templates_used_in_assignments') }}</p>
+    <p class="helper-text">{{ t('template_hint') }} {{ t('use_template') }}</p>
+    <input type="hidden" name="action" value="save_guide_template" />
+    <label for="guide_template_name">{{ t('template_name') }}</label>
+    <input
+      type="text"
+      id="guide_template_name"
+      name="guide_template_name"
+      required
+      placeholder="{{ t('template_name') }}"
+    />
+    <label for="guide_template_rubric_text">{{ t('guide_text') }}</label>
+    <textarea
+      id="guide_template_rubric_text"
+      name="guide_template_rubric_text"
+      rows="14"
+      required
+    ></textarea>
+    <button type="submit">{{ t('create_guide_template') }}</button>
+  </form>
+
+  {% if guide_templates %}
+    {% for guide_template in guide_templates %}
+      <form method="post" class="card">
+        <h3>{{ guide_template.name }}</h3>
+        <p class="helper-text">{{ t('created') }}: {{ guide_template.created_at.strftime('%b %d, %Y %H:%M') }}</p>
+        <input type="hidden" name="action" value="save_guide_template" />
+        <input type="hidden" name="guide_template_id" value="{{ guide_template.id }}" />
+        <label for="guide_template_name_{{ guide_template.id }}">{{ t('template_name') }}</label>
+        <input
+          type="text"
+          id="guide_template_name_{{ guide_template.id }}"
+          name="guide_template_name"
+          value="{{ guide_template.name }}"
+          required
+        />
+        <label for="guide_template_text_{{ guide_template.id }}">{{ t('guide_text') }}</label>
+        <textarea
+          id="guide_template_text_{{ guide_template.id }}"
+          name="guide_template_rubric_text"
+          rows="12"
+          required
+        >{{ guide_template.rubric_text }}</textarea>
+        <div class="form-actions">
+          <button type="submit">{{ t('save_guide_template_changes') }}</button>
+        </div>
+      </form>
+      <form method="post" class="card" style="margin-top: -10px;">
+        <input type="hidden" name="action" value="delete_guide_template" />
+        <input type="hidden" name="guide_template_id" value="{{ guide_template.id }}" />
+        <button type="submit" class="danger" onclick="return confirm('{{ t('delete_template_confirm') }}');">{{ t('delete_template') }}</button>
+      </form>
+    {% endfor %}
+  {% endif %}
 
   {% if advanced_templates %}
     <div class="card">
@@ -66,15 +100,16 @@
           </div>
         </form>
       {% endfor %}
+
+      <div class="card">
+        <form method="post">
+          <input type="hidden" name="action" value="reset_all" />
+          <button type="submit" class="danger">{{ t('reset_all_prompt_templates') }}</button>
+        </form>
+      </div>
     </div>
   {% endif %}
 
-  <div class="card">
-    <form method="post">
-      <input type="hidden" name="action" value="reset_all" />
-      <button type="submit" class="danger">{{ t('reset_all_prompt_templates') }}</button>
-    </form>
-  </div>
   <script>
     (function () {
       var toggle = document.getElementById("advanced-prompts-toggle");
