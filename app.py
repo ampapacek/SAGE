@@ -110,7 +110,7 @@ TRANSLATIONS = {
             "guide.md/txt and ref_solution.md/txt. Student files should use the same base name "
             "(e.g., Alice.txt + Alice.pdf)."
         ),
-        "assignments_import_button": "Import and grade all",
+        "assignments_import_button": "Import assignment and solution",
         "assignments_import_run_right_away": "Run grading right away",
         "assignments_import_run_right_away_hint": (
             "If enabled, generated/template guide and reference solution are auto-approved."
@@ -444,7 +444,7 @@ TRANSLATIONS = {
             "guide.md/txt a ref_solution.md/txt. Soubory studentů mají mít stejný základ názvu "
             "(např. Alice.txt + Alice.pdf)."
         ),
-        "assignments_import_button": "Importovat a spustit hodnocení",
+        "assignments_import_button": "Importovat úkol a řešení",
         "assignments_import_run_right_away": "Spustit hodnocení hned",
         "assignments_import_run_right_away_hint": (
             "Pokud zapnete, vygenerovaná/šablonová kritéria a referenční řešení se schválí automaticky."
