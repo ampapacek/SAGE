@@ -325,6 +325,12 @@ TRANSLATIONS = {
         "prompt_templates_helper": (
             "View and edit reusable system/user prompt templates used by grading and generation."
         ),
+        "guide_prompt_template_focus": (
+            "Main section for grading guide generation template. Other prompts are in advanced settings."
+        ),
+        "advanced_prompt_settings": "Advanced prompt settings",
+        "show_advanced_prompt_settings": "Show advanced prompt settings",
+        "hide_advanced_prompt_settings": "Hide advanced prompt settings",
         "save_prompt_templates": "Save Prompt Templates",
         "reset_prompt_template": "Reset Template",
         "reset_all_prompt_templates": "Reset All Templates",
@@ -675,6 +681,12 @@ TRANSLATIONS = {
         "prompt_templates_helper": (
             "Zobrazení a úprava opakovaně používaných systémových a uživatelských promptů."
         ),
+        "guide_prompt_template_focus": (
+            "Hlavní část pro šablonu generování kritérií hodnocení. Ostatní prompty jsou v pokročilém nastavení."
+        ),
+        "advanced_prompt_settings": "Pokročilé nastavení promptů",
+        "show_advanced_prompt_settings": "Zobrazit pokročilé nastavení promptů",
+        "hide_advanced_prompt_settings": "Skrýt pokročilé nastavení promptů",
         "save_prompt_templates": "Uložit šablony promptů",
         "reset_prompt_template": "Obnovit výchozí",
         "reset_all_prompt_templates": "Obnovit vše výchozí",
@@ -3794,6 +3806,12 @@ def create_app():
     def prompt_templates():
         templates = get_prompt_template_records()
         template_keys = {item["key"] for item in templates}
+        guide_templates = [
+            item for item in templates if item["key"] == "rubric_prompt_template"
+        ]
+        advanced_templates = [
+            item for item in templates if item["key"] != "rubric_prompt_template"
+        ]
 
         if request.method == "POST":
             action = (request.form.get("action") or "save").strip().lower()
@@ -3827,7 +3845,11 @@ def create_app():
                 flash("Invalid action.")
             return redirect(url_for("prompt_templates"))
 
-        return render_template("prompt_templates.html", prompt_templates=templates)
+        return render_template(
+            "prompt_templates.html",
+            guide_templates=guide_templates,
+            advanced_templates=advanced_templates,
+        )
 
     @app.route("/settings", methods=["GET", "POST"])
     def settings():

@@ -4,9 +4,10 @@
   <div class="card">
     <h2>{{ t('prompt_templates') }}</h2>
     <p class="helper-text">{{ t('prompt_templates_helper') }}</p>
+    <p class="helper-text">{{ t('guide_prompt_template_focus') }}</p>
   </div>
 
-  {% for template in prompt_templates %}
+  {% for template in guide_templates %}
     <form method="post" class="card">
       <h3>{{ template.label }}</h3>
       {% if template.description %}
@@ -29,10 +30,67 @@
     </form>
   {% endfor %}
 
+  {% if advanced_templates %}
+    <div class="card">
+      <button
+        id="advanced-prompts-toggle"
+        type="button"
+        class="secondary"
+        data-show-label="{{ t('show_advanced_prompt_settings') }}"
+        data-hide-label="{{ t('hide_advanced_prompt_settings') }}"
+      >
+        {{ t('show_advanced_prompt_settings') }}
+      </button>
+    </div>
+
+    <div id="advanced-prompts" class="hidden">
+      {% for template in advanced_templates %}
+        <form method="post" class="card">
+          <h3>{{ template.label }}</h3>
+          {% if template.description %}
+            <p class="helper-text">{{ template.description }}</p>
+          {% endif %}
+          {% if template.tokens %}
+            <p class="helper-text">{{ t('prompt_tokens_used') }}: {{ template.tokens | join(', ') }}</p>
+          {% endif %}
+          <label for="template_{{ template.key }}">Template</label>
+          <textarea
+            id="template_{{ template.key }}"
+            name="template_{{ template.key }}"
+            rows="14"
+          >{{ template.text }}</textarea>
+          <input type="hidden" name="template_key" value="{{ template.key }}" />
+          <div class="form-actions">
+            <button type="submit" name="action" value="save">{{ t('save_prompt_templates') }}</button>
+            <button type="submit" name="action" value="reset" class="secondary">{{ t('reset_prompt_template') }}</button>
+          </div>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="card">
     <form method="post">
       <input type="hidden" name="action" value="reset_all" />
       <button type="submit" class="danger">{{ t('reset_all_prompt_templates') }}</button>
     </form>
   </div>
+  <script>
+    (function () {
+      var toggle = document.getElementById("advanced-prompts-toggle");
+      var panel = document.getElementById("advanced-prompts");
+      if (!toggle || !panel) {
+        return;
+      }
+      function syncLabel() {
+        var hidden = panel.classList.contains("hidden");
+        toggle.textContent = hidden ? toggle.dataset.showLabel : toggle.dataset.hideLabel;
+      }
+      toggle.addEventListener("click", function () {
+        panel.classList.toggle("hidden");
+        syncLabel();
+      });
+      syncLabel();
+    })();
+  </script>
 {% endblock %}
