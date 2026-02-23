@@ -145,24 +145,26 @@
         <div class="dropzone-hint">{{ t('assignments_import_hint') }}</div>
         <label for="import_title">{{ t('title') }}</label>
         <input type="text" id="import_title" name="import_title" />
-        <label class="form-toggle">
-          <input type="checkbox" id="import_run_right_away" name="import_run_right_away" value="1" />
-          {{ t('assignments_import_run_right_away') }}
-        </label>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+          <label class="form-toggle">
+            <input type="checkbox" id="import_run_right_away" name="import_run_right_away" value="1" />
+            {{ t('assignments_import_run_right_away') }}
+          </label>
         <div class="helper-text">{{ t('assignments_import_run_right_away_hint') }}</div>
         <div class="helper-text">{{ t('assignments_import_wait_notice') }}</div>
-        <label class="form-toggle">
-          <input type="checkbox" id="import_use_template_guide" name="import_use_template_guide" value="1" />
-          {{ t('assignments_import_use_template') }}
-        </label>
-        <label class="form-toggle">
-          <input type="checkbox" id="import_manual_guide" name="import_manual_guide" value="1" />
-          {{ t('assignments_import_manual_guide') }}
-        </label>
-        <label class="form-toggle">
-          <input type="checkbox" id="import_manual_reference_solution" name="import_manual_reference_solution" value="1" />
-          {{ t('assignments_import_manual_reference') }}
-        </label>
+          <label class="form-toggle">
+            <input type="checkbox" id="import_use_template_guide" name="import_use_template_guide" value="1" />
+            {{ t('assignments_import_use_template') }}
+          </label>
+          <label class="form-toggle">
+            <input type="checkbox" id="import_manual_guide" name="import_manual_guide" value="1" />
+            {{ t('assignments_import_manual_guide') }}
+          </label>
+          <label class="form-toggle">
+            <input type="checkbox" id="import_manual_reference_solution" name="import_manual_reference_solution" value="1" />
+            {{ t('assignments_import_manual_reference') }}
+          </label>
+        </div>
         <div class="helper-text" id="import_manual_hint">{{ t('assignments_import_manual_hint') }}</div>
         <div id="import_template_wrap" class="hidden" style="margin-top: 10px;">
           <label for="import_template_id">{{ t('assignments_import_template_label') }}</label>
