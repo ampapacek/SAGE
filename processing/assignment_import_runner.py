@@ -274,13 +274,13 @@ def process_assignment_import(import_id):
             if not template:
                 raise ValueError("Selected template was not found.")
             guide_text = (template.rubric_text or "").strip()
-            reference_solution_text = (template.reference_solution_text or "").strip()
-            if not guide_text or not reference_solution_text:
-                raise ValueError("Selected template has empty guide or reference solution.")
+            if not guide_text:
+                raise ValueError("Selected template has empty grading guide.")
             has_guide_from_zip = False
-            _set_message(import_job, f"Using guide/reference from template '{template.name}'.")
-        elif not guide_text or not reference_solution_text:
-            _set_message(import_job, "Guide/reference missing. Generating draft guide...")
+            _set_message(import_job, f"Using grading guide from template '{template.name}'.")
+
+        if not guide_text or not reference_solution_text:
+            _set_message(import_job, "Guide/reference missing. Generating missing content...")
             draft_data, _usage, generated_raw_response, _meta = generate_rubric_draft(
                 assignment_text,
                 selected_model,
@@ -301,7 +301,9 @@ def process_assignment_import(import_id):
                     draft_data.get("reference_solution_text"),
                     "reference_solution_text",
                 )
-            _set_message(import_job, "Draft guide generated.")
+            _set_message(import_job, "Missing guide/reference content generated.")
+        elif import_job.use_template_guide:
+            _set_message(import_job, "Using guide from template and reference solution from ZIP.")
         else:
             _set_message(import_job, "Using guide and reference solution from ZIP.")
 

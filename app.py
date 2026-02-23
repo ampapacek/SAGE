@@ -119,12 +119,12 @@ TRANSLATIONS = {
         "assignments_import_button": "Import assignment and solution",
         "assignments_import_run_right_away": "Run grading right away",
         "assignments_import_run_right_away_hint": (
-            "If enabled, generated/template guide and reference solution are auto-approved."
+            "If enabled, the current guide (ZIP/template/generated) and reference solution are auto-approved."
         ),
         "assignments_import_wait_notice": (
             "If disabled, grading waits until you manually approve the grading guide."
         ),
-        "assignments_import_use_template": "Use template guide + reference solution",
+        "assignments_import_use_template": "Use template grading guide",
         "assignments_import_template_label": "Template",
         "assignments_import_template_none": "Choose template",
         "assignments_title": "Assignments",
@@ -487,12 +487,12 @@ TRANSLATIONS = {
         "assignments_import_button": "Importovat úkol a řešení",
         "assignments_import_run_right_away": "Spustit hodnocení hned",
         "assignments_import_run_right_away_hint": (
-            "Pokud zapnete, vygenerovaná/šablonová kritéria a referenční řešení se schválí automaticky."
+            "Pokud zapnete, aktuální kritéria (ZIP/šablona/generovaná) a referenční řešení se schválí automaticky."
         ),
         "assignments_import_wait_notice": (
             "Pokud je vypnuto, hodnocení počká na ruční schválení kritérií."
         ),
-        "assignments_import_use_template": "Použít šablonu kritérií + referenční řešení",
+        "assignments_import_use_template": "Použít šablonu kritérií hodnocení",
         "assignments_import_template_label": "Šablona",
         "assignments_import_template_none": "Vyberte šablonu",
         "assignments_title": "Úkoly",
