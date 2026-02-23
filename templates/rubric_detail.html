@@ -181,6 +181,7 @@
   {% endif %}
 
   <div class="card">
+    {% set formatted_checked = rubric.formatted_output if rubric.formatted_output is not none else formatted_output_default %}
     {% if rubric.status == 'DRAFT' %}
       <form method="post" action="{{ url_for('approve_rubric', rubric_id=rubric.id) }}">
         <button type="submit">{{ t('approve_guide') }}</button>
@@ -194,7 +195,6 @@
         <button type="submit" class="secondary">{{ t('cancel_generation') }}</button>
       </form>
     {% elif rubric.status == 'ERROR' %}
-      {% set formatted_checked = rubric.formatted_output if rubric.formatted_output is not none else formatted_output_default %}
       <form method="post" action="{{ url_for('rerun_rubric', rubric_id=rubric.id) }}">
         <label for="rubric_extra_instructions">{{ t('additional_instructions_label') }}</label>
         <textarea
@@ -220,6 +220,33 @@
       <p>{{ t('approved_guide_in_use') }}</p>
     {% else %}
       <p>{{ t('guide_not_ready') }}</p>
+    {% endif %}
+
+    {% if rubric.status != 'GENERATING' %}
+      <div class="section-divider"></div>
+      <h3>{{ t('regenerate_with_llm') }}</h3>
+      <form method="post" action="{{ url_for('regenerate_rubric_section', rubric_id=rubric.id) }}">
+        <label for="rubric_regen_extra_instructions">{{ t('additional_instructions_label') }}</label>
+        <textarea
+          id="rubric_regen_extra_instructions"
+          name="extra_instructions"
+          placeholder="{{ t('additional_instructions_hint') }}"
+        ></textarea>
+        <div class="form-actions">
+          <input type="hidden" name="formatted_output" value="0" />
+          <label class="form-toggle">
+            <input
+              type="checkbox"
+              name="formatted_output"
+              value="1"
+              {% if formatted_checked %}checked{% endif %}
+            />
+            {{ t('formatted_output_label') }}
+          </label>
+          <button type="submit" class="secondary" name="target" value="guide">{{ t('regenerate_guide_text') }}</button>
+          <button type="submit" class="secondary" name="target" value="reference">{{ t('regenerate_reference_solution') }}</button>
+        </div>
+      </form>
     {% endif %}
   </div>
   <script>

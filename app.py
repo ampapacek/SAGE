@@ -305,6 +305,10 @@ TRANSLATIONS = {
         "model_options": "Model options",
         "rerun_job": "Rerun Job",
         "rerun_guide": "Rerun Guide",
+        "regenerate_with_llm": "Regenerate with LLM",
+        "regenerate_guide_text": "Regenerate guide text",
+        "regenerate_reference_solution": "Regenerate reference solution",
+        "regenerate_queued": "Regeneration queued.",
         "raw_llm_response_error": "Raw LLM Response (Error)",
         "settings": "Settings",
         "settings_helper": "Edit values stored in .env. Some changes require a restart.",
@@ -639,6 +643,10 @@ TRANSLATIONS = {
         "model_options": "Možnosti modelu",
         "rerun_job": "Spustit znovu",
         "rerun_guide": "Zkusit znovu",
+        "regenerate_with_llm": "Znovu vygenerovat přes LLM",
+        "regenerate_guide_text": "Znovu vygenerovat kritéria",
+        "regenerate_reference_solution": "Znovu vygenerovat referenční řešení",
+        "regenerate_queued": "Regenerace byla zařazena do fronty.",
         "raw_llm_response_error": "Surová odpověď LLM (chyba)",
         "settings": "Nastavení",
         "settings_helper": "Upravte hodnoty v .env. Některé změny vyžadují restart.",
@@ -1971,6 +1979,13 @@ def _ensure_schema_updates():
                 text("ALTER TABLE rubric_version ADD COLUMN finished_at DATETIME")
             )
             db.session.commit()
+        if "regenerate_target" not in rubric_columns:
+            db.session.execute(
+                text(
+                    "ALTER TABLE rubric_version ADD COLUMN regenerate_target VARCHAR(20) DEFAULT 'both'"
+                )
+            )
+            db.session.commit()
         result = db.session.execute(text("PRAGMA table_info(assignment_import)"))
         import_columns = {row[1] for row in result.fetchall()}
         if "run_right_away" not in import_columns:
@@ -3034,6 +3049,7 @@ def create_app():
         rubric.reference_solution_text = ""
         rubric.formatted_output = formatted_output
         rubric.extra_instructions = extra_instructions
+        rubric.regenerate_target = "both"
         rubric.error_message = ""
         rubric.raw_response = ""
         rubric.prompt_tokens = None
@@ -3046,6 +3062,40 @@ def create_app():
 
         enqueue_rubric_job(rubric.id)
         flash("Grading guide generation rerun queued.")
+        return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+    @app.route("/rubrics/<int:rubric_id>/regenerate", methods=["POST"])
+    def regenerate_rubric_section(rubric_id):
+        rubric = RubricVersion.query.get_or_404(rubric_id)
+        if rubric.status == RubricStatus.GENERATING:
+            flash("Grading guide is already generating.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+        target = (request.form.get("target") or "").strip().lower()
+        if target not in {"guide", "reference"}:
+            flash("Invalid regeneration target.")
+            return redirect(url_for("rubric_detail", rubric_id=rubric.id))
+
+        formatted_output = _resolve_formatted_output(
+            request.form, app.config.get("LLM_FORMATTED_OUTPUT", False)
+        )
+        extra_instructions = _resolve_extra_instructions(request.form)
+        rubric.status = RubricStatus.GENERATING
+        rubric.formatted_output = formatted_output
+        rubric.extra_instructions = extra_instructions
+        rubric.regenerate_target = target
+        rubric.error_message = ""
+        rubric.raw_response = ""
+        rubric.prompt_tokens = None
+        rubric.completion_tokens = None
+        rubric.total_tokens = None
+        rubric.price_estimate = None
+        rubric.created_at = _utcnow()
+        rubric.finished_at = None
+        db.session.commit()
+
+        enqueue_rubric_job(rubric.id)
+        flash(t("regenerate_queued"))
         return redirect(url_for("rubric_detail", rubric_id=rubric.id))
 
     @app.route("/rubrics/<int:rubric_id>/save_template", methods=["POST"])

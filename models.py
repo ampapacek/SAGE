@@ -48,6 +48,7 @@ class RubricVersion(db.Model):
     extra_instructions = db.Column(db.Text, default="", nullable=False)
     error_message = db.Column(db.Text, default="", nullable=False)
     raw_response = db.Column(db.Text, default="", nullable=False)
+    regenerate_target = db.Column(db.String(20), default="both", nullable=False)
     prompt_tokens = db.Column(db.Integer)
     completion_tokens = db.Column(db.Integer)
     total_tokens = db.Column(db.Integer)

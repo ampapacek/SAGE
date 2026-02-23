@@ -79,6 +79,9 @@ def process_rubric_generation(rubric_id):
     provider_key = rubric.llm_provider or Config.LLM_PROVIDER
     provider_cfg = _provider_config(provider_key)
     model = rubric.llm_model or provider_cfg["default_model"]
+    regenerate_target = (rubric.regenerate_target or "both").strip().lower()
+    if regenerate_target not in {"both", "guide", "reference"}:
+        regenerate_target = "both"
     formatted_output = rubric.formatted_output
     if formatted_output is None:
         formatted_output = Config.LLM_FORMATTED_OUTPUT
@@ -103,17 +106,32 @@ def process_rubric_generation(rubric_id):
         db.session.refresh(rubric)
         if rubric.status == RubricStatus.CANCELLED:
             return
-        rubric.rubric_text = _normalize_text(
+        generated_rubric_text = _normalize_text(
             data.get("rubric_text", ""), "rubric_text"
         )
-        rubric.reference_solution_text = _normalize_text(
+        generated_reference_text = _normalize_text(
             data.get("reference_solution_text", ""), "reference_solution_text"
         )
-        if not rubric.rubric_text or not rubric.reference_solution_text:
-            raise ValueError(
-                "Draft response missing grading guide or reference solution text "
-                "(rubric_text/reference_solution_text)."
-            )
+        if regenerate_target == "guide":
+            if not generated_rubric_text:
+                raise ValueError("Draft response missing rubric_text.")
+            rubric.rubric_text = generated_rubric_text
+            if not rubric.reference_solution_text and generated_reference_text:
+                rubric.reference_solution_text = generated_reference_text
+        elif regenerate_target == "reference":
+            if not generated_reference_text:
+                raise ValueError("Draft response missing reference_solution_text.")
+            rubric.reference_solution_text = generated_reference_text
+            if not rubric.rubric_text and generated_rubric_text:
+                rubric.rubric_text = generated_rubric_text
+        else:
+            rubric.rubric_text = generated_rubric_text
+            rubric.reference_solution_text = generated_reference_text
+            if not rubric.rubric_text or not rubric.reference_solution_text:
+                raise ValueError(
+                    "Draft response missing grading guide or reference solution text "
+                    "(rubric_text/reference_solution_text)."
+                )
         prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
         completion_tokens = int(usage.get("completion_tokens", 0) or 0)
         total_tokens = int(usage.get("total_tokens", prompt_tokens + completion_tokens) or 0)
@@ -131,6 +149,7 @@ def process_rubric_generation(rubric_id):
         rubric.total_tokens = total_tokens
         rubric.price_estimate = price_estimate
         rubric.status = RubricStatus.DRAFT
+        rubric.regenerate_target = "both"
         rubric.error_message = ""
         rubric.raw_response = raw_text
         rubric.finished_at = _utcnow()
