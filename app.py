@@ -240,6 +240,18 @@ TRANSLATIONS = {
         "save_template": "Save as template",
         "use_template": "Use template",
         "create_guide_from_template": "Load template into form",
+        "template_editor_select_hint": (
+            "Select a template to load editable guide text. "
+            "Use it for this assignment only, or save as a new template."
+        ),
+        "template_editor_label": "Template guide text (editable)",
+        "template_editor_hint": (
+            "Editing here does not modify the stored template unless you save it as a new template."
+        ),
+        "template_editor_use_for_assignment": "Use for this assignment",
+        "template_editor_save_new": "Save as new template",
+        "template_editor_save_hint": "Default behavior: use it only for this assignment.",
+        "template_editor_name_placeholder": "e.g., Probability midterm variant",
         "template_list": "Templates",
         "edit_template": "Edit template",
         "delete_template": "Delete template",
@@ -623,6 +635,18 @@ TRANSLATIONS = {
         "save_template": "Uložit jako šablonu",
         "use_template": "Použít šablonu",
         "create_guide_from_template": "Načíst šablonu do formuláře",
+        "template_editor_select_hint": (
+            "Vyberte šablonu a načtěte upravitelný text kritérií. "
+            "Můžete ji použít jen pro tento úkol, nebo uložit jako novou šablonu."
+        ),
+        "template_editor_label": "Text kritérií ze šablony (upravitelný)",
+        "template_editor_hint": (
+            "Úpravy zde nemění původní šablonu, pokud je výslovně neuložíte jako novou."
+        ),
+        "template_editor_use_for_assignment": "Použít pro tento úkol",
+        "template_editor_save_new": "Uložit jako novou šablonu",
+        "template_editor_save_hint": "Výchozí chování: použije se jen pro tento úkol.",
+        "template_editor_name_placeholder": "např. Varianta pro průběžný test",
         "template_list": "Šablony",
         "edit_template": "Upravit šablonu",
         "delete_template": "Smazat šablonu",
@@ -3280,6 +3304,27 @@ def create_app():
         db.session.add(rubric)
         db.session.commit()
         flash("Grading guide created from template.")
+        return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+
+    @app.route("/assignments/<int:assignment_id>/templates/save", methods=["POST"])
+    def save_template_from_assignment(assignment_id):
+        Assignment.query.get_or_404(assignment_id)
+        template_name = (request.form.get("template_name") or "").strip()
+        rubric_text = (request.form.get("rubric_text") or "").strip()
+        if not template_name:
+            flash(t("guide_template_name_required"))
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+        if not rubric_text:
+            flash(t("guide_template_text_required"))
+            return redirect(url_for("assignment_detail", assignment_id=assignment_id))
+        template = GradingTemplate(
+            name=template_name[:255],
+            rubric_text=rubric_text,
+            reference_solution_text="",
+        )
+        db.session.add(template)
+        db.session.commit()
+        flash(t("guide_template_saved"))
         return redirect(url_for("assignment_detail", assignment_id=assignment_id))
 
     @app.route("/templates/<int:template_id>.json")
