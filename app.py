@@ -322,7 +322,7 @@ TRANSLATIONS = {
         "save_settings": "Save Settings",
         "restart_required": "Restart required.",
         "prompt_templates": "Prompt Templates",
-        "prompt_templates_nav_short": "PT",
+        "prompt_templates_nav_short": "Templates",
         "prompt_templates_helper": (
             "View and edit reusable system/user prompt templates used by grading and generation."
         ),
@@ -690,7 +690,7 @@ TRANSLATIONS = {
         "save_settings": "Uložit nastavení",
         "restart_required": "Vyžaduje restart.",
         "prompt_templates": "Šablony promptů",
-        "prompt_templates_nav_short": "PT",
+        "prompt_templates_nav_short": "Šablony",
         "prompt_templates_helper": (
             "Zobrazení a úprava opakovaně používaných systémových a uživatelských promptů."
         ),

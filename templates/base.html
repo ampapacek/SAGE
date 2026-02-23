@@ -134,7 +134,16 @@
       .icon-link { width: 46px; height: 46px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--header-text); background: rgba(255, 255, 255, 0.08); padding: 0; overflow: hidden; cursor: pointer; }
       .icon-link img { width: 34px; height: 34px; display: block; transform: scale(2.4); transform-origin: center; }
       .icon-link:hover { background: rgba(255, 255, 255, 0.16); }
-      .icon-link.text-icon { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; }
+      .icon-link.text-icon {
+        width: auto;
+        min-width: 46px;
+        padding: 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
       .nav-buttons { display: flex; gap: 12px; align-items: center; }
       main { max-width: 1300px; margin: 20px auto; padding: 0 20px 40px; }
